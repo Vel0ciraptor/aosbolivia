@@ -85,6 +85,7 @@ model Request {
   vehicle Vehicle? @relation(fields: [vehicleId], references: [id])
   quotes  Quote[]
   messages Message[]
+  jobs    WorkshopJob[]
 
   @@map("requests")
 }
@@ -183,6 +184,7 @@ model Workshop {
   user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   services WorkshopService[]
   quotes   Quote[]
+  jobs     WorkshopJob[]
 
   @@map("workshops")
 }
@@ -198,6 +200,44 @@ model WorkshopService {
   workshop Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
 
   @@map("workshop_services")
+}
+
+// ─────────────────────────────────────────────
+// WORKSHOP JOBS (CRM - Vehículos en el taller)
+// ─────────────────────────────────────────────
+
+model WorkshopJob {
+  id              String          @id @default(cuid())
+  workshopId      String
+  requestId       String?
+  marca           String
+  modelo          String
+  anio            Int
+  placa           String?
+  problema        String
+  clienteNombre   String
+  clienteTelefono String?
+  estado          String          @default("INGRESANDO")
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  workshop Workshop       @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  request  Request?       @relation(fields: [requestId], references: [id])
+  logs     WorkshopJobLog[]
+
+  @@map("workshop_jobs")
+}
+
+model WorkshopJobLog {
+  id            String   @id @default(cuid())
+  jobId         String
+  estado        String
+  observaciones String?
+  createdAt     DateTime @default(now())
+
+  job WorkshopJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("workshop_job_logs")
 }
 
 // ─────────────────────────────────────────────

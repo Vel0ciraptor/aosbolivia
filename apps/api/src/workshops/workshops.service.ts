@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateWorkshopDto } from './dto/update-workshop.dto';
 import { CreateWorkshopServiceDto, UpdateWorkshopServiceDto } from './dto/workshop-service.dto';
+import { CreateWorkshopJobDto, UpdateWorkshopJobDto, UpdateJobStatusDto } from './dto/workshop-job.dto';
 
 @Injectable()
 export class WorkshopsService {
@@ -22,10 +23,12 @@ export class WorkshopsService {
   }
 
   async findByUserId(userId: string) {
-    return this.prisma.workshop.findUnique({
+    const workshop = await this.prisma.workshop.findUnique({
       where: { userId },
       include: { services: { orderBy: { createdAt: 'desc' } } },
     });
+    if (!workshop) throw new NotFoundException('Taller no encontrado');
+    return workshop;
   }
 
   async update(userId: string, dto: UpdateWorkshopDto) {
@@ -85,6 +88,154 @@ export class WorkshopsService {
       throw new ForbiddenException('No tiene permiso para eliminar este servicio');
     }
     return this.prisma.workshopService.delete({ where: { id: serviceId } });
+  }
+
+  // ─────────────────────────────────────────────
+  // CRM - Workshop Jobs
+  // ─────────────────────────────────────────────
+
+  async findJobs(workshopId: string, estado?: string) {
+    const where: any = { workshopId };
+    if (estado) where.estado = estado;
+    return this.prisma.workshopJob.findMany({
+      where,
+      include: { logs: { orderBy: { createdAt: 'desc' }, take: 1 } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async findJobById(workshopId: string, jobId: string) {
+    const job = await this.prisma.workshopJob.findUnique({
+      where: { id: jobId },
+      include: { logs: { orderBy: { createdAt: 'desc' } }, request: true },
+    });
+    if (!job) throw new NotFoundException('Vehículo no encontrado');
+    if (job.workshopId !== workshopId) {
+      throw new ForbiddenException('No tiene permiso para ver este registro');
+    }
+    return job;
+  }
+
+  async createJob(workshopId: string, dto: CreateWorkshopJobDto) {
+    const job = await this.prisma.workshopJob.create({
+      data: {
+        workshopId,
+        marca: dto.marca,
+        modelo: dto.modelo,
+        anio: dto.anio,
+        placa: dto.placa,
+        problema: dto.problema,
+        clienteNombre: dto.clienteNombre,
+        clienteTelefono: dto.clienteTelefono,
+        requestId: dto.requestId,
+        estado: 'INGRESANDO',
+      },
+    });
+
+    await this.prisma.workshopJobLog.create({
+      data: {
+        jobId: job.id,
+        estado: 'INGRESANDO',
+        observaciones: 'Vehículo registrado en el taller',
+      },
+    });
+
+    return job;
+  }
+
+  async createJobFromRequest(workshopId: string, requestId: string) {
+    const request = await this.prisma.request.findUnique({
+      where: { id: requestId },
+      include: { vehicle: true, user: true },
+    });
+    if (!request) throw new NotFoundException('Solicitud no encontrada');
+
+    const existing = await this.prisma.workshopJob.findFirst({
+      where: { workshopId, requestId },
+    });
+    if (existing) throw new BadRequestException('Esta solicitud ya tiene un registro en el CRM');
+
+    const aiParsed = request.aiParsed as any;
+    const job = await this.prisma.workshopJob.create({
+      data: {
+        workshopId,
+        requestId,
+        marca: request.vehicle?.marca || aiParsed?.marca || 'No especificado',
+        modelo: request.vehicle?.modelo || aiParsed?.modelo || 'No especificado',
+        anio: request.vehicle?.anio || aiParsed?.anio || new Date().getFullYear(),
+        problema: request.descripcion,
+        clienteNombre: request.user.name,
+        clienteTelefono: request.user.phone,
+        estado: 'INGRESANDO',
+      },
+    });
+
+    await this.prisma.workshopJobLog.create({
+      data: {
+        jobId: job.id,
+        estado: 'INGRESANDO',
+        observaciones: `Creado desde solicitud: ${request.titulo}`,
+      },
+    });
+
+    return job;
+  }
+
+  async updateJob(workshopId: string, jobId: string, dto: UpdateWorkshopJobDto) {
+    const job = await this.prisma.workshopJob.findUnique({ where: { id: jobId } });
+    if (!job) throw new NotFoundException('Vehículo no encontrado');
+    if (job.workshopId !== workshopId) {
+      throw new ForbiddenException('No tiene permiso para modificar este registro');
+    }
+    return this.prisma.workshopJob.update({
+      where: { id: jobId },
+      data: dto,
+    });
+  }
+
+  async updateJobStatus(workshopId: string, jobId: string, dto: UpdateJobStatusDto) {
+    const job = await this.prisma.workshopJob.findUnique({ where: { id: jobId } });
+    if (!job) throw new NotFoundException('Vehículo no encontrado');
+    if (job.workshopId !== workshopId) {
+      throw new ForbiddenException('No tiene permiso para modificar este registro');
+    }
+
+    const [updatedJob] = await this.prisma.$transaction([
+      this.prisma.workshopJob.update({
+        where: { id: jobId },
+        data: { estado: dto.estado },
+      }),
+      this.prisma.workshopJobLog.create({
+        data: {
+          jobId,
+          estado: dto.estado,
+          observaciones: dto.observaciones,
+        },
+      }),
+    ]);
+
+    return updatedJob;
+  }
+
+  async removeJob(workshopId: string, jobId: string) {
+    const job = await this.prisma.workshopJob.findUnique({ where: { id: jobId } });
+    if (!job) throw new NotFoundException('Vehículo no encontrado');
+    if (job.workshopId !== workshopId) {
+      throw new ForbiddenException('No tiene permiso para eliminar este registro');
+    }
+    return this.prisma.workshopJob.delete({ where: { id: jobId } });
+  }
+
+  async findJobLogs(workshopId: string, jobId: string) {
+    const job = await this.prisma.workshopJob.findUnique({ where: { id: jobId } });
+    if (!job) throw new NotFoundException('Vehículo no encontrado');
+    if (job.workshopId !== workshopId) {
+      throw new ForbiddenException('No tiene permiso para ver este registro');
+    }
+    return this.prisma.workshopJobLog.findMany({
+      where: { jobId },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   private haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {

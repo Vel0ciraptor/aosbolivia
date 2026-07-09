@@ -46,7 +46,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (profileError && profileError.code === 'PGRST116') {
         const { data: newProfile, error: insertError } = await insforge.database.from('profiles').insert([{
           id: data.user.id,
-          name: data.user.name || 'Usuario',
+          name: data.user.profile?.name || 'Usuario',
           role: 'CLIENT',
         }]).select().single();
         
@@ -156,7 +156,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (profileError && profileError.code === 'PGRST116') {
         const { data: newProfile, error: insertError } = await insforge.database.from('profiles').insert([{
           id: data.user.id,
-          name: data.user.name || 'Usuario',
+          name: data.user.profile?.name || 'Usuario',
           role: 'CLIENT',
         }]).select().single();
         

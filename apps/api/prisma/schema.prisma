@@ -1,0 +1,243 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// USERS
+// ─────────────────────────────────────────────
+
+model User {
+  id        String     @id @default(cuid())
+  name      String
+  email     String     @unique
+  phone     String?
+  password  String?
+  role      String     @default("CLIENT")
+  status    String     @default("ACTIVE")
+  avatarUrl String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  vehicles  Vehicle[]
+  requests  Request[]
+  messages  Message[]
+
+  // Proveedor de repuestos (si role = PROVIDER)
+  provider  Provider?
+
+  // Taller (si role = WORKSHOP)
+  workshop  Workshop?
+
+  // Grúa (si role = TOW_SERVICE)
+  towService TowService?
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// VEHICLES
+// ─────────────────────────────────────────────
+
+model Vehicle {
+  id          String   @id @default(cuid())
+  userId      String
+  marca       String
+  modelo      String
+  anio        Int
+  motor       String?
+  combustible String?
+  placa       String?
+  vin         String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requests Request[]
+
+  @@map("vehicles")
+}
+
+// ─────────────────────────────────────────────
+// REQUESTS
+// ─────────────────────────────────────────────
+
+model Request {
+  id              String          @id @default(cuid())
+  userId          String
+  vehicleId       String?
+  categoria       String
+  titulo          String
+  descripcion     String
+  aiParsed        Json?           // resultado del parser IA mock
+  estado          String          @default("OPEN")
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle Vehicle? @relation(fields: [vehicleId], references: [id])
+  quotes  Quote[]
+  messages Message[]
+
+  @@map("requests")
+}
+
+// ─────────────────────────────────────────────
+// PROVIDERS (Empresas de Repuestos)
+// ─────────────────────────────────────────────
+
+model Provider {
+  id        String         @id @default(cuid())
+  userId    String         @unique
+  nombre    String
+  telefono  String
+  email     String
+  direccion String
+  latitud   Float
+  longitud  Float
+  estado    String         @default("ACTIVE")
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parts  Part[]
+  quotes Quote[]
+
+  @@map("providers")
+}
+
+// ─────────────────────────────────────────────
+// PARTS (Catálogo de Repuestos)
+// ─────────────────────────────────────────────
+
+model Part {
+  id          String         @id @default(cuid())
+  providerId  String
+  nombre      String
+  descripcion String?
+  marca       String
+  modelo      String
+  anioDesde   Int
+  anioHasta   Int
+  precio      Decimal
+  stock       Int            @default(0)
+  imageUrl    String?
+  estado      String         @default("ACTIVE")
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@map("parts")
+}
+
+// ─────────────────────────────────────────────
+// QUOTES (Cotizaciones)
+// ─────────────────────────────────────────────
+
+model Quote {
+  id            String      @id @default(cuid())
+  requestId     String
+  providerId    String?
+  workshopId    String?
+  precio        Decimal
+  comentario    String?
+  tiempoEntrega String?
+  estado        String      @default("PENDING")
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  request   Request   @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  provider  Provider? @relation(fields: [providerId], references: [id])
+  workshop  Workshop? @relation(fields: [workshopId], references: [id])
+
+  @@map("quotes")
+}
+
+// ─────────────────────────────────────────────
+// WORKSHOPS (Talleres)
+// ─────────────────────────────────────────────
+
+model Workshop {
+  id          String         @id @default(cuid())
+  userId      String         @unique
+  nombre      String
+  descripcion String?
+  telefono    String
+  direccion   String
+  latitud     Float
+  longitud    Float
+  horario     Json?
+  estado      String         @default("ACTIVE")
+  imageUrl    String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  services WorkshopService[]
+  quotes   Quote[]
+
+  @@map("workshops")
+}
+
+model WorkshopService {
+  id                String   @id @default(cuid())
+  workshopId        String
+  nombre            String
+  descripcion       String?
+  precioReferencial Decimal?
+  createdAt         DateTime @default(now())
+
+  workshop Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+
+  @@map("workshop_services")
+}
+
+// ─────────────────────────────────────────────
+// TOW SERVICES (Grúas)
+// ─────────────────────────────────────────────
+
+model TowService {
+  id        String         @id @default(cuid())
+  userId    String         @unique
+  nombre    String
+  telefono  String
+  direccion String
+  latitud   Float
+  longitud  Float
+  costoBase Decimal
+  costoKm   Decimal
+  cobertura Float          // radio en km
+  estado    String         @default("ACTIVE")
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("tow_services")
+}
+
+// ─────────────────────────────────────────────
+// MESSAGES (Chat interno de solicitudes)
+// ─────────────────────────────────────────────
+
+model Message {
+  id        String   @id @default(cuid())
+  requestId String
+  senderId  String
+  message   String
+  isAI      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  sender  User    @relation(fields: [senderId], references: [id])
+
+  @@map("messages")
+}

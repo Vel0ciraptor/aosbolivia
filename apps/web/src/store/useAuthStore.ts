@@ -15,7 +15,7 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   login: (credentials: any) => Promise<User>;
-  register: (data: any) => Promise<User>;
+  register: (data: any) => Promise<User | null>; // Returns null if email confirmation is required
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
 }
@@ -38,13 +38,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (!data.user) throw new Error('No user returned');
 
       // Fetch profile
-      const { data: profileData, error: profileError } = await insforge
+      let { data: profileData, error: profileError } = await insforge
         .from('profiles')
         .select('*')
         .eq('id', data.user.id)
         .single();
 
-      if (profileError) throw profileError;
+      if (profileError && profileError.code === 'PGRST116') {
+        // Profile doesn't exist, create it from metadata
+        const { data: newProfile, error: insertError } = await insforge.from('profiles').insert([{
+          id: data.user.id,
+          name: data.user.user_metadata?.name || 'Usuario',
+          role: data.user.user_metadata?.role || 'CLIENT',
+          phone: data.user.user_metadata?.phone || null,
+        }]).select().single();
+        
+        if (insertError) throw insertError;
+        profileData = newProfile;
+      } else if (profileError) {
+        throw profileError;
+      }
 
       const user: User = {
         id: data.user.id,
@@ -73,26 +86,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { data: authData, error: authError } = await insforge.auth.signUp({
         email: data.email,
         password: data.password,
+        options: {
+          data: {
+            name: data.name,
+            role: data.role,
+            phone: data.phone || null,
+          }
+        }
       });
 
       if (authError) throw authError;
-      if (!authData.user) throw new Error('No user returned');
+      
+      // If session is null, email confirmation is required.
+      if (!authData.session) {
+        set({ isLoading: false });
+        return null; 
+      }
 
-      // Insert profile
-      const { error: profileError } = await insforge.from('profiles').insert([
-        {
-          id: authData.user.id,
-          name: data.name,
-          role: data.role,
-          phone: data.phone || null,
-        },
-      ]);
-
-      if (profileError) throw profileError;
-
+      // If somehow session is returned immediately (email confirmation off):
+      // The trigger has already created the profile, so we just fetch it or use the data we have.
       const user: User = {
-        id: authData.user.id,
-        email: authData.user.email!,
+        id: authData.user!.id,
+        email: authData.user!.email!,
         name: data.name,
         role: data.role,
         phone: data.phone,
@@ -127,11 +142,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
       if (session?.user) {
         // Fetch profile
-        const { data: profileData } = await insforge
+        let { data: profileData, error: profileError } = await insforge
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
           .single();
+
+        if (profileError && profileError.code === 'PGRST116') {
+          // Profile doesn't exist, create it from metadata
+          const { data: newProfile, error: insertError } = await insforge.from('profiles').insert([{
+            id: session.user.id,
+            name: session.user.user_metadata?.name || 'Usuario',
+            role: session.user.user_metadata?.role || 'CLIENT',
+            phone: session.user.user_metadata?.phone || null,
+          }]).select().single();
+          
+          if (!insertError) profileData = newProfile;
+        }
 
         if (profileData) {
           const user: User = {

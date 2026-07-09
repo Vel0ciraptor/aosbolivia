@@ -1,3 +1,4 @@
+-- 1. Create Profiles Table
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
@@ -7,8 +8,13 @@ CREATE TABLE IF NOT EXISTS profiles (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Row Level Security
+-- 2. Row Level Security
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+-- Remove old policies to avoid duplicates
+DROP POLICY IF EXISTS "Users can read own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can insert own profile" ON profiles;
 
 CREATE POLICY "Users can read own profile"
   ON profiles FOR SELECT USING (auth.uid() = id);
@@ -18,3 +24,4 @@ CREATE POLICY "Users can update own profile"
 
 CREATE POLICY "Users can insert own profile"
   ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+

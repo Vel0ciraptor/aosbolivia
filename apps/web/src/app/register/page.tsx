@@ -13,6 +13,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'CLIENT' | 'PROVIDER' | 'WORKSHOP' | 'TOW_SERVICE'>('CLIENT');
   const [formError, setFormError] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const { register, isLoading, error, isAuthenticated, checkAuth } = useAuthStore();
   const router = useRouter();
@@ -42,13 +43,18 @@ export default function RegisterPage() {
     }
 
     try {
-      await register({
+      const user = await register({
         name,
         email,
         phone: phone || undefined,
         password,
         role,
       });
+
+      if (!user) {
+        // user is null when email confirmation is required
+        setIsSuccess(true);
+      }
     } catch (err: any) {
       // Error handled by store
     }
@@ -99,13 +105,35 @@ export default function RegisterPage() {
             <Car className="w-6 h-6 text-zinc-950 font-bold" />
           </div>
           <h2 className="text-3xl font-extrabold bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
-            Crea tu Cuenta
+            {isSuccess ? '¡Revisa tu correo!' : 'Crea tu Cuenta'}
           </h2>
-          <p className="text-sm text-zinc-500 mt-1">Únete a la red de servicios automotrices RepuestoIA</p>
+          <p className="text-sm text-zinc-500 mt-1">
+            {isSuccess 
+              ? 'Te hemos enviado un enlace para verificar tu cuenta' 
+              : 'Únete a la red de servicios automotrices RepuestoIA'}
+          </p>
         </div>
 
-        {/* Errors */}
-        {(formError || error) && (
+        {isSuccess ? (
+          <div className="text-center space-y-6">
+            <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <Mail className="w-8 h-8 text-emerald-400" />
+            </div>
+            <p className="text-zinc-300">
+              Hemos enviado un correo a <span className="font-bold text-white">{email}</span>. 
+              Haz clic en el enlace para confirmar tu registro e iniciar sesión.
+            </p>
+            <Link
+              href="/login"
+              className="inline-flex py-3 px-6 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-bold rounded-2xl transition-all border border-zinc-800"
+            >
+              Ir a Iniciar Sesión
+            </Link>
+          </div>
+        ) : (
+          <>
+            {/* Errors */}
+            {(formError || error) && (
           <div className="mb-6 p-4 bg-red-950/30 border border-red-800/50 rounded-2xl flex items-start gap-3 text-red-200 text-sm">
             <AlertCircle className="w-5 h-5 shrink-0 text-red-400 mt-0.5" />
             <span>{formError || error}</span>
@@ -226,13 +254,15 @@ export default function RegisterPage() {
           </button>
         </form>
 
-        {/* Footer */}
-        <div className="mt-8 text-center text-sm text-zinc-500">
-          ¿Ya tienes una cuenta?{' '}
-          <Link href="/login" className="text-emerald-400 hover:text-emerald-300 font-semibold transition-colors">
-            Inicia sesión aquí
-          </Link>
-        </div>
+            {/* Footer */}
+            <div className="mt-8 text-center text-sm text-zinc-500">
+              ¿Ya tienes una cuenta?{' '}
+              <Link href="/login" className="text-emerald-400 hover:text-emerald-300 font-semibold transition-colors">
+                Inicia sesión aquí
+              </Link>
+            </div>
+          </>
+        )}
 
       </div>
     </div>

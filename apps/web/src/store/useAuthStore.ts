@@ -37,7 +37,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (error) throw error;
       if (!data.user) throw new Error('No user returned');
 
-      // Fetch profile
       let { data: profileData, error: profileError } = await insforge.database
         .from('profiles')
         .select('*')
@@ -45,12 +44,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         .single();
 
       if (profileError && profileError.code === 'PGRST116') {
-        // Profile doesn't exist, create it from metadata
         const { data: newProfile, error: insertError } = await insforge.database.from('profiles').insert([{
           id: data.user.id,
-          name: data.user.user_metadata?.name || 'Usuario',
-          role: data.user.user_metadata?.role || 'CLIENT',
-          phone: data.user.user_metadata?.phone || null,
+          name: data.user.name || 'Usuario',
+          role: 'CLIENT',
         }]).select().single();
         
         if (insertError) throw insertError;
@@ -87,18 +84,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         email: data.email,
         password: data.password,
         name: data.name,
-        redirectTo: `${window.location.origin}/login`,
       });
 
       if (authError) throw authError;
       
-      // If session is null, email confirmation is required.
-      if (!authData.session) {
+      if (!authData.accessToken) {
         set({ isLoading: false });
         return null; 
       }
 
-      // If session is returned immediately (email confirmation off), create profile in DB
       const { error: profileError } = await insforge.database.from('profiles').insert([{
         id: authData.user!.id,
         name: data.name,
@@ -107,7 +101,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }]);
 
       if (profileError && profileError.code !== '23505') {
-        // Ignore duplicate key (profile already exists), throw any other error
         throw profileError;
       }
 
@@ -144,46 +137,44 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   checkAuth: async () => {
     if (typeof window === 'undefined') return;
     try {
-      const { data: { session } } = await insforge.auth.getSession();
+      const { data, error } = await insforge.auth.getCurrentUser();
       
-      if (session?.user) {
-        // Fetch profile
-        let { data: profileData, error: profileError } = await insforge.database
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
-        if (profileError && profileError.code === 'PGRST116') {
-          // Profile doesn't exist, create it from metadata
-          const { data: newProfile, error: insertError } = await insforge.database.from('profiles').insert([{
-            id: session.user.id,
-            name: session.user.user_metadata?.name || 'Usuario',
-            role: session.user.user_metadata?.role || 'CLIENT',
-            phone: session.user.user_metadata?.phone || null,
-          }]).select().single();
-          
-          if (!insertError) profileData = newProfile;
-        }
-
-        if (profileData) {
-          const user: User = {
-            id: session.user.id,
-            email: session.user.email!,
-            name: profileData.name,
-            role: profileData.role,
-            phone: profileData.phone,
-          };
-
-          set({
-            user,
-            isAuthenticated: true,
-          });
-        }
-      } else {
+      if (error || !data.user) {
         set({
           user: null,
           isAuthenticated: false,
+        });
+        return;
+      }
+
+      let { data: profileData, error: profileError } = await insforge.database
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileError && profileError.code === 'PGRST116') {
+        const { data: newProfile, error: insertError } = await insforge.database.from('profiles').insert([{
+          id: data.user.id,
+          name: data.user.name || 'Usuario',
+          role: 'CLIENT',
+        }]).select().single();
+        
+        if (!insertError) profileData = newProfile;
+      }
+
+      if (profileData) {
+        const user: User = {
+          id: data.user.id,
+          email: data.user.email!,
+          name: profileData.name,
+          role: profileData.role,
+          phone: profileData.phone,
+        };
+
+        set({
+          user,
+          isAuthenticated: true,
         });
       }
     } catch (error) {

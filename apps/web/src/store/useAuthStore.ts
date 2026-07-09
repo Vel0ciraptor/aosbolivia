@@ -38,7 +38,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (!data.user) throw new Error('No user returned');
 
       // Fetch profile
-      let { data: profileData, error: profileError } = await insforge
+      let { data: profileData, error: profileError } = await insforge.database
         .from('profiles')
         .select('*')
         .eq('id', data.user.id)
@@ -46,7 +46,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (profileError && profileError.code === 'PGRST116') {
         // Profile doesn't exist, create it from metadata
-        const { data: newProfile, error: insertError } = await insforge.from('profiles').insert([{
+        const { data: newProfile, error: insertError } = await insforge.database.from('profiles').insert([{
           id: data.user.id,
           name: data.user.user_metadata?.name || 'Usuario',
           role: data.user.user_metadata?.role || 'CLIENT',
@@ -142,7 +142,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
       if (session?.user) {
         // Fetch profile
-        let { data: profileData, error: profileError } = await insforge
+        let { data: profileData, error: profileError } = await insforge.database
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
@@ -150,7 +150,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
         if (profileError && profileError.code === 'PGRST116') {
           // Profile doesn't exist, create it from metadata
-          const { data: newProfile, error: insertError } = await insforge.from('profiles').insert([{
+          const { data: newProfile, error: insertError } = await insforge.database.from('profiles').insert([{
             id: session.user.id,
             name: session.user.user_metadata?.name || 'Usuario',
             role: session.user.user_metadata?.role || 'CLIENT',

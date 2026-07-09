@@ -86,13 +86,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { data: authData, error: authError } = await insforge.auth.signUp({
         email: data.email,
         password: data.password,
-        options: {
-          data: {
-            name: data.name,
-            role: data.role,
-            phone: data.phone || null,
-          }
-        }
+        name: data.name,
+        redirectTo: `${window.location.origin}/login`,
       });
 
       if (authError) throw authError;
@@ -103,8 +98,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return null; 
       }
 
-      // If somehow session is returned immediately (email confirmation off):
-      // The trigger has already created the profile, so we just fetch it or use the data we have.
+      // If session is returned immediately (email confirmation off), create profile in DB
+      const { error: profileError } = await insforge.database.from('profiles').insert([{
+        id: authData.user!.id,
+        name: data.name,
+        role: data.role,
+        phone: data.phone || null,
+      }]);
+
+      if (profileError && profileError.code !== '23505') {
+        // Ignore duplicate key (profile already exists), throw any other error
+        throw profileError;
+      }
+
       const user: User = {
         id: authData.user!.id,
         email: authData.user!.email!,

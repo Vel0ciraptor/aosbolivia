@@ -10,6 +10,15 @@ cd /app/apps/api
 node dist/main &
 API_PID=$!
 
+echo "==> Waiting for API to be ready..."
+for i in $(seq 1 30); do
+  if wget -q --spider http://localhost:3004/api 2>/dev/null; then
+    echo "==> API is ready!"
+    break
+  fi
+  sleep 1
+done
+
 echo "==> Starting Web on port 3003..."
 cd /app
 PORT=3003 node server.js &

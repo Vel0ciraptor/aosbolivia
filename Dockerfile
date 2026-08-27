@@ -44,6 +44,7 @@ COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=builder /app/apps/api/package.json ./apps/api/
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
+RUN mkdir -p /app/apps/api/uploads/workshop-images
 
 # Web (standalone)
 COPY --from=builder /app/apps/web/.next/standalone ./

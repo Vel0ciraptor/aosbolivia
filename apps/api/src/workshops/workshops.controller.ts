@@ -1,9 +1,17 @@
-import { Controller, Get, Put, Patch, Post, Delete, Param, Query, Body, UseGuards, Req } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { Controller, Get, Put, Patch, Post, Delete, Param, Query, Body, UseGuards, Req, Res, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { Response } from 'express';
 import { WorkshopsService } from './workshops.service';
 import { UpdateWorkshopDto } from './dto/update-workshop.dto';
 import { CreateWorkshopServiceDto, UpdateWorkshopServiceDto } from './dto/workshop-service.dto';
-import { CreateWorkshopJobDto, UpdateWorkshopJobDto, UpdateJobStatusDto } from './dto/workshop-job.dto';
+import {
+  CreateWorkshopJobDto, UpdateWorkshopJobDto, UpdateJobStatusDto,
+  BulkUpdateCheckpointsDto, CreatePartNeedDto,
+} from './dto/workshop-job.dto';
+import { CreateInventoryItemDto, UpdateInventoryItemDto } from './dto/inventory.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Workshops')
@@ -53,6 +61,8 @@ export class WorkshopsController {
     return this.workshopsService.removeService(req.user.workshopId, id);
   }
 
+  // ─── CRM Jobs ───
+
   @Get('me/jobs')
   @ApiOperation({ summary: 'Listar vehículos en CRM del taller' })
   listMyJobs(@Req() req: any, @Query('estado') estado?: string) {
@@ -100,6 +110,112 @@ export class WorkshopsController {
   getMyJobLogs(@Req() req: any, @Param('id') id: string) {
     return this.workshopsService.findJobLogs(req.user.workshopId, id);
   }
+
+  // ─── Checkpoints ───
+
+  @Get('me/jobs/:id/checkpoints')
+  @ApiOperation({ summary: 'Obtener checkpoints del check inicial' })
+  getCheckpoints(@Req() req: any, @Param('id') id: string) {
+    return this.workshopsService.findCheckpoints(req.user.workshopId, id);
+  }
+
+  @Put('me/jobs/:id/checkpoints')
+  @ApiOperation({ summary: 'Actualizar checkpoints del check inicial' })
+  updateCheckpoints(@Req() req: any, @Param('id') id: string, @Body() dto: BulkUpdateCheckpointsDto) {
+    return this.workshopsService.bulkUpdateCheckpoints(req.user.workshopId, id, dto);
+  }
+
+  // ─── Part Needs ───
+
+  @Get('me/jobs/:id/parts-needed')
+  @ApiOperation({ summary: 'Piezas/insumos necesarios' })
+  getPartNeeds(@Req() req: any, @Param('id') id: string) {
+    return this.workshopsService.findPartNeeds(req.user.workshopId, id);
+  }
+
+  @Post('me/jobs/:id/parts-needed')
+  @ApiOperation({ summary: 'Agregar pieza/insumo necesario' })
+  createPartNeed(@Req() req: any, @Param('id') id: string, @Body() dto: CreatePartNeedDto) {
+    return this.workshopsService.createPartNeed(req.user.workshopId, id, dto);
+  }
+
+  @Delete('me/jobs/:id/parts-needed/:pnId')
+  @ApiOperation({ summary: 'Quitar pieza/insumo' })
+  removePartNeed(@Req() req: any, @Param('id') id: string, @Param('pnId') pnId: string) {
+    return this.workshopsService.removePartNeed(req.user.workshopId, id, pnId);
+  }
+
+  @Patch('me/jobs/:id/parts-needed/:pnId/use')
+  @ApiOperation({ summary: 'Usar pieza/insumo y descontar del inventario' })
+  usePartNeed(@Req() req: any, @Param('id') id: string, @Param('pnId') pnId: string) {
+    return this.workshopsService.usePartNeed(req.user.workshopId, id, pnId);
+  }
+
+  // ─── Inventory ───
+
+  @Get('me/inventory')
+  @ApiOperation({ summary: 'Listar inventario del taller' })
+  listInventory(@Req() req: any, @Query('categoria') categoria?: string) {
+    return this.workshopsService.findInventory(req.user.workshopId, categoria);
+  }
+
+  @Post('me/inventory')
+  @ApiOperation({ summary: 'Crear item de inventario' })
+  createInventory(@Req() req: any, @Body() dto: CreateInventoryItemDto) {
+    return this.workshopsService.createInventoryItem(req.user.workshopId, dto);
+  }
+
+  @Put('me/inventory/:id')
+  @ApiOperation({ summary: 'Actualizar item de inventario' })
+  updateInventory(@Req() req: any, @Param('id') id: string, @Body() dto: UpdateInventoryItemDto) {
+    return this.workshopsService.updateInventoryItem(req.user.workshopId, id, dto);
+  }
+
+  @Delete('me/inventory/:id')
+  @ApiOperation({ summary: 'Eliminar item de inventario' })
+  removeInventory(@Req() req: any, @Param('id') id: string) {
+    return this.workshopsService.removeInventoryItem(req.user.workshopId, id);
+  }
+
+  // ─── Upload & PDF ───
+
+  @Post('me/jobs/:id/images')
+  @UseInterceptors(FileInterceptor('file', {
+    storage: diskStorage({
+      destination: './uploads/workshop-images',
+      filename: (_req, file, cb) => {
+        const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${extname(file.originalname)}`;
+        cb(null, uniqueName);
+      },
+    }),
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+      if (!file.mimetype.match(/\/(jpg|jpeg|png|gif|webp)$/)) {
+        cb(new Error('Solo se permiten imágenes'), false);
+      } else {
+        cb(null, true);
+      }
+    },
+  }))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Subir imagen de vehículo' })
+  uploadImage(@Req() req: any, @Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+    return this.workshopsService.uploadJobImage(req.user.workshopId, id, file);
+  }
+
+  @Get('me/jobs/:id/pdf')
+  @ApiOperation({ summary: 'Generar PDF del reporte' })
+  async downloadPdf(@Req() req: any, @Param('id') id: string, @Res() res: Response) {
+    const pdfBuffer = await this.workshopsService.generateJobPdf(req.user.workshopId, id);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="reporte-taller-${id}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+    res.end(pdfBuffer);
+  }
+
+  // ─── Otros ───
 
   @Get('nearby')
   @ApiOperation({ summary: 'Talleres cercanos' })

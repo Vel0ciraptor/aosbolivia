@@ -185,6 +185,7 @@ model Workshop {
   services WorkshopService[]
   quotes   Quote[]
   jobs     WorkshopJob[]
+  inventory InventoryItem[]
 
   @@map("workshops")
 }
@@ -207,23 +208,29 @@ model WorkshopService {
 // ─────────────────────────────────────────────
 
 model WorkshopJob {
-  id              String          @id @default(cuid())
-  workshopId      String
-  requestId       String?
-  marca           String
-  modelo          String
-  anio            Int
-  placa           String?
-  problema        String
-  clienteNombre   String
-  clienteTelefono String?
-  estado          String          @default("INGRESANDO")
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id                String          @id @default(cuid())
+  workshopId        String
+  requestId         String?
+  marca             String
+  modelo            String
+  anio              Int
+  placa             String?
+  kilometraje       Int?
+  problema          String
+  clienteNombre     String
+  clienteTelefono   String?
+  estado            String          @default("INGRESANDO")
+  firmaDigital      String?
+  imagenes          Json?
+  imagenesTerminado Json?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
-  workshop Workshop       @relation(fields: [workshopId], references: [id], onDelete: Cascade)
-  request  Request?       @relation(fields: [requestId], references: [id])
-  logs     WorkshopJobLog[]
+  workshop   Workshop         @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  request    Request?         @relation(fields: [requestId], references: [id])
+  logs       WorkshopJobLog[]
+  checkpoints JobCheckpoint[]
+  partNeeds  JobPartNeed[]
 
   @@map("workshop_jobs")
 }
@@ -238,6 +245,64 @@ model WorkshopJobLog {
   job WorkshopJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@map("workshop_job_logs")
+}
+
+// ─────────────────────────────────────────────
+// JOB CHECKPOINTS (Check Inicial)
+// ─────────────────────────────────────────────
+
+model JobCheckpoint {
+  id       String   @id @default(cuid())
+  jobId    String
+  servicio String
+  checked  Boolean  @default(false)
+  notas    String?
+
+  job WorkshopJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("job_checkpoints")
+}
+
+// ─────────────────────────────────────────────
+// JOB PART NEEDS (Piezas/Insumos necesarios)
+// ─────────────────────────────────────────────
+
+model JobPartNeed {
+  id              String   @id @default(cuid())
+  jobId           String
+  inventoryItemId String?
+  nombre          String
+  cantidad        Int      @default(1)
+  esInsumo        Boolean  @default(false)
+  yaUsado         Boolean  @default(false)
+
+  job           WorkshopJob    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  inventoryItem InventoryItem? @relation(fields: [inventoryItemId], references: [id])
+
+  @@map("job_part_needs")
+}
+
+// ─────────────────────────────────────────────
+// INVENTORY (Inventario del taller)
+// ─────────────────────────────────────────────
+
+model InventoryItem {
+  id             String   @id @default(cuid())
+  workshopId     String
+  nombre         String
+  descripcion    String?
+  categoria      String
+  stock          Int      @default(0)
+  precioUnitario Decimal  @default(0)
+  unidad         String   @default("unidad")
+  estado         String   @default("ACTIVE")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  workshop   Workshop      @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  partNeeds  JobPartNeed[]
+
+  @@map("inventory_items")
 }
 
 // ─────────────────────────────────────────────

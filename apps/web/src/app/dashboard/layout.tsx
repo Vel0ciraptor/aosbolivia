@@ -6,7 +6,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import {
   Car, Settings, Wrench, Truck, LogOut, LayoutDashboard,
   MessageSquareCode, FileText, ClipboardList, PlusCircle,
-  Menu, X, User as UserIcon, Bell, Shield, Users, Store
+  Menu, X, User as UserIcon, Bell, Shield, Users, Store, Package
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -74,6 +74,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { name: 'Solicitudes', href: '/dashboard/workshop/requests', icon: ClipboardList },
         { name: 'Mis Cotizaciones', href: '/dashboard/workshop/quotes', icon: MessageSquareCode },
         { name: 'Servicios', href: '/dashboard/workshop/services', icon: Wrench },
+        { name: 'Inventario', href: '/dashboard/workshop/inventory', icon: Package },
         { name: 'Perfil del Taller', href: '/dashboard/workshop/profile', icon: FileText }
       ];
     }

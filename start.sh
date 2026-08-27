@@ -6,11 +6,12 @@ cd /app/apps/api
 npx prisma migrate deploy --schema=./prisma/schema.prisma || echo "Migration warning (continuing...)"
 
 echo "==> Starting API on port 3004..."
+cd /app/apps/api
 node dist/main &
 API_PID=$!
 
 echo "==> Starting Web on port 3003..."
-cd /app/apps/web
+cd /app
 PORT=3003 node server.js &
 WEB_PID=$!
 

@@ -31,13 +31,12 @@ services:
     depends_on:
       - postgres
 
-  api:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
-    container_name: repuestoia_api
+  app:
+    build: .
+    container_name: repuestoia_app
     restart: unless-stopped
     ports:
+      - "3003:3003"
       - "3004:3004"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-repuestoia}:${POSTGRES_PASSWORD:-R3pU3st01A_s3cr3t_2024!}@postgres:5432/${POSTGRES_DB:-repuestoia_dev}?schema=public
@@ -49,24 +48,12 @@ services:
       NODE_ENV: production
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3003}
       APP_URL: ${APP_URL:-http://localhost:3004}
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  web:
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
-    container_name: repuestoia_web
-    restart: unless-stopped
-    ports:
-      - "3003:3003"
-    environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3004/api}
       NEXT_PUBLIC_INSFORGE_URL: ${NEXT_PUBLIC_INSFORGE_URL:-https://389836id.us-east.insforge.app}
       NEXT_PUBLIC_INSFORGE_ANON_KEY: ${NEXT_PUBLIC_INSFORGE_ANON_KEY:-ik_82c6d672ca94de47c3cce12d93fb9378}
     depends_on:
-      - api
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres_data:

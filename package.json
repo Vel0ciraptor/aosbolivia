@@ -12,7 +12,8 @@
     "db:generate": "pnpm --filter api prisma generate",
     "db:migrate": "pnpm --filter api prisma migrate dev",
     "db:studio": "pnpm --filter api prisma studio",
-    "db:seed": "pnpm --filter api prisma db seed"
+    "db:seed": "pnpm --filter api prisma db seed",
+    "start": "sh start.sh"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

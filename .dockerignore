@@ -22,3 +22,5 @@ coverage
 Thumbs.db
 README.md
 AGENTS.md
+packages
+pnpm-workspace.yaml

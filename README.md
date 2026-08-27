@@ -141,14 +141,14 @@ cd aosbolivia
 
 ### 2. Configurar servicios en Dokploy
 
-En el dashboard de Dokploy, crear **2 servicios Docker**:
+En el dashboard de Dokploy, crear **1 servicio Docker**:
 
-#### Servicio: API
+#### Servicio: App (Web + API)
 
 - **Tipo**: Dockerfile
-- **Build Context**: `apps/api`
+- **Build Context**: `/aosbolivia` (raiz del repo)
 - **Dockerfile**: `Dockerfile`
-- **Puerto**: 3004
+- **Puertos**: 3003 y 3004
 - **Variables de entorno**:
   ```
   DATABASE_URL=postgresql://repuestoia:TU_PASSWORD@TU_HOST:5432/repuestoia_dev?schema=public
@@ -159,20 +159,8 @@ En el dashboard de Dokploy, crear **2 servicios Docker**:
   PORT=3004
   NODE_ENV=production
   FRONTEND_URL=https://tudominio.com
-  APP_URL=https://tu-api-domain.com
-  ```
-
-#### Servicio: Web
-
-- **Tipo**: Dockerfile
-- **Build Context**: `apps/web`
-- **Dockerfile**: `Dockerfile`
-- **Puerto**: 3003
-- **Variables de entorno**:
-  ```
-  NEXT_PUBLIC_API_URL=https://tu-api-domain.com/api
-  NEXT_PUBLIC_INSFORGE_URL=https://389836id.us-east.insforge.app
-  NEXT_PUBLIC_INSFORGE_ANON_KEY=ik_82c6d672ca94de47c3cce12d93fb9378
+  APP_URL=https://tudominio.com
+  NEXT_PUBLIC_API_URL=https://tudominio.com/api
   ```
 
 ### 3. Configurar PostgreSQL en Dokploy
@@ -187,51 +175,19 @@ En Dokploy, crear un servicio de **PostgreSQL**:
   POSTGRES_DB=repuestoia_dev
   ```
 
-### 4. Ejecutar migraciones
-
-Una vez desplegado el servicio API:
-
-```bash
-# Acceder al contenedor del API
-docker exec -it repuestoia_api sh
-
-# Ejecutar migraciones
-npx prisma migrate deploy
-npx prisma db seed
-```
-
-### 5. Variables de Entorno para Produccion
+### 4. Variables de Entorno para Produccion
 
 Cambia `.env.docker` como `.env` y ajusta:
 
 ```bash
 # Cambia por tu dominio o IP del VPS
 FRONTEND_URL=https://tudominio.com
-NEXT_PUBLIC_API_URL=https://tu-api-domain.com/api
+NEXT_PUBLIC_API_URL=https://tudominio.com/api
 
-# Cambia las contraseñas por seguras
+# Cambia las contrasenas por seguras
 POSTGRES_PASSWORD=tu_password_seguro
 JWT_SECRET=tu_jwt_secret_seguro
 PGADMIN_PASSWORD=tu_pgadmin_password
 ```
 
----
-
-## Despliegue con Docker Compose (alternativa)
-
-```bash
-# Clonar el repo
-git clone https://github.com/Vel0ciraptor/aosbolivia.git
-cd aosbolivia
-
-# Configurar variables de entorno
-cp .env.docker .env
-# Editar .env con tus valores de produccion
-
-# Levantar servicios
-docker compose up -d --build
-
-# Ejecutar migraciones
-docker compose exec api npx prisma migrate deploy
-docker compose exec api npx prisma db seed
-```
+Las migraciones se ejecutan automaticamente al iniciar el contenedor.

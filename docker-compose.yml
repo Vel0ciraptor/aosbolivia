@@ -49,8 +49,6 @@ services:
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3003}
       APP_URL: ${APP_URL:-http://localhost:3004}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3004/api}
-      NEXT_PUBLIC_INSFORGE_URL: ${NEXT_PUBLIC_INSFORGE_URL:-https://389836id.us-east.insforge.app}
-      NEXT_PUBLIC_INSFORGE_ANON_KEY: ${NEXT_PUBLIC_INSFORGE_ANON_KEY:-ik_82c6d672ca94de47c3cce12d93fb9378}
     depends_on:
       postgres:
         condition: service_healthy

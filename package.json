@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Plataforma Integral de Servicios Automotrices",
   "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
     "dev:web": "pnpm --filter web dev",
     "dev:api": "pnpm --filter api start:dev",
@@ -14,17 +17,6 @@
     "db:studio": "pnpm --filter api prisma studio",
     "db:seed": "pnpm --filter api prisma db seed",
     "start": "sh start.sh"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@nestjs/core",
-      "@prisma/client",
-      "@prisma/engines",
-      "bcrypt",
-      "prisma",
-      "sharp",
-      "unrs-resolver"
-    ]
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

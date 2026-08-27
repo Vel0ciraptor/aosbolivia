@@ -9,7 +9,7 @@ RUN npm install -g pnpm
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/api/package.json ./apps/api/
 COPY apps/web/package.json ./apps/web/
-RUN pnpm install --frozen-lockfile
+RUN pnpm install
 
 # ── Stage 2: Construir API + Web ───────────────
 FROM base AS builder

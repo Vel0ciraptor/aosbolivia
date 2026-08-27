@@ -4,7 +4,7 @@ WORKDIR /app
 
 # ── Stage 1: Instalar dependencias ─────────────
 FROM base AS deps
-RUN npm install -g pnpm
+RUN npm install -g pnpm@9
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/api/package.json ./apps/api/
@@ -13,7 +13,7 @@ RUN pnpm install
 
 # ── Stage 2: Construir API + Web ───────────────
 FROM base AS builder
-RUN npm install -g pnpm
+RUN npm install -g pnpm@9
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules

@@ -128,14 +128,6 @@ export class UpdateCheckpointDto {
   notas?: string;
 }
 
-export class BulkUpdateCheckpointsDto {
-  @ApiProperty({ type: [CheckpointItemDto] })
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => CheckpointItemDto)
-  checkpoints: CheckpointItemDto[];
-}
-
 export class CheckpointItemDto {
   @ApiProperty()
   @IsString()
@@ -149,6 +141,14 @@ export class CheckpointItemDto {
   @IsOptional()
   @IsString()
   notas?: string;
+}
+
+export class BulkUpdateCheckpointsDto {
+  @ApiProperty({ type: [CheckpointItemDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CheckpointItemDto)
+  checkpoints: CheckpointItemDto[];
 }
 
 export class CreatePartNeedDto {

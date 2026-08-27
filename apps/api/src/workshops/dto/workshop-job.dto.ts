@@ -2,7 +2,7 @@ import { IsString, IsNumber, IsOptional, IsIn, Min, IsBoolean, IsArray, Validate
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
-const VALID_STATES = ['INGRESANDO', 'CHECK_INICIAL', 'TRABAJANDO', 'TERMINADO', 'SALIDA'];
+const VALID_STATES = ['INGRESANDO', 'CHECK_INICIAL', 'TRABAJANDO', 'TERMINADO', 'SALIDA', 'FINALIZADO'];
 
 export class CreateWorkshopJobDto {
   @ApiProperty()

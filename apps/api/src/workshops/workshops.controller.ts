@@ -203,16 +203,12 @@ export class WorkshopsController {
     return this.workshopsService.uploadJobImage(req.user.workshopId, id, file);
   }
 
-  @Get('me/jobs/:id/pdf')
-  @ApiOperation({ summary: 'Generar PDF del reporte' })
-  async downloadPdf(@Req() req: any, @Param('id') id: string, @Res() res: Response) {
-    const pdfBuffer = await this.workshopsService.generateJobPdf(req.user.workshopId, id);
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="reporte-taller-${id}.pdf"`,
-      'Content-Length': pdfBuffer.length,
-    });
-    res.end(pdfBuffer);
+  @Get('me/jobs/:id/report')
+  @ApiOperation({ summary: 'Generar reporte HTML del vehículo' })
+  async downloadReport(@Req() req: any, @Param('id') id: string, @Res() res: Response) {
+    const html = await this.workshopsService.generateJobReport(req.user.workshopId, id);
+    res.set({ 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(html);
   }
 
   // ─── Otros ───

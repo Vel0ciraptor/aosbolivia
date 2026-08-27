@@ -72,14 +72,15 @@ const EMPTY_FORM: JobFormData = {
   problema: '', clienteNombre: '', clienteTelefono: '',
 };
 
-const STATUS_FLOW = ['INGRESANDO', 'CHECK_INICIAL', 'TRABAJANDO', 'TERMINADO', 'SALIDA'];
+const STATUS_FLOW = ['INGRESANDO', 'CHECK_INICIAL', 'TRABAJANDO', 'TERMINADO', 'SALIDA', 'FINALIZADO'];
 
 const STATUS_META: Record<string, { label: string; icon: any; color: string; bg: string; next?: string }> = {
   INGRESANDO: { label: 'Ingresando', icon: Car, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20', next: 'CHECK_INICIAL' },
   CHECK_INICIAL: { label: 'Check Inicial', icon: Search, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20', next: 'TRABAJANDO' },
   TRABAJANDO: { label: 'Trabajando', icon: Wrench, color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20', next: 'TERMINADO' },
   TERMINADO: { label: 'Terminado', icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20', next: 'SALIDA' },
-  SALIDA: { label: 'Salida', icon: ArrowRight, color: 'text-zinc-400', bg: 'bg-zinc-500/10 border-zinc-500/20' },
+  SALIDA: { label: 'Salida', icon: ArrowRight, color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/20', next: 'FINALIZADO' },
+  FINALIZADO: { label: 'Finalizado', icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
 };
 
 export default function WorkshopCrmPage() {
@@ -311,13 +312,14 @@ export default function WorkshopCrmPage() {
 
   const handleDownloadPdf = async (jobId: string) => {
     try {
-      const res = await api.get(`/workshops/me/jobs/${jobId}/pdf`, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
-      const a = document.createElement('a');
-      a.href = url; a.download = `reporte-taller-${jobId}.pdf`;
-      document.body.appendChild(a); a.click(); a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (err: any) { alert('No se pudo generar el PDF.'); }
+      const res = await api.get(`/workshops/me/jobs/${jobId}/report`);
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(res.data);
+        printWindow.document.close();
+        setTimeout(() => printWindow.print(), 500);
+      }
+    } catch (err: any) { alert('No se pudo generar el reporte.'); }
   };
 
   const fetchInventory = async () => {

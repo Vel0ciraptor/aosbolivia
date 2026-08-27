@@ -447,10 +447,10 @@ export class WorkshopsService {
   }
 
   // ─────────────────────────────────────────────
-  // PDF GENERATION (HTML template)
+  // REPORT GENERATION (HTML)
   // ─────────────────────────────────────────────
 
-  async generateJobPdf(workshopId: string, jobId: string): Promise<Buffer> {
+  async generateJobReport(workshopId: string, jobId: string): Promise<string> {
     const job = await this.prisma.workshopJob.findUnique({
       where: { id: jobId },
       include: {
@@ -496,10 +496,12 @@ export class WorkshopsService {
       `<img src="${url}" style="width:150px;height:150px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;" />`
     ).join('');
 
-    const html = `
+    return `
     <!DOCTYPE html>
     <html>
-    <head><meta charset="utf-8" /></head>
+    <head><meta charset="utf-8"><title>Reporte - ${job.marca} ${job.modelo}</title>
+    <style>@media print { body { margin: 0; } }</style>
+    </head>
     <body style="font-family:system-ui,-apple-system,sans-serif;margin:0;padding:40px;color:#1f2937;">
       <div style="max-width:800px;margin:0 auto;">
         <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #10b981;padding-bottom:16px;margin-bottom:24px;">
@@ -543,8 +545,7 @@ export class WorkshopsService {
             </tr></thead>
             <tbody>${checkpoints}</tbody>
           </table>
-        </div>
-        ` : ''}
+        </div>` : ''}
 
         ${job.partNeeds && job.partNeeds.length > 0 ? `
         <div style="margin-bottom:24px;">
@@ -558,8 +559,7 @@ export class WorkshopsService {
             </tr></thead>
             <tbody>${partNeeds}</tbody>
           </table>
-        </div>
-        ` : ''}
+        </div>` : ''}
 
         <div style="margin-bottom:24px;">
           <h2 style="font-size:16px;font-weight:700;margin:0 0 12px 0;color:#111827;">Historial de Estados</h2>
@@ -573,8 +573,7 @@ export class WorkshopsService {
         <div style="margin-bottom:24px;">
           <h2 style="font-size:16px;font-weight:700;margin:0 0 12px 0;color:#111827;">Firma del Cliente</h2>
           <img src="${job.firmaDigital}" style="height:80px;border:1px solid #e5e7eb;border-radius:8px;padding:8px;background:white;" />
-        </div>
-        ` : ''}
+        </div>` : ''}
 
         <div style="border-top:2px solid #e5e7eb;padding-top:16px;margin-top:24px;text-align:center;">
           <p style="font-size:11px;color:#9ca3af;margin:0;">Documento generado por RepuestoIA — ${new Date().toLocaleString('es-VE')}</p>
@@ -582,23 +581,5 @@ export class WorkshopsService {
       </div>
     </body>
     </html>`;
-
-    let puppeteer: any;
-    try {
-      puppeteer = require('puppeteer');
-    } catch {
-      throw new BadRequestException('Puppeteer no está instalado. Instale la dependencia.');
-    }
-
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
-    const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true, margin: { top: '20px', bottom: '20px', left: '20px', right: '20px' } });
-    await browser.close();
-
-    return Buffer.from(pdfBuffer);
   }
 }

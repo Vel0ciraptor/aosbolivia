@@ -3,9 +3,6 @@
   "version": "1.0.0",
   "description": "Plataforma Integral de Servicios Automotrices",
   "private": true,
-  "workspaces": [
-    "apps/*"
-  ],
   "scripts": {
     "dev:web": "pnpm --filter web dev",
     "dev:api": "pnpm --filter api start:dev",

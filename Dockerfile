@@ -4,16 +4,20 @@ WORKDIR /app
 
 # ── Stage 1: Instalar dependencias ─────────────
 FROM base AS deps
+RUN npm install -g pnpm
 
-COPY package.json package-lock.json* ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/api/package.json ./apps/api/
 COPY apps/web/package.json ./apps/web/
-RUN npm install
+RUN pnpm install
 
 # ── Stage 2: Construir API + Web ───────────────
 FROM base AS builder
+RUN npm install -g pnpm
 
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 
 COPY apps/api/ ./apps/api/
 COPY apps/web/ ./apps/web/
@@ -22,11 +26,11 @@ COPY package.json ./
 # Build API
 WORKDIR /app/apps/api
 RUN npx prisma generate
-RUN npm run build
+RUN pnpm run build
 
 # Build Web
 WORKDIR /app/apps/web
-RUN npm run build
+RUN pnpm run build
 
 # ── Stage 3: Produccion ────────────────────────
 FROM base AS runner

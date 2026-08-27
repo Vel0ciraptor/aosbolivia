@@ -8,8 +8,8 @@
 
 | Capa | Tecnología |
 |------|-----------|
-| Frontend | Next.js 15 + React 19 + TypeScript |
-| Estilos | TailwindCSS v4 + ShadCN/UI |
+| Frontend | Next.js 16 + React 19 + TypeScript |
+| Estilos | TailwindCSS v4 |
 | Backend | NestJS 11 + TypeScript |
 | Base de datos | PostgreSQL 16 + Prisma ORM |
 | Contenedores | Docker + Docker Compose |
@@ -20,60 +20,65 @@
 
 - Node.js 20+
 - Docker Desktop ([Descargar aquí](https://www.docker.com/products/docker-desktop/))
-- npm o pnpm
+- pnpm
 
 ---
 
 ## Instalación y Configuración
 
-### 1. Clonar / abrir el proyecto
+### 1. Clonar el proyecto
 
 ```bash
-cd RepuestoIA
+git clone https://github.com/Vel0ciraptor/aosbolivia.git
+cd aosbolivia
 ```
 
-### 2. Instalar Docker Desktop
-
-Descarga e instala Docker Desktop desde: https://www.docker.com/products/docker-desktop/
-
-Reinicia tu equipo si es necesario.
-
-### 3. Levantar la base de datos
+### 2. Levantar con Docker (Recomendado)
 
 ```bash
+cp .env.docker .env
 docker compose up -d
 ```
 
 Esto inicia:
-- **PostgreSQL 16** en `localhost:5432`
-- **pgAdmin** en `http://localhost:5050` (admin@repuestoia.com / admin123)
+- **Frontend** en `http://localhost:3003`
+- **API** en `http://localhost:3001`
+- **PostgreSQL** en `localhost:5432`
+- **pgAdmin** en `http://localhost:5050`
 
-### 4. Configurar el Backend
+### 3. Configurar la Base de Datos
 
 ```bash
 cd apps/api
+npx prisma migrate dev --name init
+npx prisma db seed
 ```
 
-El archivo `.env` ya está configurado. Ejecutar migraciones:
+### 4. Credenciales pgAdmin
+
+| Campo | Valor |
+|-------|-------|
+| Email | admin@repuestoia.com |
+| Password | PgAdm1n_R3pU3st0!2024 |
+
+---
+
+## Instalación Local (sin Docker)
+
+### Backend
 
 ```bash
-npm run prisma:migrate
-# Cuando pida nombre de migración: "initial_schema"
-
-npm run prisma:generate
-npm run prisma:seed
-```
-
-### 5. Iniciar el Backend
-
-```bash
+cd apps/api
+npm install
+npx prisma migrate dev --name init
+npx prisma db seed
 npm run start:dev
 ```
 
-API disponible en: http://localhost:3001  
+API disponible en: http://localhost:3001
 Swagger docs en: http://localhost:3001/api/docs
 
-### 6. Configurar el Frontend
+### Frontend
 
 ```bash
 cd apps/web
@@ -81,7 +86,7 @@ npm install
 npm run dev
 ```
 
-Frontend en: http://localhost:3000
+Frontend en: http://localhost:3003
 
 ---
 
@@ -101,7 +106,7 @@ Frontend en: http://localhost:3000
 ## Estructura del Proyecto
 
 ```
-RepuestoIA/
+aosbolivia/
 ├── apps/
 │   ├── api/          # NestJS Backend
 │   │   ├── src/
@@ -114,12 +119,13 @@ RepuestoIA/
 │   │   │   ├── providers/
 │   │   │   ├── workshops/
 │   │   │   ├── tows/
-│   │   │   └── ai/          # IA Mock (sin API externa)
+│   │   │   └── ai/
 │   │   └── prisma/
 │   │       ├── schema.prisma
 │   │       └── seed.ts
 │   └── web/          # Next.js Frontend
 ├── docker-compose.yml
+├── .env.docker
 └── README.md
 ```
 
@@ -135,7 +141,7 @@ GET    /api/auth/me
 GET    /api/vehicles
 POST   /api/vehicles
 
-POST   /api/requests          ← Solicitud con parser IA
+POST   /api/requests
 GET    /api/requests
 
 GET    /api/parts?marca=Toyota&modelo=Hilux&anio=2019
@@ -150,30 +156,39 @@ POST   /api/ai/parse-request
 
 ---
 
-## Módulo IA (Demo)
+## Variables de Entorno para Producción
 
-El módulo de IA funciona **sin ninguna API externa**. Implementa:
+Copia `.env.docker` como `.env` y ajusta:
 
-- **Parser de texto libre**: Detecta categoría, marca, modelo, año y pieza desde lenguaje natural
-- **Chatbot contextual**: Responde sobre repuestos, talleres, grúas y diagnósticos básicos
-- **Búsqueda inteligente**: Cruza la información parseada con la base de datos
+```bash
+# Cambia por tu dominio o IP del VPS
+FRONTEND_URL=https://tudominio.com
+NEXT_PUBLIC_API_URL=https://tudominio.com/api
 
-Ejemplo:
-```
-Input: "Necesito una bomba de gasolina para mi Hilux 2019"
-Output: { categoria: "REPUESTO", marca: "Toyota", modelo: "Hilux", anio: 2019, pieza: "bomba de gasolina" }
+# Cambia las contraseñas por seguras
+POSTGRES_PASSWORD=tu_password_seguro
+JWT_SECRET=tu_jwt_secret_seguro
+PGADMIN_PASSWORD=tu_pgadmin_password
 ```
 
 ---
 
-## Fase Actual: MVP (Fase 1)
+## Despliegue en VPS
 
-- ✅ Auth completo (JWT)
-- ✅ Perfil vehicular
-- ✅ Solicitudes inteligentes con IA Mock
-- ✅ Catálogo de repuestos
-- ✅ Cotizaciones
-- ✅ Proveedores, talleres, grúas
-- ✅ Geolocalización (haversine)
-- ✅ Chatbot demo
-- 🔜 Frontend Next.js (en desarrollo)
+```bash
+# Clonar el repo
+git clone https://github.com/Vel0ciraptor/aosbolivia.git
+cd aosbolivia
+
+# Configurar variables de entorno
+cp .env.docker .env
+# Editar .env con tus valores de producción
+
+# Levantar servicios
+docker compose up -d --build
+
+# Ejecutar migraciones
+docker compose exec api npx prisma migrate deploy
+docker compose exec api npx prisma db seed
+```
+

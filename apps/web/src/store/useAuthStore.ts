@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { insforge } from '../lib/insforge';
+import { api } from '../lib/api';
 
 interface User {
   id: string;
@@ -15,12 +15,18 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   login: (credentials: any) => Promise<User>;
-  register: (data: any) => Promise<User | null>; // Returns null if email confirmation is required
+  register: (data: any) => Promise<User | null>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+function parseError(err: any, fallback: string): string {
+  const msg = err.response?.data?.message;
+  if (Array.isArray(msg)) return msg.join(', ');
+  return msg || err.message || fallback;
+}
+
+export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
   isLoading: false,
@@ -29,49 +35,30 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (credentials) => {
     set({ isLoading: true, error: null });
     try {
-      const { data, error } = await insforge.auth.signInWithPassword({
+      const res = await api.post('/auth/login', {
         email: credentials.email,
         password: credentials.password,
       });
 
-      if (error) throw error;
-      if (!data.user) throw new Error('No user returned');
+      const { accessToken, refreshToken } = res.data;
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('refreshToken', refreshToken);
 
-      let { data: profileData, error: profileError } = await insforge.database
-        .from('profiles')
-        .select('*')
-        .eq('id', data.user.id)
-        .single();
-
-      if (profileError && profileError.code === 'PGRST116') {
-        const { data: newProfile, error: insertError } = await insforge.database.from('profiles').insert([{
-          id: data.user.id,
-          name: data.user.profile?.name || 'Usuario',
-          role: 'CLIENT',
-        }]).select().single();
-        
-        if (insertError) throw insertError;
-        profileData = newProfile;
-      } else if (profileError) {
-        throw profileError;
-      }
+      const profileRes = await api.get('/auth/me');
+      const p = profileRes.data;
 
       const user: User = {
-        id: data.user.id,
-        email: data.user.email!,
-        name: profileData.name,
-        role: profileData.role,
-        phone: profileData.phone,
+        id: p.id,
+        email: p.email,
+        name: p.name,
+        role: p.role,
+        phone: p.phone,
       };
 
-      set({
-        user,
-        isAuthenticated: true,
-        isLoading: false,
-      });
+      set({ user, isAuthenticated: true, isLoading: false });
       return user;
     } catch (err: any) {
-      const msg = err.message || 'Error al iniciar sesión';
+      const msg = parseError(err, 'Error al iniciar sesión');
       set({ error: msg, isLoading: false });
       throw new Error(msg);
     }
@@ -80,109 +67,68 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   register: async (data) => {
     set({ isLoading: true, error: null });
     try {
-      const { data: authData, error: authError } = await insforge.auth.signUp({
-        email: data.email,
-        password: data.password,
+      const res = await api.post('/auth/register', {
         name: data.name,
+        email: data.email,
+        phone: data.phone || undefined,
+        password: data.password,
+        role: data.role,
       });
 
-      if (authError) throw authError;
-      
-      if (!authData.accessToken) {
-        set({ isLoading: false });
-        return null; 
-      }
+      const { accessToken, refreshToken } = res.data;
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('refreshToken', refreshToken);
 
-      const { error: profileError } = await insforge.database.from('profiles').insert([{
-        id: authData.user!.id,
-        name: data.name,
-        role: data.role,
-        phone: data.phone || null,
-      }]);
-
-      if (profileError && profileError.code !== '23505') {
-        throw profileError;
-      }
+      const profileRes = await api.get('/auth/me');
+      const p = profileRes.data;
 
       const user: User = {
-        id: authData.user!.id,
-        email: authData.user!.email!,
-        name: data.name,
-        role: data.role,
-        phone: data.phone,
+        id: p.id,
+        email: p.email,
+        name: p.name,
+        role: p.role,
+        phone: p.phone,
       };
 
-      set({
-        user,
-        isAuthenticated: true,
-        isLoading: false,
-      });
+      set({ user, isAuthenticated: true, isLoading: false });
       return user;
     } catch (err: any) {
-      const msg = err.message || 'Error al registrarse';
+      const msg = parseError(err, 'Error al registrarse');
       set({ error: msg, isLoading: false });
       throw new Error(msg);
     }
   },
 
   logout: async () => {
-    await insforge.auth.signOut();
-    set({
-      user: null,
-      isAuthenticated: false,
-      error: null,
-    });
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    set({ user: null, isAuthenticated: false, error: null });
   },
 
   checkAuth: async () => {
     if (typeof window === 'undefined') return;
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      set({ user: null, isAuthenticated: false });
+      return;
+    }
     try {
-      const { data, error } = await insforge.auth.getCurrentUser();
-      
-      if (error || !data.user) {
-        set({
-          user: null,
-          isAuthenticated: false,
-        });
-        return;
-      }
-
-      let { data: profileData, error: profileError } = await insforge.database
-        .from('profiles')
-        .select('*')
-        .eq('id', data.user.id)
-        .single();
-
-      if (profileError && profileError.code === 'PGRST116') {
-        const { data: newProfile, error: insertError } = await insforge.database.from('profiles').insert([{
-          id: data.user.id,
-          name: data.user.profile?.name || 'Usuario',
-          role: 'CLIENT',
-        }]).select().single();
-        
-        if (!insertError) profileData = newProfile;
-      }
-
-      if (profileData) {
-        const user: User = {
-          id: data.user.id,
-          email: data.user.email!,
-          name: profileData.name,
-          role: profileData.role,
-          phone: profileData.phone,
-        };
-
-        set({
-          user,
-          isAuthenticated: true,
-        });
-      }
-    } catch (error) {
-      console.error('Error checking auth status', error);
+      const res = await api.get('/auth/me');
+      const p = res.data;
       set({
-        user: null,
-        isAuthenticated: false,
+        user: {
+          id: p.id,
+          email: p.email,
+          name: p.name,
+          role: p.role,
+          phone: p.phone,
+        },
+        isAuthenticated: true,
       });
+    } catch {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      set({ user: null, isAuthenticated: false });
     }
   },
 }));

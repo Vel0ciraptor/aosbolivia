@@ -1,12 +1,12 @@
-# RepuestoIA 🚗
+# RepuestoIA
 
-> Plataforma Integral de Servicios Automotrices — Marketplace que conecta clientes con repuestos, talleres mecánicos, grúas y asistencia por IA.
+> Plataforma Integral de Servicios Automotrices — Marketplace que conecta clientes con repuestos, talleres mecanicos, gruas y asistencia por IA.
 
 ---
 
-## Stack Tecnológico
+## Stack Tecnologico
 
-| Capa | Tecnología |
+| Capa | Tecnologia |
 |------|-----------|
 | Frontend | Next.js 16 + React 19 + TypeScript |
 | Estilos | TailwindCSS v4 |
@@ -16,15 +16,18 @@
 
 ---
 
-## Requisitos Previos
+## Puertos
 
-- Node.js 20+
-- Docker Desktop ([Descargar aquí](https://www.docker.com/products/docker-desktop/))
-- pnpm
+| Servicio | Puerto |
+|----------|--------|
+| Frontend (Next.js) | 3003 |
+| API (NestJS) | 3004 |
+| PostgreSQL | 5432 |
+| pgAdmin | 5050 |
 
 ---
 
-## Instalación y Configuración
+## Instalacion y Configuracion
 
 ### 1. Clonar el proyecto
 
@@ -42,16 +45,15 @@ docker compose up -d
 
 Esto inicia:
 - **Frontend** en `http://localhost:3003`
-- **API** en `http://localhost:3001`
+- **API** en `http://localhost:3004`
 - **PostgreSQL** en `localhost:5432`
 - **pgAdmin** en `http://localhost:5050`
 
 ### 3. Configurar la Base de Datos
 
 ```bash
-cd apps/api
-npx prisma migrate dev --name init
-npx prisma db seed
+docker compose exec api npx prisma migrate deploy
+docker compose exec api npx prisma db seed
 ```
 
 ### 4. Credenciales pgAdmin
@@ -63,7 +65,7 @@ npx prisma db seed
 
 ---
 
-## Instalación Local (sin Docker)
+## Instalacion Local (sin Docker)
 
 ### Backend
 
@@ -75,8 +77,8 @@ npx prisma db seed
 npm run start:dev
 ```
 
-API disponible en: http://localhost:3001
-Swagger docs en: http://localhost:3001/api/docs
+API disponible en: http://localhost:3004
+Swagger docs en: http://localhost:3004/api/docs
 
 ### Frontend
 
@@ -92,42 +94,14 @@ Frontend en: http://localhost:3003
 
 ## Credenciales Demo
 
-| Usuario | Email | Contraseña |
+| Usuario | Email | Contrasena |
 |---------|-------|-----------|
 | Admin | admin@repuestoia.com | admin123 |
 | Cliente | juan@demo.com | client123 |
 | Proveedor 1 | autopartes@demo.com | prov123 |
 | Proveedor 2 | repuestos_norte@demo.com | prov123 |
 | Taller | taller_elite@demo.com | workshop123 |
-| Grúa | gruas_rapid@demo.com | tow123 |
-
----
-
-## Estructura del Proyecto
-
-```
-aosbolivia/
-├── apps/
-│   ├── api/          # NestJS Backend
-│   │   ├── src/
-│   │   │   ├── auth/
-│   │   │   ├── users/
-│   │   │   ├── vehicles/
-│   │   │   ├── requests/
-│   │   │   ├── parts/
-│   │   │   ├── quotes/
-│   │   │   ├── providers/
-│   │   │   ├── workshops/
-│   │   │   ├── tows/
-│   │   │   └── ai/
-│   │   └── prisma/
-│   │       ├── schema.prisma
-│   │       └── seed.ts
-│   └── web/          # Next.js Frontend
-├── docker-compose.yml
-├── .env.docker
-└── README.md
-```
+| Grua | gruas_rapid@demo.com | tow123 |
 
 ---
 
@@ -156,14 +130,84 @@ POST   /api/ai/parse-request
 
 ---
 
-## Variables de Entorno para Producción
+## Despliegue en Dokploy (VPS Hostinger)
 
-Copia `.env.docker` como `.env` y ajusta:
+### 1. Clonar el repo en el VPS
+
+```bash
+git clone https://github.com/Vel0ciraptor/aosbolivia.git
+cd aosbolivia
+```
+
+### 2. Configurar servicios en Dokploy
+
+En el dashboard de Dokploy, crear **2 servicios Docker**:
+
+#### Servicio: API
+
+- **Tipo**: Dockerfile
+- **Build Context**: `apps/api`
+- **Dockerfile**: `Dockerfile`
+- **Puerto**: 3004
+- **Variables de entorno**:
+  ```
+  DATABASE_URL=postgresql://repuestoia:TU_PASSWORD@TU_HOST:5432/repuestoia_dev?schema=public
+  JWT_SECRET=tu_jwt_secret_seguro
+  JWT_EXPIRES_IN=15m
+  JWT_REFRESH_SECRET=tu_refresh_secret_seguro
+  JWT_REFRESH_EXPIRES_IN=7d
+  PORT=3004
+  NODE_ENV=production
+  FRONTEND_URL=https://tudominio.com
+  APP_URL=https://tu-api-domain.com
+  ```
+
+#### Servicio: Web
+
+- **Tipo**: Dockerfile
+- **Build Context**: `apps/web`
+- **Dockerfile**: `Dockerfile`
+- **Puerto**: 3003
+- **Variables de entorno**:
+  ```
+  NEXT_PUBLIC_API_URL=https://tu-api-domain.com/api
+  NEXT_PUBLIC_INSFORGE_URL=https://389836id.us-east.insforge.app
+  NEXT_PUBLIC_INSFORGE_ANON_KEY=ik_82c6d672ca94de47c3cce12d93fb9378
+  ```
+
+### 3. Configurar PostgreSQL en Dokploy
+
+En Dokploy, crear un servicio de **PostgreSQL**:
+- **Imagen**: `postgres:16-alpine`
+- **Puerto**: 5432
+- **Variables**:
+  ```
+  POSTGRES_USER=repuestoia
+  POSTGRES_PASSWORD=tu_password_seguro
+  POSTGRES_DB=repuestoia_dev
+  ```
+
+### 4. Ejecutar migraciones
+
+Una vez desplegado el servicio API:
+
+```bash
+# Acceder al contenedor del API
+docker exec -it repuestoia_api sh
+
+# Ejecutar migraciones
+npx prisma migrate deploy
+npx prisma db seed
+```
+
+### 5. Variables de Entorno para Produccion
+
+Cambia `.env.docker` como `.env` y ajusta:
 
 ```bash
 # Cambia por tu dominio o IP del VPS
 FRONTEND_URL=https://tudominio.com
-NEXT_PUBLIC_API_URL=https://tudominio.com/api
+NEXT_PUBLIC_API_URL=https://tu-api-domain.com/api
 
 # Cambia las contraseñas por seguras
 POSTGRES_PASSWORD=tu_password_seguro
@@ -173,7 +217,7 @@ PGADMIN_PASSWORD=tu_pgadmin_password
 
 ---
 
-## Despliegue en VPS
+## Despliegue con Docker Compose (alternativa)
 
 ```bash
 # Clonar el repo
@@ -182,7 +226,7 @@ cd aosbolivia
 
 # Configurar variables de entorno
 cp .env.docker .env
-# Editar .env con tus valores de producción
+# Editar .env con tus valores de produccion
 
 # Levantar servicios
 docker compose up -d --build
@@ -191,4 +235,3 @@ docker compose up -d --build
 docker compose exec api npx prisma migrate deploy
 docker compose exec api npx prisma db seed
 ```
-

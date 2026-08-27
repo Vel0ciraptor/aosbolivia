@@ -6,14 +6,13 @@ FROM base AS deps
 RUN npm install -g pnpm
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/web/package.json ./apps/web/
-COPY packages/ ./packages/
 RUN pnpm install --frozen-lockfile
 
 FROM base AS builder
 RUN npm install -g pnpm
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
-COPY . .
+COPY apps/web/ ./apps/web/
 
 WORKDIR /app/apps/web
 RUN pnpm run build

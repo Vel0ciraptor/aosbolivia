@@ -38,17 +38,17 @@ services:
     container_name: repuestoia_api
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      - "3004:3004"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-repuestoia}:${POSTGRES_PASSWORD:-R3pU3st01A_s3cr3t_2024!}@postgres:5432/${POSTGRES_DB:-repuestoia_dev}?schema=public
       JWT_SECRET: ${JWT_SECRET:-repuestoia_super_secret_jwt_key_2024}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-repuestoia_refresh_secret_key_2024}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
-      PORT: 3001
+      PORT: 3004
       NODE_ENV: production
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3003}
-      APP_URL: ${APP_URL:-http://localhost:3001}
+      APP_URL: ${APP_URL:-http://localhost:3004}
     depends_on:
       postgres:
         condition: service_healthy
@@ -62,7 +62,7 @@ services:
     ports:
       - "3003:3003"
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001/api}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3004/api}
       NEXT_PUBLIC_INSFORGE_URL: ${NEXT_PUBLIC_INSFORGE_URL:-https://389836id.us-east.insforge.app}
       NEXT_PUBLIC_INSFORGE_ANON_KEY: ${NEXT_PUBLIC_INSFORGE_ANON_KEY:-ik_82c6d672ca94de47c3cce12d93fb9378}
     depends_on:

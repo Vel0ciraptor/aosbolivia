@@ -3,12 +3,12 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 FROM base AS deps
-COPY apps/api/package.json ./
+COPY package.json package-lock.json* ./
 RUN npm install
 
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
-COPY apps/api/ ./
+COPY . .
 RUN npm run build
 
 FROM base AS runner
@@ -28,6 +28,6 @@ RUN npx prisma generate
 
 USER nestjs
 
-EXPOSE 3001
+EXPOSE 3004
 
 CMD ["node", "dist/main"]

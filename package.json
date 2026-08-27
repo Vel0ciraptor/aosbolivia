@@ -15,6 +15,17 @@
     "db:seed": "pnpm --filter api prisma db seed",
     "start": "sh start.sh"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "@prisma/client",
+      "@prisma/engines",
+      "bcrypt",
+      "prisma",
+      "sharp",
+      "unrs-resolver"
+    ]
+  },
   "devDependencies": {
     "concurrently": "^9.1.2"
   }

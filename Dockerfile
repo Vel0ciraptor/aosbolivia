@@ -1,40 +1,35 @@
-FROM node:20-alpine AS base
+FROM node:20-alpine AS builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# ── Stage 1: Instalar dependencias ─────────────
-FROM base AS deps
-RUN npm install -g pnpm@9
-
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+# ── Instalar dependencias de API por separado ──
 COPY apps/api/package.json ./apps/api/
+WORKDIR /app/apps/api
+RUN npm install
+
+# ── Instalar dependencias de Web por separado ──
+WORKDIR /app
 COPY apps/web/package.json ./apps/web/
-RUN pnpm install
+WORKDIR /app/apps/web
+RUN npm install
 
-# ── Stage 2: Construir API + Web ───────────────
-FROM base AS builder
-RUN npm install -g pnpm@9
-
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
-
+# ── Copiar codigo fuente ───────────────────────
+WORKDIR /app
 COPY apps/api/ ./apps/api/
 COPY apps/web/ ./apps/web/
-COPY package.json ./
 
-# Build API
+# ── Build API ──────────────────────────────────
 WORKDIR /app/apps/api
 RUN npx prisma generate
-RUN pnpm run build
+RUN npm run build
 
-# Build Web
+# ── Build Web ──────────────────────────────────
 WORKDIR /app/apps/web
-RUN mkdir -p node_modules && ln -s /app/node_modules/next node_modules/next
-RUN pnpm run build
+RUN npm run build
 
-# ── Stage 3: Produccion ────────────────────────
-FROM base AS runner
+# ── Produccion ─────────────────────────────────
+FROM node:20-alpine AS runner
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -43,22 +38,22 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copiar API compilada
+# API
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=builder /app/apps/api/package.json ./apps/api/
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
 
-# Copiar Web compilada (standalone)
+# Web (standalone)
 COPY --from=builder /app/apps/web/.next/standalone ./
 COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=builder /app/apps/web/public ./apps/web/public
 
-# Copiar script de inicio
+# Start script
 COPY start.sh ./
 RUN chmod +x start.sh
 
-# Generar Prisma Client en runner
+# Prisma generate en runner
 WORKDIR /app/apps/api
 RUN npx prisma generate
 

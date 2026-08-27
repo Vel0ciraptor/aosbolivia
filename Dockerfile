@@ -26,6 +26,7 @@ RUN npm run build
 
 # Build Web
 WORKDIR /app/apps/web
+RUN ln -s /app/node_modules ./node_modules
 RUN npm run build
 
 # ── Stage 3: Produccion ────────────────────────

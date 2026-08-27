@@ -115,6 +115,8 @@ export default function WorkshopCrmPage() {
   const [signatureOpen, setSignatureOpen] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+  const [reportHtml, setReportHtml] = useState<string | null>(null);
+  const reportIframeRef = useRef<HTMLIFrameElement>(null);
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -329,12 +331,7 @@ export default function WorkshopCrmPage() {
   const handleDownloadPdf = async (jobId: string) => {
     try {
       const res = await api.get(`/workshops/me/jobs/${jobId}/report`);
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        printWindow.document.write(res.data);
-        printWindow.document.close();
-        setTimeout(() => printWindow.print(), 500);
-      }
+      setReportHtml(res.data);
     } catch (err: any) { alert('No se pudo generar el reporte.'); }
   };
 
@@ -675,6 +672,21 @@ export default function WorkshopCrmPage() {
             <div className="bg-white rounded-xl p-1 mb-4"><canvas ref={canvasRef} width={400} height={200} className="w-full rounded-lg cursor-crosshair touch-none" onMouseDown={(e) => { const ctx = canvasRef.current?.getContext('2d'); if (!ctx) return; ctx.beginPath(); ctx.moveTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY); }} onMouseMove={(e) => { if (e.buttons !== 1) return; const ctx = canvasRef.current?.getContext('2d'); if (!ctx) return; ctx.lineTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY); ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke(); }} /></div>
             <div className="flex justify-end gap-3"><button onClick={clearCanvas} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-semibold rounded-xl">Limpiar</button><button onClick={handleSaveSignature} className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl">Guardar firma</button></div>
           </div>
+        </div>
+      )}
+
+      {reportHtml && (
+        <div className="fixed inset-0 bg-black z-50 flex flex-col">
+          <div className="flex items-center justify-between px-4 py-3 bg-zinc-900 border-b border-zinc-800 shrink-0">
+            <button onClick={() => setReportHtml(null)} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-semibold rounded-xl flex items-center gap-2 transition-colors">
+              <X className="w-4 h-4" /> Cerrar
+            </button>
+            <h3 className="text-sm font-bold text-zinc-300">Reporte de servicio</h3>
+            <button onClick={() => reportIframeRef.current?.contentWindow?.print()} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl flex items-center gap-2 transition-colors">
+              <Download className="w-4 h-4" /> Imprimir / PDF
+            </button>
+          </div>
+          <iframe ref={reportIframeRef} srcDoc={reportHtml} className="flex-1 w-full bg-white border-0" title="Reporte" />
         </div>
       )}
     </div>

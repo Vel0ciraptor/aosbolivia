@@ -30,6 +30,7 @@ RUN pnpm run build
 
 # Build Web
 WORKDIR /app/apps/web
+RUN mkdir -p node_modules && ln -s /app/node_modules/next node_modules/next
 RUN pnpm run build
 
 # ── Stage 3: Produccion ────────────────────────

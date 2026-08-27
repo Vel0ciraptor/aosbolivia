@@ -106,9 +106,10 @@ export default function WorkshopCrmPage() {
 
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
   const [partNeeds, setPartNeeds] = useState<PartNeed[]>([]);
-  const [newPartName, setNewPartName] = useState('');
+  const [selectedPartId, setSelectedPartId] = useState<string | null>(null);
+  const [partSearch, setPartSearch] = useState('');
+  const [partDropdownOpen, setPartDropdownOpen] = useState(false);
   const [newPartQty, setNewPartQty] = useState('1');
-  const [newPartIsInsumo, setNewPartIsInsumo] = useState(false);
 
   const [uploading, setUploading] = useState(false);
   const [signatureOpen, setSignatureOpen] = useState(false);
@@ -130,6 +131,15 @@ export default function WorkshopCrmPage() {
   useEffect(() => {
     if (!loadingWorkshop) fetchJobs();
   }, [loadingWorkshop, fetchJobs]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-part-dropdown]')) setPartDropdownOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const filtered = useMemo(() => {
     return jobs.filter((j) => {
@@ -201,6 +211,7 @@ export default function WorkshopCrmPage() {
       setDetailLogs(res.data.logs || []);
       setCheckpoints(res.data.checkpoints || []);
       setPartNeeds(res.data.partNeeds || []);
+      if (res.data.estado === 'TRABAJANDO') fetchInventory();
     } catch (err) { console.error(err); }
     finally { setLoadingDetail(false); }
   };
@@ -237,13 +248,18 @@ export default function WorkshopCrmPage() {
   };
 
   const handleAddPartNeed = async () => {
-    if (!detailJob || !newPartName.trim()) return;
+    if (!detailJob || !selectedPartId) return;
+    const item = inventoryItems.find((i: any) => i.id === selectedPartId);
+    if (!item) return;
     try {
       const res = await api.post(`/workshops/me/jobs/${detailJob.id}/parts-needed`, {
-        nombre: newPartName.trim(), cantidad: parseInt(newPartQty) || 1, esInsumo: newPartIsInsumo,
+        nombre: item.nombre,
+        cantidad: parseInt(newPartQty) || 1,
+        esInsumo: item.categoria === 'INSUMO',
+        inventoryItemId: selectedPartId,
       });
       setPartNeeds([...partNeeds, res.data]);
-      setNewPartName(''); setNewPartQty('1'); setNewPartIsInsumo(false);
+      setSelectedPartId(null); setPartSearch(''); setNewPartQty('1'); setPartDropdownOpen(false);
     } catch (err: any) { alert(err.response?.data?.message || 'No se pudo agregar.'); }
   };
 
@@ -343,7 +359,7 @@ export default function WorkshopCrmPage() {
         <button onClick={openCreate} className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-zinc-950 font-bold text-sm rounded-xl hover:shadow-lg transition-all flex items-center gap-2"><Plus className="w-4 h-4" /><span>Registrar Vehículo</span></button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {STATUS_FLOW.map((s) => {
           const meta = STATUS_META[s]; const Icon = meta.icon;
           return (<button key={s} onClick={() => setStatusFilter(statusFilter === s ? 'ALL' : s)} className={`p-4 border rounded-2xl transition-all text-left ${statusFilter === s ? `${meta.bg} border-2` : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'}`}>
@@ -506,10 +522,43 @@ export default function WorkshopCrmPage() {
                       ))}
                     </div>
                     <div className="flex gap-2 items-end">
-                      <div className="flex-1 space-y-1.5"><label className="text-[10px] text-zinc-500 font-bold uppercase">Nombre</label><input type="text" value={newPartName} onChange={(e) => setNewPartName(e.target.value)} placeholder="Ej: Filtro de aceite" className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 text-xs" onKeyDown={(e) => e.key === 'Enter' && handleAddPartNeed()} /></div>
+                      <div className="flex-1 space-y-1.5">
+                        <label className="text-[10px] text-zinc-500 font-bold uppercase">Buscar pieza/insumo del inventario</label>
+                        <div className="relative" data-part-dropdown>
+                          <input
+                            type="text"
+                            value={partSearch}
+                            onChange={(e) => { setPartSearch(e.target.value); setSelectedPartId(null); setPartDropdownOpen(true); }}
+                            onFocus={() => setPartDropdownOpen(true)}
+                            placeholder="Escriba para buscar..."
+                            className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 text-xs"
+                          />
+                          {partDropdownOpen && partSearch && !selectedPartId && (
+                            <div className="absolute z-20 top-full mt-1 w-full bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl max-h-48 overflow-y-auto">
+                              {inventoryItems.filter((item: any) => item.nombre.toLowerCase().includes(partSearch.toLowerCase())).length === 0 ? (
+                                <div className="px-3 py-2 text-xs text-zinc-500">Sin resultados en inventario</div>
+                              ) : (
+                                inventoryItems.filter((item: any) => item.nombre.toLowerCase().includes(partSearch.toLowerCase())).map((item: any) => (
+                                  <button key={item.id} onClick={() => { setSelectedPartId(item.id); setPartSearch(item.nombre); setPartDropdownOpen(false); }}
+                                    className="w-full text-left px-3 py-2 hover:bg-zinc-800 rounded-lg flex items-center justify-between gap-2 transition-colors">
+                                    <div className="min-w-0">
+                                      <p className="text-xs text-zinc-200 font-semibold truncate">{item.nombre}</p>
+                                      <p className="text-[10px] text-zinc-500">{item.categoria} — Stock: {item.stock} {item.unidad}</p>
+                                    </div>
+                                  </button>
+                                ))
+                              )}
+                            </div>
+                          )}
+                          {selectedPartId && (
+                            <button onClick={() => { setSelectedPartId(null); setPartSearch(''); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300">
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
                       <div className="w-20 space-y-1.5"><label className="text-[10px] text-zinc-500 font-bold uppercase">Cant.</label><input type="number" min="1" value={newPartQty} onChange={(e) => setNewPartQty(e.target.value)} className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 text-xs font-mono" /></div>
-                      <div className="flex items-center gap-2 pb-0.5"><input type="checkbox" checked={newPartIsInsumo} onChange={(e) => setNewPartIsInsumo(e.target.checked)} className="rounded" /><span className="text-[10px] text-zinc-500">Insumo</span></div>
-                      <button onClick={handleAddPartNeed} className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg shrink-0"><Plus className="w-3.5 h-3.5" /></button>
+                      <button onClick={handleAddPartNeed} disabled={!selectedPartId} className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"><Plus className="w-3.5 h-3.5" /></button>
                     </div>
                     <div className="mt-3">
                       <label className="text-[10px] text-zinc-500 font-bold uppercase flex items-center gap-1 mb-1"><ImageIcon className="w-3 h-3" /> Fotos del trabajo (máx. 5)</label>
@@ -569,6 +618,11 @@ export default function WorkshopCrmPage() {
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-zinc-800 flex justify-end gap-3">
+                  {detailJob.estado === 'FINALIZADO' && (
+                    <button onClick={() => { setDetailJob(null); openStatusModal(detailJob); }} className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm rounded-xl transition-colors flex items-center gap-2">
+                      <RefreshCw className="w-4 h-4" /> Reabrir vehículo
+                    </button>
+                  )}
                   {STATUS_META[detailJob.estado]?.next && (<button onClick={() => { setDetailJob(null); openStatusModal(detailJob); }} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl transition-colors flex items-center gap-2">Avanzar estado<ChevronRight className="w-4 h-4" /></button>)}
                   <button onClick={() => { setDetailJob(null); openEdit(detailJob); }} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-sm rounded-xl transition-colors flex items-center gap-2"><Edit2 className="w-4 h-4" /> Editar</button>
                 </div>
@@ -582,17 +636,31 @@ export default function WorkshopCrmPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl relative p-6">
             <button onClick={() => setStatusModalJob(null)} className="absolute top-4 right-4 p-2 hover:bg-zinc-800 rounded-xl text-zinc-400 transition-colors"><X className="w-5 h-5" /></button>
-            <h3 className="text-xl font-bold text-zinc-200 mb-1 flex items-center gap-2"><ArrowRight className="w-5 h-5 text-emerald-400" />Cambiar Estado</h3>
+            <h3 className="text-xl font-bold text-zinc-200 mb-1 flex items-center gap-2">
+              {statusModalJob.estado === 'FINALIZADO' ? <><RefreshCw className="w-5 h-5 text-amber-400" />Reabrir Vehículo</> : <><ArrowRight className="w-5 h-5 text-emerald-400" />Cambiar Estado</>}
+            </h3>
             <p className="text-xs text-zinc-500 mb-6">{statusModalJob.marca} {statusModalJob.modelo} {statusModalJob.anio}</p>
             <div className="space-y-3 mb-4">
               <p className="text-xs text-zinc-400">Estado actual:{(() => { const meta = STATUS_META[statusModalJob.estado] || STATUS_META.INGRESANDO; const Icon = meta.icon; return (<span className={`ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${meta.bg} ${meta.color}`}><Icon className="w-3 h-3" />{meta.label}</span>); })()}</p>
-              {STATUS_META[statusModalJob.estado]?.next && <p className="text-xs text-zinc-400">Avanzar a:{(() => { const nextKey = STATUS_META[statusModalJob.estado].next!; const meta = STATUS_META[nextKey]; const Icon = meta.icon; return (<span className={`ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${meta.bg} ${meta.color}`}><Icon className="w-3 h-3" />{meta.label}</span>); })()}</p>}
+              {statusModalJob.estado === 'FINALIZADO' ? (
+                <p className="text-xs text-zinc-400">Reabrir a:{(() => { const meta = STATUS_META.INGRESANDO; const Icon = meta.icon; return (<span className={`ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${meta.bg} ${meta.color}`}><Icon className="w-3 h-3" />{meta.label}</span>); })()}</p>
+              ) : STATUS_META[statusModalJob.estado]?.next && <p className="text-xs text-zinc-400">Avanzar a:{(() => { const nextKey = STATUS_META[statusModalJob.estado].next!; const meta = STATUS_META[nextKey]; const Icon = meta.icon; return (<span className={`ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${meta.bg} ${meta.color}`}><Icon className="w-3 h-3" />{meta.label}</span>); })()}</p>}
             </div>
             <div className="space-y-1.5 mb-6"><label className="text-xs font-semibold text-zinc-300">Observaciones (opcional)</label><textarea value={statusObs} onChange={(e) => setStatusObs(e.target.value)} rows={3} placeholder="Detalles del cambio de estado..." className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm resize-none" /></div>
             <div className="flex justify-end gap-3">
               <button onClick={() => setStatusModalJob(null)} className="px-4 py-2.5 bg-zinc-950 border border-zinc-800 hover:bg-zinc-900 rounded-xl text-zinc-300 text-sm font-semibold transition-colors">Cancelar</button>
-              <button onClick={() => handleStatusChange(STATUS_META[statusModalJob.estado]?.next!)} disabled={changingStatus || !STATUS_META[statusModalJob.estado]?.next} className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-zinc-950 font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50">
-                {changingStatus ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Cambiando...</span></> : <><CheckCircle2 className="w-4 h-4" /><span>Confirmar cambio</span></>}
+              <button
+                onClick={() => {
+                  const target = statusModalJob.estado === 'FINALIZADO' ? 'INGRESANDO' : STATUS_META[statusModalJob.estado]?.next!;
+                  handleStatusChange(target);
+                }}
+                disabled={changingStatus}
+                className={`px-5 py-2.5 font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50 ${
+                  statusModalJob.estado === 'FINALIZADO'
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-zinc-950'
+                    : 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-zinc-950'
+                }`}>
+                {changingStatus ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Cambiando...</span></> : <><CheckCircle2 className="w-4 h-4" /><span>{statusModalJob.estado === 'FINALIZADO' ? 'Reabrir' : 'Confirmar cambio'}</span></>}
               </button>
             </div>
           </div>

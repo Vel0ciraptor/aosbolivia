@@ -14,8 +14,6 @@ RUN npm install
 FROM base AS builder
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 
 COPY apps/api/ ./apps/api/
 COPY apps/web/ ./apps/web/

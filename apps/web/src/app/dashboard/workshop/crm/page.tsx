@@ -3,12 +3,13 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { api } from '../../../../lib/api';
 import { useWorkshopProfile } from '../../../../store/useWorkshopProfile';
+import { useAuthStore } from '../../../../store/useAuthStore';
 import {
   Car, Plus, Search, AlertCircle, Loader2,
   Edit2, Trash2, Save, RefreshCw, X, ChevronRight, Clock,
   CheckCircle2, Wrench, ArrowRight, User, Phone, FileText,
   Calendar, History, AlertTriangle, Camera, Package, PenTool,
-  Download, Image as ImageIcon, CheckSquare, Square, Fuel,
+  Download, Image as ImageIcon, CheckSquare, Square, Fuel, Lock,
 } from 'lucide-react';
 
 interface WorkshopJob {
@@ -36,6 +37,9 @@ interface JobLog {
   id: string;
   estado: string;
   observaciones?: string;
+  firmaUsuarioId?: string;
+  firmaUsuarioNombre?: string;
+  firmaUsuarioRol?: string;
   createdAt: string;
 }
 
@@ -85,6 +89,7 @@ const STATUS_META: Record<string, { label: string; icon: any; color: string; bg:
 
 export default function WorkshopCrmPage() {
   const { workshop, loading: loadingWorkshop, error: workshopError } = useWorkshopProfile();
+  const { user } = useAuthStore();
   const [jobs, setJobs] = useState<WorkshopJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -102,6 +107,7 @@ export default function WorkshopCrmPage() {
 
   const [statusModalJob, setStatusModalJob] = useState<WorkshopJob | null>(null);
   const [statusObs, setStatusObs] = useState('');
+  const [statusPassword, setStatusPassword] = useState('');
   const [changingStatus, setChangingStatus] = useState(false);
 
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
@@ -218,16 +224,16 @@ export default function WorkshopCrmPage() {
     finally { setLoadingDetail(false); }
   };
 
-  const openStatusModal = (job: WorkshopJob) => { setStatusModalJob(job); setStatusObs(''); };
+  const openStatusModal = (job: WorkshopJob) => { setStatusModalJob(job); setStatusObs(''); setStatusPassword(''); };
 
   const handleStatusChange = async (newStatus: string) => {
     if (!statusModalJob) return;
     setChangingStatus(true);
     try {
       await api.patch(`/workshops/me/jobs/${statusModalJob.id}/status`, {
-        estado: newStatus, observaciones: statusObs.trim() || undefined,
+        estado: newStatus, observaciones: statusObs.trim() || undefined, password: statusPassword,
       });
-      setStatusModalJob(null); await fetchJobs();
+      setStatusModalJob(null); setStatusPassword(''); await fetchJobs();
       if (detailJob?.id === statusModalJob.id) {
         const res = await api.get(`/workshops/me/jobs/${statusModalJob.id}`);
         setDetailJob(res.data); setDetailLogs(res.data.logs || []);
@@ -608,7 +614,7 @@ export default function WorkshopCrmPage() {
                       {detailLogs.map((log) => { const logMeta = STATUS_META[log.estado] || STATUS_META.INGRESANDO; const LogIcon = logMeta.icon; return (
                         <div key={log.id} className="flex items-start gap-3">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${logMeta.bg} border`}><LogIcon className={`w-4 h-4 ${logMeta.color}`} /></div>
-                          <div className="flex-1 min-w-0"><div className="flex items-center gap-2"><span className={`text-xs font-bold ${logMeta.color}`}>{logMeta.label}</span><span className="text-[10px] text-zinc-600">{new Date(log.createdAt).toLocaleString('es-VE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span></div>{log.observaciones && <p className="text-xs text-zinc-500 mt-0.5">{log.observaciones}</p>}</div>
+                          <div className="flex-1 min-w-0"><div className="flex items-center gap-2"><span className={`text-xs font-bold ${logMeta.color}`}>{logMeta.label}</span><span className="text-[10px] text-zinc-600">{new Date(log.createdAt).toLocaleString('es-VE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span></div>{log.firmaUsuarioNombre && <div className="flex items-center gap-1.5 mt-1"><User className="w-3 h-3 text-zinc-600" /><span className="text-[10px] text-zinc-500">Firmado por <span className="font-semibold text-zinc-400">{log.firmaUsuarioNombre}</span>{log.firmaUsuarioRol && <span className="px-1.5 py-0.5 bg-zinc-800 rounded-full text-zinc-500">{log.firmaUsuarioRol}</span>}</span></div>}{log.observaciones && <p className="text-xs text-zinc-500 mt-0.5">{log.observaciones}</p>}</div>
                         </div>); })}
                     </div>
                   )}
@@ -636,14 +642,26 @@ export default function WorkshopCrmPage() {
             <h3 className="text-xl font-bold text-zinc-200 mb-1 flex items-center gap-2">
               {statusModalJob.estado === 'FINALIZADO' ? <><RefreshCw className="w-5 h-5 text-amber-400" />Reabrir Vehículo</> : <><ArrowRight className="w-5 h-5 text-emerald-400" />Cambiar Estado</>}
             </h3>
-            <p className="text-xs text-zinc-500 mb-6">{statusModalJob.marca} {statusModalJob.modelo} {statusModalJob.anio}</p>
+            <p className="text-xs text-zinc-500 mb-4">{statusModalJob.marca} {statusModalJob.modelo} {statusModalJob.anio}</p>
+            {user && (
+              <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl">
+                <User className="w-4 h-4 text-zinc-500" />
+                <span className="text-xs text-zinc-400"> Firmando como:</span>
+                <span className="text-xs font-bold text-zinc-200">{user.name}</span>
+                <span className="text-[10px] text-zinc-500 px-1.5 py-0.5 bg-zinc-800 rounded-full">{user.workshopUserRole || user.role}</span>
+              </div>
+            )}
             <div className="space-y-3 mb-4">
               <p className="text-xs text-zinc-400">Estado actual:{(() => { const meta = STATUS_META[statusModalJob.estado] || STATUS_META.INGRESANDO; const Icon = meta.icon; return (<span className={`ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${meta.bg} ${meta.color}`}><Icon className="w-3 h-3" />{meta.label}</span>); })()}</p>
               {statusModalJob.estado === 'FINALIZADO' ? (
                 <p className="text-xs text-zinc-400">Reabrir a:{(() => { const meta = STATUS_META.INGRESANDO; const Icon = meta.icon; return (<span className={`ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${meta.bg} ${meta.color}`}><Icon className="w-3 h-3" />{meta.label}</span>); })()}</p>
               ) : STATUS_META[statusModalJob.estado]?.next && <p className="text-xs text-zinc-400">Avanzar a:{(() => { const nextKey = STATUS_META[statusModalJob.estado].next!; const meta = STATUS_META[nextKey]; const Icon = meta.icon; return (<span className={`ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${meta.bg} ${meta.color}`}><Icon className="w-3 h-3" />{meta.label}</span>); })()}</p>}
             </div>
-            <div className="space-y-1.5 mb-6"><label className="text-xs font-semibold text-zinc-300">Observaciones (opcional)</label><textarea value={statusObs} onChange={(e) => setStatusObs(e.target.value)} rows={3} placeholder="Detalles del cambio de estado..." className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm resize-none" /></div>
+            <div className="space-y-1.5 mb-4"><label className="text-xs font-semibold text-zinc-300">Observaciones (opcional)</label><textarea value={statusObs} onChange={(e) => setStatusObs(e.target.value)} rows={2} placeholder="Detalles del cambio de estado..." className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm resize-none" /></div>
+            <div className="space-y-1.5 mb-6">
+              <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5"><Lock className="w-3.5 h-3.5 text-zinc-500" /> Contraseña de firma <span className="text-red-400">*</span></label>
+              <input type="password" value={statusPassword} onChange={(e) => setStatusPassword(e.target.value)} placeholder="Ingrese su contraseña para firmar" className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm" />
+            </div>
             <div className="flex justify-end gap-3">
               <button onClick={() => setStatusModalJob(null)} className="px-4 py-2.5 bg-zinc-950 border border-zinc-800 hover:bg-zinc-900 rounded-xl text-zinc-300 text-sm font-semibold transition-colors">Cancelar</button>
               <button
@@ -651,7 +669,7 @@ export default function WorkshopCrmPage() {
                   const target = statusModalJob.estado === 'FINALIZADO' ? 'INGRESANDO' : STATUS_META[statusModalJob.estado]?.next!;
                   handleStatusChange(target);
                 }}
-                disabled={changingStatus}
+                disabled={changingStatus || !statusPassword}
                 className={`px-5 py-2.5 font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50 ${
                   statusModalJob.estado === 'FINALIZADO'
                     ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-zinc-950'

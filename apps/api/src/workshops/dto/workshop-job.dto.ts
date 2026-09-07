@@ -115,6 +115,10 @@ export class UpdateJobStatusDto {
   @IsOptional()
   @IsString()
   observaciones?: string;
+
+  @ApiProperty()
+  @IsString()
+  password: string;
 }
 
 export class UpdateCheckpointDto {

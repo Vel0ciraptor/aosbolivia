@@ -259,11 +259,14 @@ model WorkshopJob {
 }
 
 model WorkshopJobLog {
-  id            String   @id @default(cuid())
-  jobId         String
-  estado        String
-  observaciones String?
-  createdAt     DateTime @default(now())
+  id                String    @id @default(cuid())
+  jobId             String
+  estado            String
+  observaciones     String?
+  firmaUsuarioId    String?
+  firmaUsuarioNombre String?
+  firmaUsuarioRol   String?
+  createdAt         DateTime  @default(now())
 
   job WorkshopJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
 

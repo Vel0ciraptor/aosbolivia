@@ -97,7 +97,12 @@ export class WorkshopsController {
   @Patch('me/jobs/:id/status')
   @ApiOperation({ summary: 'Cambiar estado del vehículo en CRM' })
   updateMyJobStatus(@Req() req: any, @Param('id') id: string, @Body() dto: UpdateJobStatusDto) {
-    return this.workshopsService.updateJobStatus(req.user.workshopId, id, dto);
+    return this.workshopsService.updateJobStatus(req.user.workshopId, id, dto, {
+      userId: req.user.id,
+      userName: req.user.name,
+      userRole: req.user.workshopUserRole || req.user.role,
+      userType: req.user.role,
+    });
   }
 
   @Delete('me/jobs/:id')

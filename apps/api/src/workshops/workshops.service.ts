@@ -227,11 +227,34 @@ export class WorkshopsService {
     });
   }
 
-  async updateJobStatus(workshopId: string, jobId: string, dto: UpdateJobStatusDto) {
+  async updateJobStatus(
+    workshopId: string,
+    jobId: string,
+    dto: UpdateJobStatusDto,
+    signer: { userId: string; userName: string; userRole: string; userType: string },
+  ) {
     const job = await this.prisma.workshopJob.findUnique({ where: { id: jobId } });
     if (!job) throw new NotFoundException('Vehículo no encontrado');
     if (job.workshopId !== workshopId) {
       throw new ForbiddenException('No tiene permiso para modificar este registro');
+    }
+
+    // Validar contraseña del usuario que firma
+    let passwordValid = false;
+    if (signer.userType === 'WORKSHOP_USER') {
+      const workshopUser = await this.prisma.workshopUser.findUnique({ where: { id: signer.userId } });
+      if (workshopUser) {
+        passwordValid = await bcrypt.compare(dto.password, workshopUser.password);
+      }
+    } else {
+      const user = await this.prisma.user.findUnique({ where: { id: signer.userId } });
+      if (user && user.password) {
+        passwordValid = await bcrypt.compare(dto.password, user.password);
+      }
+    }
+
+    if (!passwordValid) {
+      throw new ForbiddenException('Contraseña incorrecta');
     }
 
     const data: any = { estado: dto.estado };
@@ -239,7 +262,14 @@ export class WorkshopsService {
     const [updatedJob] = await this.prisma.$transaction([
       this.prisma.workshopJob.update({ where: { id: jobId }, data }),
       this.prisma.workshopJobLog.create({
-        data: { jobId, estado: dto.estado, observaciones: dto.observaciones },
+        data: {
+          jobId,
+          estado: dto.estado,
+          observaciones: dto.observaciones,
+          firmaUsuarioId: signer.userId,
+          firmaUsuarioNombre: signer.userName,
+          firmaUsuarioRol: signer.userRole,
+        },
       }),
     ]);
 

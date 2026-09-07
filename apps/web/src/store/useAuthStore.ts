@@ -7,6 +7,8 @@ interface User {
   email: string;
   role: 'CLIENT' | 'PROVIDER' | 'WORKSHOP' | 'TOW_SERVICE' | 'ADMIN';
   phone?: string;
+  workshopUserRole?: string;
+  workshopId?: string;
 }
 
 interface AuthState {
@@ -53,6 +55,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         name: p.name,
         role: p.role,
         phone: p.phone,
+        workshopUserRole: p.workshopUserRole,
+        workshopId: p.workshopId,
       };
 
       set({ user, isAuthenticated: true, isLoading: false });
@@ -88,6 +92,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         name: p.name,
         role: p.role,
         phone: p.phone,
+        workshopUserRole: p.workshopUserRole,
+        workshopId: p.workshopId,
       };
 
       set({ user, isAuthenticated: true, isLoading: false });
@@ -122,6 +128,8 @@ export const useAuthStore = create<AuthState>((set) => ({
           name: p.name,
           role: p.role,
           phone: p.phone,
+          workshopUserRole: p.workshopUserRole,
+          workshopId: p.workshopId,
         },
         isAuthenticated: true,
       });

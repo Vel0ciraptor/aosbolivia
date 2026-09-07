@@ -119,7 +119,7 @@ export class AuthService {
   }
 
   async getWorkshopUserProfile(workshopUserId: string) {
-    return this.prisma.workshopUser.findUnique({
+    const profile = await this.prisma.workshopUser.findUnique({
       where: { id: workshopUserId },
       select: {
         id: true,
@@ -129,6 +129,7 @@ export class AuthService {
         role: true,
         status: true,
         createdAt: true,
+        workshopId: true,
         workshop: {
           select: {
             id: true,
@@ -137,6 +138,12 @@ export class AuthService {
         },
       },
     });
+    if (!profile) return null;
+    return {
+      ...profile,
+      workshopUserRole: profile.role,
+      role: 'WORKSHOP_USER',
+    };
   }
 
   private generateWorkshopUserTokens(workshopUser: { id: string; email: string; role: string; workshopId: string }) {

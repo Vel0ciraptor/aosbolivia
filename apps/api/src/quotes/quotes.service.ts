@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { IsString, IsNumber, IsOptional, ValidateIf } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
@@ -65,6 +65,53 @@ export class QuotesService {
   }
 
   async updateStatus(id: string, status: string) {
-    return this.prisma.quote.update({ where: { id }, data: { estado: status as any } });
+    const quote = await this.prisma.quote.findUnique({
+      where: { id },
+      include: { request: { include: { vehicle: true, user: true } } },
+    });
+    if (!quote) throw new NotFoundException('Cotización no encontrada');
+
+    const updated = await this.prisma.quote.update({ where: { id }, data: { estado: status as any } });
+
+    if (status === 'ACCEPTED' && quote.workshopId && quote.request) {
+      const existing = await this.prisma.workshopJob.findFirst({
+        where: { workshopId: quote.workshopId, requestId: quote.requestId },
+      });
+
+      if (!existing) {
+        const request = quote.request;
+        const aiParsed = request.aiParsed as any;
+
+        const job = await this.prisma.workshopJob.create({
+          data: {
+            workshopId: quote.workshopId,
+            requestId: request.id,
+            marca: request.vehicle?.marca || aiParsed?.marca || 'No especificado',
+            modelo: request.vehicle?.modelo || aiParsed?.modelo || 'No especificado',
+            anio: request.vehicle?.anio || aiParsed?.anio || new Date().getFullYear(),
+            placa: request.vehicle?.placa,
+            problema: request.descripcion,
+            clienteNombre: request.user.name,
+            clienteTelefono: request.user.phone,
+            estado: 'INGRESANDO',
+          },
+        });
+
+        await this.prisma.workshopJobLog.create({
+          data: {
+            jobId: job.id,
+            estado: 'INGRESANDO',
+            observaciones: `Creado automáticamente desde solicitud aceptada: ${request.titulo}`,
+          },
+        });
+      }
+
+      await this.prisma.request.update({
+        where: { id: quote.requestId },
+        data: { estado: 'IN_PROGRESS' },
+      });
+    }
+
+    return updated;
   }
 }

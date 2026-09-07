@@ -12,6 +12,7 @@ import {
   BulkUpdateCheckpointsDto, CreatePartNeedDto,
 } from './dto/workshop-job.dto';
 import { CreateInventoryItemDto, UpdateInventoryItemDto } from './dto/inventory.dto';
+import { CreateWorkshopUserDto, UpdateWorkshopUserDto } from './dto/workshop-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Workshops')
@@ -175,6 +176,32 @@ export class WorkshopsController {
   @ApiOperation({ summary: 'Eliminar item de inventario' })
   removeInventory(@Req() req: any, @Param('id') id: string) {
     return this.workshopsService.removeInventoryItem(req.user.workshopId, id);
+  }
+
+  // ─── Workshop Users (Equipo interno) ───
+
+  @Get('me/users')
+  @ApiOperation({ summary: 'Listar equipo del taller' })
+  listMyUsers(@Req() req: any) {
+    return this.workshopsService.findWorkshopUsers(req.user.workshopId);
+  }
+
+  @Post('me/users')
+  @ApiOperation({ summary: 'Crear miembro del equipo' })
+  createMyUser(@Req() req: any, @Body() dto: CreateWorkshopUserDto) {
+    return this.workshopsService.createWorkshopUser(req.user.workshopId, dto);
+  }
+
+  @Put('me/users/:id')
+  @ApiOperation({ summary: 'Actualizar miembro del equipo' })
+  updateMyUser(@Req() req: any, @Param('id') id: string, @Body() dto: UpdateWorkshopUserDto) {
+    return this.workshopsService.updateWorkshopUser(req.user.workshopId, id, dto);
+  }
+
+  @Delete('me/users/:id')
+  @ApiOperation({ summary: 'Desactivar miembro del equipo' })
+  removeMyUser(@Req() req: any, @Param('id') id: string) {
+    return this.workshopsService.removeWorkshopUser(req.user.workshopId, id);
   }
 
   // ─── Upload & PDF ───

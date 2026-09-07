@@ -90,24 +90,86 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
+    // Primero buscar en usuarios normales
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
 
-    if (!user || !user.password) {
-      throw new UnauthorizedException('Credenciales incorrectas');
+    if (user && user.password) {
+      const passwordMatch = await bcrypt.compare(dto.password, user.password);
+      if (passwordMatch) {
+        return this.generateTokens(user);
+      }
     }
 
-    const passwordMatch = await bcrypt.compare(dto.password, user.password);
-    if (!passwordMatch) {
-      throw new UnauthorizedException('Credenciales incorrectas');
+    // Si no se encontró como usuario normal, buscar como WorkshopUser
+    const workshopUser = await this.prisma.workshopUser.findFirst({
+      where: { email: dto.email, status: 'ACTIVE' },
+      include: { workshop: true },
+    });
+
+    if (workshopUser) {
+      const passwordMatch = await bcrypt.compare(dto.password, workshopUser.password);
+      if (passwordMatch) {
+        return this.generateWorkshopUserTokens(workshopUser);
+      }
     }
 
-    return this.generateTokens(user);
+    throw new UnauthorizedException('Credenciales incorrectas');
+  }
+
+  async getWorkshopUserProfile(workshopUserId: string) {
+    return this.prisma.workshopUser.findUnique({
+      where: { id: workshopUserId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        workshop: {
+          select: {
+            id: true,
+            nombre: true,
+          },
+        },
+      },
+    });
+  }
+
+  private generateWorkshopUserTokens(workshopUser: { id: string; email: string; role: string; workshopId: string }) {
+    const payload = {
+      sub: workshopUser.id,
+      email: workshopUser.email,
+      role: 'WORKSHOP_USER',
+      workshopUserRole: workshopUser.role,
+      workshopId: workshopUser.workshopId,
+    };
+    const accessToken = this.jwt.sign(payload, {
+      secret: this.config.get('JWT_SECRET'),
+      expiresIn: '8h',
+    });
+    const refreshToken = this.jwt.sign(payload, {
+      secret: this.config.get('JWT_REFRESH_SECRET'),
+      expiresIn: '7d',
+    });
+    return {
+      accessToken,
+      refreshToken,
+      user: {
+        id: workshopUser.id,
+        email: workshopUser.email,
+        role: 'WORKSHOP_USER',
+        workshopUserRole: workshopUser.role,
+        workshopId: workshopUser.workshopId,
+      },
+    };
   }
 
   async getProfile(userId: string) {
-    return this.prisma.user.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -120,6 +182,15 @@ export class AuthService {
         createdAt: true,
       },
     });
+    if (!user) return null;
+
+    // Enriquecer con datos del perfil según rol
+    const enriched: any = { ...user };
+    if (user.role === 'WORKSHOP') {
+      const workshop = await this.prisma.workshop.findUnique({ where: { userId: user.id } });
+      if (workshop) enriched.workshopId = workshop.id;
+    }
+    return enriched;
   }
 
   private generateTokens(user: { id: string; email: string; role: Role | string }) {

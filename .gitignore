@@ -40,3 +40,9 @@ Thumbs.db
 # Testing
 coverage/
 .nyc_output/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# pnpm temp files
+.pnpm-lock.yaml.*.tmp

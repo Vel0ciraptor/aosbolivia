@@ -17,7 +17,25 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: { sub: string; email: string; role: string }) {
+  async validate(payload: { sub: string; email: string; role: string; workshopUserRole?: string; workshopId?: string }) {
+    // Si es un WorkshopUser
+    if (payload.role === 'WORKSHOP_USER') {
+      const workshopUser = await this.prisma.workshopUser.findUnique({
+        where: { id: payload.sub },
+      });
+      if (!workshopUser || workshopUser.status !== 'ACTIVE') return null;
+
+      return {
+        id: workshopUser.id,
+        email: workshopUser.email,
+        name: workshopUser.name,
+        role: 'WORKSHOP_USER',
+        workshopUserRole: workshopUser.role,
+        workshopId: workshopUser.workshopId,
+      };
+    }
+
+    // Flujo normal para usuarios del sistema
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
     });

@@ -27,6 +27,10 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Obtener perfil del usuario autenticado' })
   getMe(@Req() req: any) {
+    // Si es WorkshopUser, devolver perfil de WorkshopUser
+    if (req.user.role === 'WORKSHOP_USER') {
+      return this.authService.getWorkshopUserProfile(req.user.id);
+    }
     return this.authService.getProfile(req.user.id);
   }
 }

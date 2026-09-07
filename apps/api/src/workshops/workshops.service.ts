@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateWorkshopDto } from './dto/update-workshop.dto';
 import { CreateWorkshopServiceDto, UpdateWorkshopServiceDto } from './dto/workshop-service.dto';
@@ -6,6 +6,8 @@ import {
   CreateWorkshopJobDto, UpdateWorkshopJobDto, UpdateJobStatusDto,
   UpdateCheckpointDto, BulkUpdateCheckpointsDto, CreatePartNeedDto,
 } from './dto/workshop-job.dto';
+import { CreateWorkshopUserDto, UpdateWorkshopUserDto } from './dto/workshop-user.dto';
+import * as bcrypt from 'bcryptjs';
 
 const DEFAULT_CHECKPOINTS = [
   'Motor',
@@ -430,6 +432,115 @@ export class WorkshopsService {
     const dLon = ((lon2 - lon1) * Math.PI) / 180;
     const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  // ─────────────────────────────────────────────
+  // WORKSHOP USERS (Equipo interno)
+  // ─────────────────────────────────────────────
+
+  async findWorkshopUsers(workshopId: string) {
+    return this.prisma.workshopUser.findMany({
+      where: { workshopId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        status: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async createWorkshopUser(workshopId: string, dto: CreateWorkshopUserDto) {
+    const workshop = await this.prisma.workshop.findUnique({ where: { id: workshopId } });
+    if (!workshop) throw new NotFoundException('Taller no encontrado');
+
+    const email = `${dto.emailPrefix.toLowerCase().trim()}@${workshop.nombre.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '')}.com`;
+
+    const existing = await this.prisma.workshopUser.findUnique({
+      where: { workshopId_email: { workshopId, email } },
+    });
+    if (existing) throw new ConflictException('Ya existe un usuario con ese email en el taller');
+
+    const plainPassword = dto.password || this.generatePassword();
+    const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
+    const user = await this.prisma.workshopUser.create({
+      data: {
+        workshopId,
+        name: dto.name.trim(),
+        email,
+        phone: dto.phone,
+        role: dto.role,
+        password: hashedPassword,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        status: true,
+        createdAt: true,
+      },
+    });
+
+    return { ...user, plainPassword };
+  }
+
+  async updateWorkshopUser(workshopId: string, userId: string, dto: UpdateWorkshopUserDto) {
+    const user = await this.prisma.workshopUser.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    if (user.workshopId !== workshopId) throw new ForbiddenException('Sin permiso');
+
+    return this.prisma.workshopUser.update({
+      where: { id: userId },
+      data: {
+        ...(dto.name && { name: dto.name.trim() }),
+        ...(dto.phone !== undefined && { phone: dto.phone }),
+        ...(dto.role && { role: dto.role }),
+        ...(dto.status && { status: dto.status }),
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        status: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async removeWorkshopUser(workshopId: string, userId: string) {
+    const user = await this.prisma.workshopUser.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    if (user.workshopId !== workshopId) throw new ForbiddenException('Sin permiso');
+
+    return this.prisma.workshopUser.update({
+      where: { id: userId },
+      data: { status: 'INACTIVE' },
+    });
+  }
+
+  async findWorkshopUserByEmail(email: string) {
+    return this.prisma.workshopUser.findFirst({
+      where: { email, status: 'ACTIVE' },
+      include: { workshop: true },
+    });
+  }
+
+  private generatePassword(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%';
+    let password = '';
+    for (let i = 0; i < 12; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return password;
   }
 
   // ─────────────────────────────────────────────

@@ -54,6 +54,7 @@ export default function NewRequestPage() {
 
   const [parsing, setParsing] = useState(false);
   const [parsed, setParsed] = useState<AIParsed | null>(null);
+  const [manualCategoria, setManualCategoria] = useState<string>('');
 
   useEffect(() => {
     async function loadVehicles() {
@@ -104,12 +105,18 @@ export default function NewRequestPage() {
       return;
     }
 
+    const categoria = manualCategoria || parsed?.categoria;
+    if (!categoria) {
+      setError('Selecciona el tipo de servicio que necesitas.');
+      return;
+    }
+
     try {
       setSubmitting(true);
       const res = await api.post('/requests', {
         descripcion: descripcion.trim(),
         vehicleId: vehicleId || undefined,
-        categoria: parsed?.categoria,
+        categoria,
       });
       const requestId = res.data?.request?.id;
       if (requestId) {
@@ -166,6 +173,37 @@ export default function NewRequestPage() {
                 <div className="flex items-center justify-between text-[11px] text-zinc-500">
                   <span>Sé lo más específico posible para recibir mejores cotizaciones.</span>
                   <span>{descripcion.length} caracteres</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-zinc-300 block">
+                  Tipo de servicio <span className="text-red-400">*</span>
+                </label>
+                <p className="text-[11px] text-zinc-500">Selecciona qué tipo de servicio necesitas:</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { key: 'TALLER', label: 'Taller', icon: Wrench, color: 'emerald', desc: 'Servicio mecánico' },
+                    { key: 'REPUESTO', label: 'Repuestos', icon: Tag, color: 'indigo', desc: 'Piezas y partes' },
+                    { key: 'GRUA', label: 'Grúa', icon: Truck, color: 'rose', desc: 'Asistencia vial' },
+                  ].map((cat) => (
+                    <button
+                      key={cat.key}
+                      type="button"
+                      onClick={() => setManualCategoria(cat.key)}
+                      className={`p-3 rounded-xl border text-left transition-all ${
+                        manualCategoria === cat.key
+                          ? `bg-${cat.color}-500/10 border-${cat.color}-500/40 text-${cat.color}-300`
+                          : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <cat.icon className={`w-4 h-4 ${manualCategoria === cat.key ? `text-${cat.color}-400` : 'text-zinc-500'}`} />
+                        <span className="text-xs font-bold">{cat.label}</span>
+                      </div>
+                      <p className="text-[10px] text-zinc-500">{cat.desc}</p>
+                    </button>
+                  ))}
                 </div>
               </div>
 

@@ -390,42 +390,39 @@ export default function WorkshopCrmPage() {
           </>)}
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {filtered.map((job) => {
             const meta = STATUS_META[job.estado] || STATUS_META.INGRESANDO; const StatusIcon = meta.icon;
             const nextStatus = meta.next; const nextMeta = nextStatus ? STATUS_META[nextStatus] : null;
-            const lastLog = job.logs?.[0];
             return (
-              <div key={job.id} className="p-5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-2xl transition-all">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0 space-y-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${meta.bg} ${meta.color}`}><StatusIcon className="w-3 h-3" />{meta.label}</span>
-                      {job.requestId && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider bg-zinc-500/10 border-zinc-500/20 text-zinc-400"><FileText className="w-2.5 h-2.5" /> Solicitud</span>}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <button onClick={() => openDetail(job)} className="text-left"><h3 className="text-base font-bold text-zinc-100 hover:text-emerald-300 transition-colors">{job.marca} {job.modelo} {job.anio}</h3></button>
-                      {job.placa && <span className="px-2 py-0.5 bg-zinc-950 border border-zinc-800 rounded text-[10px] font-mono text-zinc-400">{job.placa}</span>}
-                      {job.kilometraje && <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-950 border border-zinc-800 rounded text-[10px] text-zinc-400"><Fuel className="w-2.5 h-2.5" />{job.kilometraje.toLocaleString()} km</span>}
-                    </div>
-                    <p className="text-xs text-zinc-500 line-clamp-1">{job.problema}</p>
-                    <div className="flex flex-wrap items-center gap-3 text-[11px] text-zinc-500">
-                      <span className="inline-flex items-center gap-1 font-semibold text-zinc-300"><User className="w-3.5 h-3.5" />{job.clienteNombre}</span>
-                      {job.clienteTelefono && <span className="inline-flex items-center gap-1"><Phone className="w-3.5 h-3.5" />{job.clienteTelefono}</span>}
-                      <span className="inline-flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{new Date(job.createdAt).toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-2 shrink-0">
+              <div key={job.id} className="p-3 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-xl transition-all group">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${meta.bg} ${meta.color}`}><StatusIcon className="w-2.5 h-2.5" />{meta.label}</span>
+                  {job.requestId ? (
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-blue-500/10 border border-blue-500/20 text-blue-400"><FileText className="w-2.5 h-2.5" />Solicitud</span>
+                  ) : (
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-zinc-500/10 border border-zinc-500/20 text-zinc-500"><User className="w-2.5 h-2.5" />Directo</span>
+                  )}
+                </div>
+                <button onClick={() => openDetail(job)} className="text-left w-full">
+                  <h3 className="text-sm font-bold text-zinc-100 group-hover:text-emerald-300 transition-colors truncate">{job.marca} {job.modelo} <span className="text-zinc-500 font-normal">{job.anio}</span></h3>
+                </button>
+                <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                  {job.placa && <span className="px-1.5 py-0.5 bg-zinc-950 border border-zinc-800 rounded text-[9px] font-mono text-zinc-400">{job.placa}</span>}
+                  {job.kilometraje && <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-zinc-950 border border-zinc-800 rounded text-[9px] text-zinc-400"><Fuel className="w-2.5 h-2.5" />{job.kilometraje.toLocaleString()}</span>}
+                </div>
+                <p className="text-[11px] text-zinc-500 mt-1.5 line-clamp-1">{job.clienteNombre}</p>
+                <p className="text-[10px] text-zinc-600 mt-0.5 line-clamp-1">{job.problema}</p>
+                <div className="flex items-center justify-between mt-2 pt-2 border-t border-zinc-800/50">
+                  <span className="text-[9px] text-zinc-600">{new Date(job.createdAt).toLocaleDateString('es-VE', { day: '2-digit', month: 'short' })}</span>
+                  <div className="flex items-center gap-1">
                     {nextStatus && nextMeta && (
-                      <button onClick={() => openStatusModal(job)} className="px-3 py-1.5 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5" title={`Avanzar a: ${nextMeta.label}`}>
-                        {React.createElement(nextMeta.icon, { className: 'w-3.5 h-3.5' })}<span className="hidden md:inline">{nextMeta.label}</span><ChevronRight className="w-3.5 h-3.5" />
+                      <button onClick={() => openStatusModal(job)} className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded transition-colors flex items-center gap-0.5" title={`Avanzar a: ${nextMeta.label}`}>
+                        {React.createElement(nextMeta.icon, { className: 'w-2.5 h-2.5' })}<span className="hidden sm:inline">{nextMeta.label}</span>
                       </button>
                     )}
-                    <div className="flex items-center gap-1.5">
-                      <button onClick={() => handleDownloadPdf(job.id)} className="px-2 py-1.5 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 text-xs rounded-lg transition-colors" title="Descargar PDF"><Download className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => openEdit(job)} className="px-2 py-1.5 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 text-xs rounded-lg transition-colors" title="Editar"><Edit2 className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => handleDelete(job)} className="px-2 py-1.5 bg-zinc-950 hover:bg-red-950/30 border border-zinc-800 hover:border-red-900/30 text-zinc-400 hover:text-red-400 text-xs rounded-lg transition-colors" title="Eliminar"><Trash2 className="w-3.5 h-3.5" /></button>
-                    </div>
+                    <button onClick={() => handleDownloadPdf(job.id)} className="px-1.5 py-1 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-500 text-[10px] rounded transition-colors" title="PDF"><Download className="w-2.5 h-2.5" /></button>
+                    <button onClick={() => openEdit(job)} className="px-1.5 py-1 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-500 text-[10px] rounded transition-colors" title="Editar"><Edit2 className="w-2.5 h-2.5" /></button>
                   </div>
                 </div>
               </div>

@@ -73,6 +73,15 @@ export class WorkshopsService {
     return workshop;
   }
 
+  async findByWorkshopId(workshopId: string) {
+    const workshop = await this.prisma.workshop.findUnique({
+      where: { id: workshopId },
+      include: { services: { orderBy: { createdAt: 'desc' } } },
+    });
+    if (!workshop) throw new NotFoundException('Taller no encontrado');
+    return workshop;
+  }
+
   async update(userId: string, dto: UpdateWorkshopDto) {
     const workshop = await this.prisma.workshop.findUnique({
       where: { userId },
@@ -153,12 +162,15 @@ export class WorkshopsService {
   // CRM - Workshop Jobs
   // ─────────────────────────────────────────────
 
-  async findJobs(workshopId: string, estado?: string, role?: string) {
+  async findJobs(workshopId: string, estado?: string, role?: string, userId?: string) {
     const where: any = { workshopId };
     if (estado) where.estado = estado;
     if (role === MECHANIC_ROLE) {
       if (!estado || !MECHANIC_EDITABLE_STATES.includes(estado)) {
         where.estado = { in: MECHANIC_EDITABLE_STATES };
+      }
+      if (userId) {
+        where.mecanicosAsignados = { array_contains: [{ userId }] };
       }
     }
     return this.prisma.workshopJob.findMany({
@@ -172,7 +184,7 @@ export class WorkshopsService {
     });
   }
 
-  async findJobById(workshopId: string, jobId: string, role?: string) {
+  async findJobById(workshopId: string, jobId: string, role?: string, userId?: string) {
     const job = await this.prisma.workshopJob.findUnique({
       where: { id: jobId },
       include: {
@@ -189,6 +201,12 @@ export class WorkshopsService {
     if (role === MECHANIC_ROLE) {
       if (!MECHANIC_EDITABLE_STATES.includes(job.estado)) {
         throw new ForbiddenException('No tiene permiso para ver este estado');
+      }
+      if (userId) {
+        const asignados = (job.mecanicosAsignados as any[]) || [];
+        if (!asignados.some((w) => w.userId === userId)) {
+          throw new ForbiddenException('No tiene permiso para ver este trabajo');
+        }
       }
       const mecanicosAsignados = (job.mecanicosAsignados as any[]) || [];
       return {

@@ -67,6 +67,9 @@ export class WorkshopsController {
   @Get('me')
   @ApiOperation({ summary: 'Obtener perfil del taller autenticado' })
   findMe(@Req() req: any) {
+    if (req.user.role === 'WORKSHOP_USER') {
+      return this.workshopsService.findByWorkshopId(req.user.workshopId);
+    }
     return this.workshopsService.findByUserId(req.user.id);
   }
 
@@ -113,6 +116,7 @@ export class WorkshopsController {
       req.user.workshopId,
       estado,
       req.user.workshopUserRole,
+      req.user.id,
     );
   }
 
@@ -123,6 +127,7 @@ export class WorkshopsController {
       req.user.workshopId,
       id,
       req.user.workshopUserRole,
+      req.user.id,
     );
   }
 

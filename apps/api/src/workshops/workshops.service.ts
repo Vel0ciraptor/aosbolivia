@@ -27,6 +27,8 @@ import {
   UpdateWorkshopUserDto,
 } from './dto/workshop-user.dto';
 import * as bcrypt from 'bcryptjs';
+import { readFile, stat, unlink } from 'fs/promises';
+import { basename, extname, join } from 'path';
 
 const DEFAULT_CHECKPOINTS = [
   'Motor',
@@ -44,6 +46,11 @@ const DEFAULT_CHECKPOINTS = [
 
 const MECHANIC_ROLE = 'MECANICO';
 const MECHANIC_EDITABLE_STATES = ['CHECK_INICIAL', 'TRABAJANDO'];
+
+const MAX_JOB_IMAGES_BYTES = 50 * 1024 * 1024;
+const UPLOAD_IMAGES_DIR = join(process.cwd(), 'uploads', 'workshop-images');
+
+const imageKey = (url: string) => basename(url.split('?')[0]);
 const WORKLOG_ADMIN_ROLES = ['SUPERVISOR', 'JEFE_MECANICO', 'CONTABILIDAD'];
 
 @Injectable()
@@ -1081,6 +1088,29 @@ export class WorkshopsService {
     if (job.workshopId !== workshopId)
       throw new ForbiddenException('Sin permiso');
 
+    const existingUrls = [
+      ...((job.imagenes as string[]) || []),
+      ...((job.imagenesTerminado as string[]) || []),
+    ];
+    let totalBytes = file.size;
+    for (const url of existingUrls) {
+      try {
+        totalBytes += (await stat(join(UPLOAD_IMAGES_DIR, imageKey(url)))).size;
+      } catch {
+        // archivo ya no existe (fue incrustado en un reporte y eliminado)
+      }
+    }
+    if (totalBytes > MAX_JOB_IMAGES_BYTES) {
+      try {
+        await unlink(join(UPLOAD_IMAGES_DIR, file.filename));
+      } catch {
+        // ya no existe
+      }
+      throw new BadRequestException(
+        'Las fotos de un vehículo no pueden superar los 50MB en total',
+      );
+    }
+
     const baseUrl = process.env.APP_URL || 'http://localhost:3004';
     const url = `${baseUrl}/uploads/workshop-images/${file.filename}`;
     return { url };
@@ -1175,21 +1205,39 @@ export class WorkshopsService {
       )
       .join('');
 
-    const imagenes = ((job.imagenes as string[]) || [])
-      .map(
-        (url) =>
-          `<img src="${url}" style="width:150px;height:150px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;" />`,
-      )
-      .join('');
+    const embedReportImage = async (url: string): Promise<string> => {
+      try {
+        const name = imageKey(url);
+        const data = await readFile(join(UPLOAD_IMAGES_DIR, name));
+        const ext = extname(name).toLowerCase();
+        const mime =
+          ext === '.png'
+            ? 'image/png'
+            : ext === '.gif'
+              ? 'image/gif'
+              : ext === '.webp'
+                ? 'image/webp'
+                : 'image/jpeg';
+        return `data:${mime};base64,${data.toString('base64')}`;
+      } catch {
+        return url;
+      }
+    };
 
-    const imagenesTerminado = ((job.imagenesTerminado as string[]) || [])
-      .map(
-        (url) =>
-          `<img src="${url}" style="width:150px;height:150px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;" />`,
-      )
-      .join('');
+    const renderImages = (urls: any) =>
+      Promise.all(
+        ((urls || []) as string[]).map(async (url) => {
+          const src = await embedReportImage(url);
+          return `<img src="${src}" style="width:150px;height:150px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;" />`;
+        }),
+      );
 
-    return `
+    const imagenes = (await renderImages(job.imagenes)).join('');
+    const imagenesTerminado = (
+      await renderImages(job.imagenesTerminado)
+    ).join('');
+
+    const html = `
     <!DOCTYPE html>
     <html>
     <head><meta charset="utf-8"><title>Reporte - ${job.marca} ${job.modelo}</title>
@@ -1336,5 +1384,16 @@ export class WorkshopsService {
       </div>
     </body>
     </html>`;
+
+    await Promise.all(
+      [
+        ...((job.imagenes as string[]) || []),
+        ...((job.imagenesTerminado as string[]) || []),
+      ].map((url) =>
+        unlink(join(UPLOAD_IMAGES_DIR, imageKey(url))).catch(() => undefined),
+      ),
+    );
+
+    return html;
   }
 }

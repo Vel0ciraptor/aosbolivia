@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { mkdirSync } from 'fs';
 import { join } from 'path';
 import { AppModule } from './app.module';
 
@@ -10,6 +11,11 @@ async function bootstrap() {
 
   // Prefijo global de la API
   app.setGlobalPrefix('api');
+
+  // Carpeta de uploads (multer no la crea automáticamente)
+  mkdirSync(join(process.cwd(), 'uploads', 'workshop-images'), {
+    recursive: true,
+  });
 
   // Archivos estáticos (imágenes subidas)
   app.useStaticAssets(join(__dirname, '..', 'uploads'), { prefix: '/uploads' });

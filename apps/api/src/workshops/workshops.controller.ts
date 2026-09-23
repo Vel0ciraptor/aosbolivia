@@ -13,6 +13,7 @@ import {
   Res,
   UseInterceptors,
   UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -422,10 +423,10 @@ export class WorkshopsController {
           cb(null, uniqueName);
         },
       }),
-      limits: { fileSize: 5 * 1024 * 1024 },
+      limits: { fileSize: 15 * 1024 * 1024 },
       fileFilter: (_req, file, cb) => {
         if (!file.mimetype.match(/\/(jpg|jpeg|png|gif|webp)$/)) {
-          cb(new Error('Solo se permiten imágenes'), false);
+          cb(null, false);
         } else {
           cb(null, true);
         }
@@ -439,6 +440,11 @@ export class WorkshopsController {
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
   ) {
+    if (!file) {
+      throw new BadRequestException(
+        'Solo se permiten imágenes JPG, PNG, GIF o WebP',
+      );
+    }
     return this.workshopsService.uploadJobImage(req.user.workshopId, id, file);
   }
 

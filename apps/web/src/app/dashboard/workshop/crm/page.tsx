@@ -525,8 +525,8 @@ export default function WorkshopCrmPage() {
     } catch (err: any) { alert(err.response?.data?.message || 'No se guardó el precio.'); }
   };
 
-  const subtotalRepuestos = (list: PartNeed[]) => (list || []).reduce((s, p) => s + ((p.precioUnitario ?? 0) * p.cantidad), 0);
-  const totalCostos = (detalle: WorkshopJob | null, list: PartNeed[]) => (detalle?.precioServicio ?? 0) + subtotalRepuestos(list);
+  const subtotalRepuestos = (list: PartNeed[]) => (list || []).reduce((s, p) => s + ((Number(p.precioUnitario) || 0) * p.cantidad), 0);
+  const totalCostos = (detalle: WorkshopJob | null, list: PartNeed[]) => (Number(detalle?.precioServicio) || 0) + subtotalRepuestos(list);
 
   // ── Historial: editar horas (admin) ──
   const handleEditMechanicHour = async (row: any) => {
@@ -1018,7 +1018,7 @@ export default function WorkshopCrmPage() {
                                       className="w-24 px-2 py-1 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 text-xs font-mono text-right focus:border-emerald-500"
                                     />
                                   </td>
-                                  <td className="py-2 pr-3 text-right font-mono text-zinc-400">{((pn.precioUnitario ?? 0) * pn.cantidad).toFixed(2)}</td>
+                                  <td className="py-2 pr-3 text-right font-mono text-zinc-400">{((Number(pn.precioUnitario) || 0) * pn.cantidad).toFixed(2)}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -1026,7 +1026,7 @@ export default function WorkshopCrmPage() {
                         </div>
                       )}
                       <div className="flex justify-end items-center gap-6 pt-2 border-t border-zinc-800">
-                        <div className="text-right"><p className="text-[10px] text-zinc-500 font-bold uppercase">Servicio</p><p className="text-sm font-bold text-zinc-200">{((detailJob.precioServicio ?? 0)).toFixed(2)}$</p></div>
+                        <div className="text-right"><p className="text-[10px] text-zinc-500 font-bold uppercase">Servicio</p><p className="text-sm font-bold text-zinc-200">{((Number(detailJob.precioServicio) || 0)).toFixed(2)}$</p></div>
                         <div className="text-right"><p className="text-[10px] text-zinc-500 font-bold uppercase">Repuestos</p><p className="text-sm font-bold text-zinc-200">{subtotalRepuestos(partNeeds).toFixed(2)}$</p></div>
                         <div className="text-right"><p className="text-[10px] text-emerald-400 font-bold uppercase">Total</p><p className="text-lg font-extrabold text-emerald-400">{totalCostos(detailJob, partNeeds).toFixed(2)}$</p></div>
                       </div>
@@ -1075,7 +1075,7 @@ export default function WorkshopCrmPage() {
                                     className="w-24 px-2 py-1 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 text-xs font-mono text-right focus:border-emerald-500"
                                   />
                                 </td>
-                                <td className="py-2 pr-3 text-right font-mono text-zinc-400">{((pn.precioUnitario ?? 0) * pn.cantidad).toFixed(2)}</td>
+                                <td className="py-2 pr-3 text-right font-mono text-zinc-400">{((Number(pn.precioUnitario) || 0) * pn.cantidad).toFixed(2)}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -1083,7 +1083,7 @@ export default function WorkshopCrmPage() {
                       </div>
                     )}
                     <div className="flex justify-end items-center gap-6 pt-2 border-t border-zinc-800 mb-5">
-                      <div className="text-right"><p className="text-[10px] text-zinc-500 font-bold uppercase">Servicio</p><p className="text-sm font-bold text-zinc-200">{((detailJob.precioServicio ?? 0)).toFixed(2)}$</p></div>
+                      <div className="text-right"><p className="text-[10px] text-zinc-500 font-bold uppercase">Servicio</p><p className="text-sm font-bold text-zinc-200">{((Number(detailJob.precioServicio) || 0)).toFixed(2)}$</p></div>
                       <div className="text-right"><p className="text-[10px] text-zinc-500 font-bold uppercase">Repuestos</p><p className="text-sm font-bold text-zinc-200">{subtotalRepuestos(partNeeds).toFixed(2)}$</p></div>
                       <div className="text-right"><p className="text-[10px] text-emerald-400 font-bold uppercase">Total</p><p className="text-lg font-extrabold text-emerald-400">{totalCostos(detailJob, partNeeds).toFixed(2)}$</p></div>
                     </div>

@@ -2,7 +2,9 @@ import { IsString, IsArray, IsEnum } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class ParseRequestDto {
-  @ApiProperty({ example: 'Necesito una bomba de gasolina para una Hilux 2019' })
+  @ApiProperty({
+    example: 'Necesito una bomba de gasolina para una Hilux 2019',
+  })
   @IsString()
   text: string;
 }

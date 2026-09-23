@@ -39,7 +39,14 @@ export class AiService {
     const pieza = this.extractPart(lower);
     const especialidad = this.extractSpecialty(lower);
 
-    const resumen = this.buildSummary(categoria, marca, modelo, anio, pieza, especialidad);
+    const resumen = this.buildSummary(
+      categoria,
+      marca,
+      modelo,
+      anio,
+      pieza,
+      especialidad,
+    );
 
     return {
       categoria,
@@ -55,7 +62,8 @@ export class AiService {
 
   // ─── Chatbot Demo ─────────────────────────────────────────────────────
   async chat(messages: ChatMessage[], userId: string): Promise<string> {
-    const lastMessage = messages[messages.length - 1]?.content?.toLowerCase() || '';
+    const lastMessage =
+      messages[messages.length - 1]?.content?.toLowerCase() || '';
 
     // Saludo inicial
     if (messages.length === 1) {
@@ -63,14 +71,35 @@ export class AiService {
     }
 
     // Palabras clave para repuestos
-    if (this.containsAny(lastMessage, ['repuesto', 'pieza', 'parte', 'bomba', 'filtro', 'pastilla', 'alternador', 'batería', 'freno'])) {
+    if (
+      this.containsAny(lastMessage, [
+        'repuesto',
+        'pieza',
+        'parte',
+        'bomba',
+        'filtro',
+        'pastilla',
+        'alternador',
+        'batería',
+        'freno',
+      ])
+    ) {
       const parsed = this.parseRequest(lastMessage);
       const parts = await this.searchParts(parsed);
       return this.formatPartsResponse(parsed, parts);
     }
 
     // Palabras clave para taller
-    if (this.containsAny(lastMessage, ['taller', 'mecánico', 'reparar', 'arreglar', 'servicio', 'revisión'])) {
+    if (
+      this.containsAny(lastMessage, [
+        'taller',
+        'mecánico',
+        'reparar',
+        'arreglar',
+        'servicio',
+        'revisión',
+      ])
+    ) {
       const workshops = await this.prisma.workshop.findMany({
         take: 3,
         include: { services: { take: 3 } },
@@ -79,13 +108,33 @@ export class AiService {
     }
 
     // Palabras clave para grúa
-    if (this.containsAny(lastMessage, ['grúa', 'remolque', 'varado', 'accidente', 'auxilio', 'asistencia'])) {
+    if (
+      this.containsAny(lastMessage, [
+        'grúa',
+        'remolque',
+        'varado',
+        'accidente',
+        'auxilio',
+        'asistencia',
+      ])
+    ) {
       const tows = await this.prisma.towService.findMany({ take: 3 });
       return this.formatTowsResponse(tows);
     }
 
     // Diagnóstico básico
-    if (this.containsAny(lastMessage, ['enciende', 'arranca', 'ruido', 'humo', 'falla', 'problema', 'luz', 'testigo'])) {
+    if (
+      this.containsAny(lastMessage, [
+        'enciende',
+        'arranca',
+        'ruido',
+        'humo',
+        'falla',
+        'problema',
+        'luz',
+        'testigo',
+      ])
+    ) {
       return this.generateDiagnosis(lastMessage);
     }
 
@@ -121,22 +170,76 @@ export class AiService {
 
   // ─── Helpers privados ─────────────────────────────────────────────────
   private detectCategory(text: string): ParsedRequest['categoria'] {
-    if (this.containsAny(text, ['grúa', 'remolque', 'varado', 'auxilio'])) return 'GRUA';
-    if (this.containsAny(text, ['taller', 'mecánico', 'reparar', 'arreglar'])) return 'TALLER';
-    if (this.containsAny(text, ['repuesto', 'pieza', 'parte', 'bomba', 'filtro', 'pastilla', 'alternador', 'batería', 'amortiguador'])) return 'REPUESTO';
+    if (this.containsAny(text, ['grúa', 'remolque', 'varado', 'auxilio']))
+      return 'GRUA';
+    if (this.containsAny(text, ['taller', 'mecánico', 'reparar', 'arreglar']))
+      return 'TALLER';
+    if (
+      this.containsAny(text, [
+        'repuesto',
+        'pieza',
+        'parte',
+        'bomba',
+        'filtro',
+        'pastilla',
+        'alternador',
+        'batería',
+        'amortiguador',
+      ])
+    )
+      return 'REPUESTO';
     return 'CONSULTA';
   }
 
   private extractVehicle(text: string): { marca?: string; modelo?: string } {
     const vehicleMap: Record<string, { marca: string; modelos: string[] }> = {
-      toyota: { marca: 'Toyota', modelos: ['hilux', 'corolla', 'camry', 'rav4', 'land cruiser', 'yaris', 'fortuner'] },
-      ford: { marca: 'Ford', modelos: ['explorer', 'f-150', 'ranger', 'escape', 'fusion', 'mustang'] },
-      chevrolet: { marca: 'Chevrolet', modelos: ['silverado', 'tahoe', 'equinox', 'malibu', 'spark', 'aveo'] },
-      nissan: { marca: 'Nissan', modelos: ['frontier', 'pathfinder', 'altima', 'sentra', 'versa', 'x-trail'] },
-      honda: { marca: 'Honda', modelos: ['civic', 'accord', 'crv', 'pilot', 'fit'] },
-      hyundai: { marca: 'Hyundai', modelos: ['tucson', 'santa fe', 'elantra', 'accent', 'sonata'] },
-      kia: { marca: 'Kia', modelos: ['sportage', 'sorento', 'rio', 'cerato', 'picanto'] },
-      volkswagen: { marca: 'Volkswagen', modelos: ['jetta', 'passat', 'tiguan', 'golf', 'amarok'] },
+      toyota: {
+        marca: 'Toyota',
+        modelos: [
+          'hilux',
+          'corolla',
+          'camry',
+          'rav4',
+          'land cruiser',
+          'yaris',
+          'fortuner',
+        ],
+      },
+      ford: {
+        marca: 'Ford',
+        modelos: ['explorer', 'f-150', 'ranger', 'escape', 'fusion', 'mustang'],
+      },
+      chevrolet: {
+        marca: 'Chevrolet',
+        modelos: ['silverado', 'tahoe', 'equinox', 'malibu', 'spark', 'aveo'],
+      },
+      nissan: {
+        marca: 'Nissan',
+        modelos: [
+          'frontier',
+          'pathfinder',
+          'altima',
+          'sentra',
+          'versa',
+          'x-trail',
+        ],
+      },
+      honda: {
+        marca: 'Honda',
+        modelos: ['civic', 'accord', 'crv', 'pilot', 'fit'],
+      },
+      hyundai: {
+        marca: 'Hyundai',
+        modelos: ['tucson', 'santa fe', 'elantra', 'accent', 'sonata'],
+      },
+      kia: {
+        marca: 'Kia',
+        modelos: ['sportage', 'sorento', 'rio', 'cerato', 'picanto'],
+      },
+      volkswagen: {
+        marca: 'Volkswagen',
+        modelos: ['jetta', 'passat', 'tiguan', 'golf', 'amarok'],
+      },
     };
 
     for (const [key, value] of Object.entries(vehicleMap)) {
@@ -155,16 +258,36 @@ export class AiService {
 
   private extractPart(text: string): string | undefined {
     const parts = [
-      'bomba de gasolina', 'bomba de agua', 'filtro de aceite', 'filtro de aire',
-      'pastillas de freno', 'disco de freno', 'alternador', 'batería',
-      'amortiguador', 'correa de distribución', 'bujías', 'termostato',
-      'radiador', 'compresor de aire', 'embrague', 'clutch',
+      'bomba de gasolina',
+      'bomba de agua',
+      'filtro de aceite',
+      'filtro de aire',
+      'pastillas de freno',
+      'disco de freno',
+      'alternador',
+      'batería',
+      'amortiguador',
+      'correa de distribución',
+      'bujías',
+      'termostato',
+      'radiador',
+      'compresor de aire',
+      'embrague',
+      'clutch',
     ];
     return parts.find((p) => text.includes(p));
   }
 
   private extractSpecialty(text: string): string | undefined {
-    const specialties = ['frenos', 'suspensión', 'transmisión', 'motor', 'eléctrico', 'carrocería', 'aire acondicionado'];
+    const specialties = [
+      'frenos',
+      'suspensión',
+      'transmisión',
+      'motor',
+      'eléctrico',
+      'carrocería',
+      'aire acondicionado',
+    ];
     return specialties.find((s) => text.includes(s));
   }
 
@@ -208,7 +331,8 @@ export class AiService {
   }
 
   private formatWorkshopsResponse(workshops: any[]): string {
-    if (workshops.length === 0) return 'No encontré talleres disponibles en este momento.';
+    if (workshops.length === 0)
+      return 'No encontré talleres disponibles en este momento.';
     let response = `🔧 Talleres disponibles:\n\n`;
     workshops.forEach((w, i) => {
       response += `**${i + 1}. ${w.nombre}**\n`;
@@ -237,16 +361,24 @@ export class AiService {
 
   private generateDiagnosis(text: string): string {
     const symptoms: Record<string, string> = {
-      'no enciende': '🔋 **Posibles causas:** Batería descargada, problema en el motor de arranque, o falla en el sistema de inyección. Recomiendo revisar la batería primero.',
-      'no arranca': '🔋 **Posibles causas:** Batería descargada, problema en el motor de arranque, o falla en el sistema de inyección. Recomiendo revisar la batería primero.',
-      'humo negro': '💨 **Humo negro:** Indica mezcla de combustible rica. Posible falla en inyectores, sensor de flujo de masa de aire (MAF) o filtro de aire obstruido.',
-      'humo blanco': '💨 **Humo blanco:** Puede indicar quema de líquido refrigerante. Revisa el nivel del refrigerante y busca posibles fugas.',
-      'ruido': '🔊 **Ruido inusual:** Puede ser amortiguadores, frenos, o problemas mecánicos. Necesito más detalles: ¿dónde se escucha y en qué condiciones?',
-      'luz': '⚠️ **Luz de advertencia:** Recomiendo hacer un diagnóstico OBD2 para leer los códigos de error exactos.',
+      'no enciende':
+        '🔋 **Posibles causas:** Batería descargada, problema en el motor de arranque, o falla en el sistema de inyección. Recomiendo revisar la batería primero.',
+      'no arranca':
+        '🔋 **Posibles causas:** Batería descargada, problema en el motor de arranque, o falla en el sistema de inyección. Recomiendo revisar la batería primero.',
+      'humo negro':
+        '💨 **Humo negro:** Indica mezcla de combustible rica. Posible falla en inyectores, sensor de flujo de masa de aire (MAF) o filtro de aire obstruido.',
+      'humo blanco':
+        '💨 **Humo blanco:** Puede indicar quema de líquido refrigerante. Revisa el nivel del refrigerante y busca posibles fugas.',
+      ruido:
+        '🔊 **Ruido inusual:** Puede ser amortiguadores, frenos, o problemas mecánicos. Necesito más detalles: ¿dónde se escucha y en qué condiciones?',
+      luz: '⚠️ **Luz de advertencia:** Recomiendo hacer un diagnóstico OBD2 para leer los códigos de error exactos.',
     };
 
     for (const [symptom, response] of Object.entries(symptoms)) {
-      if (text.includes(symptom)) return response + '\n\n¿Quieres que busque un taller cercano para revisarlo?';
+      if (text.includes(symptom))
+        return (
+          response + '\n\n¿Quieres que busque un taller cercano para revisarlo?'
+        );
     }
 
     return `⚠️ Describe con más detalle el problema (ruidos, luces encendidas, comportamiento del motor) para darte un diagnóstico más preciso.`;

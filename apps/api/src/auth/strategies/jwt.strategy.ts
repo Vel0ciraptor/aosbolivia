@@ -17,7 +17,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: { sub: string; email: string; role: string; workshopUserRole?: string; workshopId?: string }) {
+  async validate(payload: {
+    sub: string;
+    email: string;
+    role: string;
+    workshopUserRole?: string;
+    workshopId?: string;
+  }) {
     // Si es un WorkshopUser
     if (payload.role === 'WORKSHOP_USER') {
       const workshopUser = await this.prisma.workshopUser.findUnique({
@@ -43,13 +49,19 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     const enriched: any = { ...user };
     if (user.role === 'PROVIDER') {
-      const provider = await this.prisma.provider.findUnique({ where: { userId: user.id } });
+      const provider = await this.prisma.provider.findUnique({
+        where: { userId: user.id },
+      });
       if (provider) enriched.providerId = provider.id;
     } else if (user.role === 'WORKSHOP') {
-      const workshop = await this.prisma.workshop.findUnique({ where: { userId: user.id } });
+      const workshop = await this.prisma.workshop.findUnique({
+        where: { userId: user.id },
+      });
       if (workshop) enriched.workshopId = workshop.id;
     } else if (user.role === 'TOW_SERVICE') {
-      const tow = await this.prisma.towService.findUnique({ where: { userId: user.id } });
+      const tow = await this.prisma.towService.findUnique({
+        where: { userId: user.id },
+      });
       if (tow) enriched.towServiceId = tow.id;
     }
     return enriched;

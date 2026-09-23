@@ -28,15 +28,22 @@ export class ProvidersService {
   }
 
   async findNearby(lat: number, lng: number, radiusKm: number = 50) {
-    const providers = await this.prisma.provider.findMany({ where: { estado: 'ACTIVE' } });
+    const providers = await this.prisma.provider.findMany({
+      where: { estado: 'ACTIVE' },
+    });
     return providers
-      .map((p) => ({ ...p, distanciaKm: this.haversine(lat, lng, p.latitud, p.longitud) }))
+      .map((p) => ({
+        ...p,
+        distanciaKm: this.haversine(lat, lng, p.latitud, p.longitud),
+      }))
       .filter((p) => p.distanciaKm <= radiusKm)
       .sort((a, b) => a.distanciaKm - b.distanciaKm);
   }
 
   async update(userId: string, dto: UpdateProviderDto) {
-    const provider = await this.prisma.provider.findUnique({ where: { userId } });
+    const provider = await this.prisma.provider.findUnique({
+      where: { userId },
+    });
     if (!provider) throw new NotFoundException('Proveedor no encontrado');
     return this.prisma.provider.update({
       where: { userId },
@@ -44,11 +51,20 @@ export class ProvidersService {
     });
   }
 
-  private haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  private haversine(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
+  ): number {
     const R = 6371;
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
     const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) ** 2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 }

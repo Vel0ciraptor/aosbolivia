@@ -1,4 +1,12 @@
-import { Controller, Post, Get, Param, Body, Put, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Param,
+  Body,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { QuotesService, CreateQuoteDto } from './quotes.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';

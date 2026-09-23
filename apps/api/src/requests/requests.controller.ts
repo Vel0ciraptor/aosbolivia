@@ -1,4 +1,13 @@
-import { Controller, Post, Get, Put, Param, Body, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Put,
+  Param,
+  Body,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { RequestsService } from './requests.service';
 import { CreateRequestDto } from './dto/create-request.dto';
@@ -12,7 +21,9 @@ export class RequestsController {
   constructor(private requestsService: RequestsService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Crear solicitud inteligente (el texto es parseado por IA)' })
+  @ApiOperation({
+    summary: 'Crear solicitud inteligente (el texto es parseado por IA)',
+  })
   create(@Req() req: any, @Body() dto: CreateRequestDto) {
     return this.requestsService.create(req.user.id, dto);
   }
@@ -24,7 +35,9 @@ export class RequestsController {
   }
 
   @Get('all')
-  @ApiOperation({ summary: 'Listar todas las solicitudes (Admin/Proveedor/Taller/Grúa)' })
+  @ApiOperation({
+    summary: 'Listar todas las solicitudes (Admin/Proveedor/Taller/Grúa)',
+  })
   findAllAdmin() {
     return this.requestsService.findAll();
   }

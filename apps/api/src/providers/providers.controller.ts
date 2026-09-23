@@ -1,4 +1,13 @@
-import { Controller, Get, Param, Query, Put, Body, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Query,
+  Put,
+  Body,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { ProvidersService } from './providers.service';
 import { UpdateProviderDto } from './dto/update-provider.dto';
@@ -13,7 +22,9 @@ export class ProvidersController {
 
   @Get()
   @ApiOperation({ summary: 'Listar todos los proveedores' })
-  findAll() { return this.providersService.findAll(); }
+  findAll() {
+    return this.providersService.findAll();
+  }
 
   @Get('me')
   @ApiOperation({ summary: 'Obtener perfil del proveedor autenticado' })
@@ -29,11 +40,17 @@ export class ProvidersController {
 
   @Get('nearby')
   @ApiOperation({ summary: 'Proveedores cercanos por geolocalización' })
-  findNearby(@Query('lat') lat: string, @Query('lng') lng: string, @Query('radius') radius?: string) {
+  findNearby(
+    @Query('lat') lat: string,
+    @Query('lng') lng: string,
+    @Query('radius') radius?: string,
+  ) {
     return this.providersService.findNearby(+lat, +lng, radius ? +radius : 50);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener proveedor con catálogo' })
-  findOne(@Param('id') id: string) { return this.providersService.findOne(id); }
+  findOne(@Param('id') id: string) {
+    return this.providersService.findOne(id);
+  }
 }

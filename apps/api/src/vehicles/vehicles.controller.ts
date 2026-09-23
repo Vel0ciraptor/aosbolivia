@@ -1,6 +1,13 @@
 import {
-  Controller, Get, Post, Put, Delete,
-  Body, Param, UseGuards, Req,
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { VehiclesService } from './vehicles.service';
@@ -34,7 +41,11 @@ export class VehiclesController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Actualizar vehículo' })
-  update(@Param('id') id: string, @Req() req: any, @Body() dto: CreateVehicleDto) {
+  update(
+    @Param('id') id: string,
+    @Req() req: any,
+    @Body() dto: CreateVehicleDto,
+  ) {
     return this.vehiclesService.update(id, req.user.id, dto);
   }
 

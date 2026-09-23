@@ -1,8 +1,24 @@
-import { IsString, IsNumber, IsOptional, IsIn, Min, IsBoolean, IsArray, ValidateNested } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsIn,
+  Min,
+  IsBoolean,
+  IsArray,
+  ValidateNested,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
-const VALID_STATES = ['INGRESANDO', 'CHECK_INICIAL', 'TRABAJANDO', 'TERMINADO', 'SALIDA', 'FINALIZADO'];
+const VALID_STATES = [
+  'INGRESANDO',
+  'CHECK_INICIAL',
+  'TRABAJANDO',
+  'TERMINADO',
+  'SALIDA',
+  'FINALIZADO',
+];
 
 export class CreateWorkshopJobDto {
   @ApiProperty()
@@ -103,6 +119,26 @@ export class UpdateWorkshopJobDto {
   @IsOptional()
   @IsString()
   firmaDigital?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  tipoTrabajo?: { categorias?: string[]; otro?: string };
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  horasEstimadas?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  mecanicosAsignados?: any[];
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  precioServicio?: number;
 }
 
 export class UpdateJobStatusDto {
@@ -172,4 +208,54 @@ export class CreatePartNeedDto {
   @ApiProperty({ default: false })
   @IsBoolean()
   esInsumo: boolean;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  precioUnitario?: number;
+}
+
+export class UpdatePartNeedDto {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  nombre?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  cantidad?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  precioUnitario?: number;
+}
+
+export class StartStopWorkDto {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  userId?: string;
+}
+
+export class UpdateWorklogDto {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  horasReales?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  inicio?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  fin?: string;
 }

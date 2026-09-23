@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role, UserStatus } from '../common/enums';
 
@@ -35,17 +39,27 @@ export class AdminService {
       this.prisma.user.findMany({
         orderBy: { createdAt: 'desc' },
         take: 5,
-        select: { id: true, name: true, email: true, role: true, createdAt: true },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          createdAt: true,
+        },
       }),
     ]);
 
-    const businessStatusCounts = await this.prisma.provider.groupBy({
-      by: ['estado'],
-      _count: { _all: true },
-    }).then((rows) => rows.reduce((acc: Record<string, number>, r) => {
-      acc[r.estado] = r._count._all;
-      return acc;
-    }, {}));
+    const businessStatusCounts = await this.prisma.provider
+      .groupBy({
+        by: ['estado'],
+        _count: { _all: true },
+      })
+      .then((rows) =>
+        rows.reduce((acc: Record<string, number>, r) => {
+          acc[r.estado] = r._count._all;
+          return acc;
+        }, {}),
+      );
 
     return {
       users: {
@@ -72,7 +86,11 @@ export class AdminService {
     };
   }
 
-  async listUsers(filters?: { role?: string; status?: string; search?: string }) {
+  async listUsers(filters?: {
+    role?: string;
+    status?: string;
+    search?: string;
+  }) {
     const where: any = {};
     if (filters?.role) where.role = filters.role;
     if (filters?.status) where.status = filters.status;
@@ -105,9 +123,21 @@ export class AdminService {
     });
     const userIds = users.map((u) => u.id);
     const [providerCounts, workshopCounts, towCounts] = await Promise.all([
-      this.prisma.provider.groupBy({ by: ['userId'], where: { userId: { in: userIds } }, _count: { _all: true } }),
-      this.prisma.workshop.groupBy({ by: ['userId'], where: { userId: { in: userIds } }, _count: { _all: true } }),
-      this.prisma.towService.groupBy({ by: ['userId'], where: { userId: { in: userIds } }, _count: { _all: true } }),
+      this.prisma.provider.groupBy({
+        by: ['userId'],
+        where: { userId: { in: userIds } },
+        _count: { _all: true },
+      }),
+      this.prisma.workshop.groupBy({
+        by: ['userId'],
+        where: { userId: { in: userIds } },
+        _count: { _all: true },
+      }),
+      this.prisma.towService.groupBy({
+        by: ['userId'],
+        where: { userId: { in: userIds } },
+        _count: { _all: true },
+      }),
     ]);
     const pMap = new Map(providerCounts.map((r) => [r.userId, r._count._all]));
     const wMap = new Map(workshopCounts.map((r) => [r.userId, r._count._all]));
@@ -133,8 +163,12 @@ export class AdminService {
           take: 20,
           include: { _count: { select: { quotes: true } } },
         },
-        provider: { include: { _count: { select: { parts: true, quotes: true } } } },
-        workshop: { include: { services: true, _count: { select: { quotes: true } } } },
+        provider: {
+          include: { _count: { select: { parts: true, quotes: true } } },
+        },
+        workshop: {
+          include: { services: true, _count: { select: { quotes: true } } },
+        },
         towService: true,
       },
     });
@@ -156,7 +190,9 @@ export class AdminService {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('Usuario no encontrado');
     if (user.id === id && role !== Role.ADMIN) {
-      throw new BadRequestException('No puedes degradar tu propia cuenta de administrador.');
+      throw new BadRequestException(
+        'No puedes degradar tu propia cuenta de administrador.',
+      );
     }
     return this.prisma.user.update({
       where: { id },
@@ -169,7 +205,9 @@ export class AdminService {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('Usuario no encontrado');
     if (user.role === Role.ADMIN) {
-      throw new BadRequestException('No se puede eliminar un usuario administrador.');
+      throw new BadRequestException(
+        'No se puede eliminar un usuario administrador.',
+      );
     }
     await this.prisma.user.delete({ where: { id } });
     return { id, deleted: true };
@@ -178,7 +216,15 @@ export class AdminService {
   async listProviders() {
     return this.prisma.provider.findMany({
       include: {
-        user: { select: { id: true, name: true, email: true, status: true, createdAt: true } },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            status: true,
+            createdAt: true,
+          },
+        },
         _count: { select: { parts: true, quotes: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -197,7 +243,15 @@ export class AdminService {
   async listWorkshops() {
     return this.prisma.workshop.findMany({
       include: {
-        user: { select: { id: true, name: true, email: true, status: true, createdAt: true } },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            status: true,
+            createdAt: true,
+          },
+        },
         _count: { select: { services: true, quotes: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -216,7 +270,15 @@ export class AdminService {
   async listTows() {
     return this.prisma.towService.findMany({
       include: {
-        user: { select: { id: true, name: true, email: true, status: true, createdAt: true } },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            status: true,
+            createdAt: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -261,7 +323,9 @@ export class AdminService {
       include: {
         provider: { select: { id: true, nombre: true } },
         workshop: { select: { id: true, nombre: true } },
-        request: { select: { id: true, titulo: true, categoria: true, estado: true } },
+        request: {
+          select: { id: true, titulo: true, categoria: true, estado: true },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });

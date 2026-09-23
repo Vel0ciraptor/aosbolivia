@@ -27,7 +27,7 @@ export class AuthService {
     }
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
-    
+
     // Use transaction to ensure both user and profile are created together
     const user = await this.prisma.$transaction(async (tx) => {
       const u = await tx.user.create({
@@ -60,8 +60,8 @@ export class AuthService {
             nombre: u.name + ' Taller',
             telefono: u.phone || '',
             direccion: 'Dirección no especificada',
-            latitud: 10.4950,
-            longitud: -66.8560,
+            latitud: 10.495,
+            longitud: -66.856,
             estado: 'ACTIVE',
             horario: {},
           },
@@ -73,10 +73,10 @@ export class AuthService {
             nombre: u.name + ' Grúa',
             telefono: u.phone || '',
             direccion: 'Dirección no especificada',
-            latitud: 10.5050,
-            longitud: -66.9200,
-            costoBase: 25.00,
-            costoKm: 2.50,
+            latitud: 10.505,
+            longitud: -66.92,
+            costoBase: 25.0,
+            costoKm: 2.5,
             cobertura: 50.0,
             estado: 'ACTIVE',
           },
@@ -109,7 +109,10 @@ export class AuthService {
     });
 
     if (workshopUser) {
-      const passwordMatch = await bcrypt.compare(dto.password, workshopUser.password);
+      const passwordMatch = await bcrypt.compare(
+        dto.password,
+        workshopUser.password,
+      );
       if (passwordMatch) {
         return this.generateWorkshopUserTokens(workshopUser);
       }
@@ -146,7 +149,12 @@ export class AuthService {
     };
   }
 
-  private generateWorkshopUserTokens(workshopUser: { id: string; email: string; role: string; workshopId: string }) {
+  private generateWorkshopUserTokens(workshopUser: {
+    id: string;
+    email: string;
+    role: string;
+    workshopId: string;
+  }) {
     const payload = {
       sub: workshopUser.id,
       email: workshopUser.email,
@@ -194,13 +202,19 @@ export class AuthService {
     // Enriquecer con datos del perfil según rol
     const enriched: any = { ...user };
     if (user.role === 'WORKSHOP') {
-      const workshop = await this.prisma.workshop.findUnique({ where: { userId: user.id } });
+      const workshop = await this.prisma.workshop.findUnique({
+        where: { userId: user.id },
+      });
       if (workshop) enriched.workshopId = workshop.id;
     }
     return enriched;
   }
 
-  private generateTokens(user: { id: string; email: string; role: Role | string }) {
+  private generateTokens(user: {
+    id: string;
+    email: string;
+    role: Role | string;
+  }) {
     const payload = { sub: user.id, email: user.email, role: user.role };
     const accessToken = this.jwt.sign(payload, {
       secret: this.config.get('JWT_SECRET'),

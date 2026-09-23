@@ -1,4 +1,11 @@
-import { IsString, IsNumber, IsOptional, IsObject, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsObject,
+  Min,
+  Max,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class UpdateWorkshopDto {
@@ -41,7 +48,10 @@ export class UpdateWorkshopDto {
   @IsString()
   imageUrl?: string;
 
-  @ApiProperty({ required: false, description: 'Objeto JSON con horario por día' })
+  @ApiProperty({
+    required: false,
+    description: 'Objeto JSON con horario por día',
+  })
   @IsOptional()
   @IsObject()
   horario?: Record<string, string>;

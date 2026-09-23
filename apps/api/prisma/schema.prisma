@@ -246,6 +246,10 @@ model WorkshopJob {
   firmaDigital      String?
   imagenes          Json?
   imagenesTerminado Json?
+  tipoTrabajo       Json?
+  horasEstimadas    Int?
+  mecanicosAsignados Json?
+  precioServicio    Decimal?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
@@ -301,6 +305,10 @@ model JobPartNeed {
   cantidad        Int      @default(1)
   esInsumo        Boolean  @default(false)
   yaUsado         Boolean  @default(false)
+  precioUnitario  Decimal?
+  yaUsadoEn       DateTime?
+  usadoPorId      String?
+  usadoPorNombre  String?
 
   job           WorkshopJob    @relation(fields: [jobId], references: [id], onDelete: Cascade)
   inventoryItem InventoryItem? @relation(fields: [inventoryItemId], references: [id])

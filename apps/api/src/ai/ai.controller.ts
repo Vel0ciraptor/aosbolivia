@@ -12,7 +12,9 @@ export class AiController {
   constructor(private aiService: AiService) {}
 
   @Post('parse-request')
-  @ApiOperation({ summary: 'Parsear texto libre y detectar categoría automotriz' })
+  @ApiOperation({
+    summary: 'Parsear texto libre y detectar categoría automotriz',
+  })
   parseRequest(@Body() dto: ParseRequestDto) {
     return this.aiService.parseRequest(dto.text);
   }

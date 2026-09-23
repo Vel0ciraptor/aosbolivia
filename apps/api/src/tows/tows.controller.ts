@@ -1,4 +1,13 @@
-import { Controller, Get, Put, Param, Query, Body, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Put,
+  Param,
+  Query,
+  Body,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { TowsService } from './tows.service';
 import { UpdateTowDto } from './dto/update-tow.dto';
@@ -13,7 +22,9 @@ export class TowsController {
 
   @Get()
   @ApiOperation({ summary: 'Listar servicios de grúa' })
-  findAll() { return this.towsService.findAll(); }
+  findAll() {
+    return this.towsService.findAll();
+  }
 
   @Get('me')
   @ApiOperation({ summary: 'Obtener perfil del servicio de grúa autenticado' })
@@ -22,18 +33,26 @@ export class TowsController {
   }
 
   @Put('me')
-  @ApiOperation({ summary: 'Actualizar perfil del servicio de grúa autenticado' })
+  @ApiOperation({
+    summary: 'Actualizar perfil del servicio de grúa autenticado',
+  })
   updateMe(@Req() req: any, @Body() dto: UpdateTowDto) {
     return this.towsService.update(req.user.id, dto);
   }
 
   @Get('nearby')
   @ApiOperation({ summary: 'Grúas cercanas con costo estimado' })
-  findNearby(@Query('lat') lat: string, @Query('lng') lng: string, @Query('radius') radius?: string) {
+  findNearby(
+    @Query('lat') lat: string,
+    @Query('lng') lng: string,
+    @Query('radius') radius?: string,
+  ) {
     return this.towsService.findNearby(+lat, +lng, radius ? +radius : 50);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener grúa por ID' })
-  findOne(@Param('id') id: string) { return this.towsService.findOne(id); }
+  findOne(@Param('id') id: string) {
+    return this.towsService.findOne(id);
+  }
 }

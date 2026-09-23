@@ -1,7 +1,19 @@
-import { IsString, IsEmail, IsOptional, IsIn, MinLength } from 'class-validator';
+import {
+  IsString,
+  IsEmail,
+  IsOptional,
+  IsIn,
+  MinLength,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-const VALID_ROLES = ['SUPERVISOR', 'JEFE_MECANICO', 'MECANICO', 'INVENTARIO', 'CONTABILIDAD'];
+const VALID_ROLES = [
+  'SUPERVISOR',
+  'JEFE_MECANICO',
+  'MECANICO',
+  'INVENTARIO',
+  'CONTABILIDAD',
+];
 
 export class CreateWorkshopUserDto {
   @ApiProperty({ example: 'Juan Pérez' })

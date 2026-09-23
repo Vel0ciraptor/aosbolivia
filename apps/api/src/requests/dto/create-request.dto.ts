@@ -3,7 +3,9 @@ import { ApiProperty } from '@nestjs/swagger';
 import { RequestCategory } from '../../common/enums';
 
 export class CreateRequestDto {
-  @ApiProperty({ example: 'Necesito una bomba de gasolina para una Hilux 2019' })
+  @ApiProperty({
+    example: 'Necesito una bomba de gasolina para una Hilux 2019',
+  })
   @IsString()
   descripcion: string;
 

@@ -1,4 +1,13 @@
-import { Controller, Get, Patch, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { IsString, IsIn, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
@@ -44,7 +53,11 @@ export class AdminController {
 
   @Get('users')
   @ApiOperation({ summary: 'Listar usuarios con filtros' })
-  listUsers(@Query('role') role?: string, @Query('status') status?: string, @Query('search') search?: string) {
+  listUsers(
+    @Query('role') role?: string,
+    @Query('status') status?: string,
+    @Query('search') search?: string,
+  ) {
     return this.adminService.listUsers({ role, status, search });
   }
 
@@ -57,13 +70,13 @@ export class AdminController {
   @Patch('users/:id/status')
   @ApiOperation({ summary: 'Activar/bloquear usuario' })
   updateUserStatus(@Param('id') id: string, @Body() dto: UpdateUserStatusDto) {
-    return this.adminService.updateUserStatus(id, dto.status as UserStatus);
+    return this.adminService.updateUserStatus(id, dto.status);
   }
 
   @Patch('users/:id/role')
   @ApiOperation({ summary: 'Cambiar rol de un usuario' })
   updateUserRole(@Param('id') id: string, @Body() dto: UpdateUserRoleDto) {
-    return this.adminService.updateUserRole(id, dto.role as Role);
+    return this.adminService.updateUserRole(id, dto.role);
   }
 
   @Delete('users/:id')
@@ -80,7 +93,10 @@ export class AdminController {
 
   @Patch('providers/:id/status')
   @ApiOperation({ summary: 'Activar/suspender proveedor' })
-  updateProviderStatus(@Param('id') id: string, @Body() dto: UpdateBusinessStatusDto) {
+  updateProviderStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateBusinessStatusDto,
+  ) {
     return this.adminService.updateProviderStatus(id, dto.estado);
   }
 
@@ -92,7 +108,10 @@ export class AdminController {
 
   @Patch('workshops/:id/status')
   @ApiOperation({ summary: 'Activar/suspender taller' })
-  updateWorkshopStatus(@Param('id') id: string, @Body() dto: UpdateBusinessStatusDto) {
+  updateWorkshopStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateBusinessStatusDto,
+  ) {
     return this.adminService.updateWorkshopStatus(id, dto.estado);
   }
 
@@ -104,13 +123,19 @@ export class AdminController {
 
   @Patch('tows/:id/status')
   @ApiOperation({ summary: 'Activar/suspender grúa' })
-  updateTowStatus(@Param('id') id: string, @Body() dto: UpdateBusinessStatusDto) {
+  updateTowStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateBusinessStatusDto,
+  ) {
     return this.adminService.updateTowStatus(id, dto.estado);
   }
 
   @Get('requests')
   @ApiOperation({ summary: 'Listar todas las solicitudes' })
-  listRequests(@Query('categoria') categoria?: string, @Query('estado') estado?: string) {
+  listRequests(
+    @Query('categoria') categoria?: string,
+    @Query('estado') estado?: string,
+  ) {
     return this.adminService.listAllRequests({ categoria, estado });
   }
 

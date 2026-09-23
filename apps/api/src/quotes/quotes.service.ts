@@ -1,15 +1,32 @@
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { IsString, IsNumber, IsOptional, ValidateIf } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateQuoteDto {
   @ApiProperty() @IsString() requestId: string;
-  @ApiProperty({ required: false }) @IsOptional() @IsString() providerId?: string;
-  @ApiProperty({ required: false }) @IsOptional() @IsString() workshopId?: string;
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  providerId?: string;
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  workshopId?: string;
   @ApiProperty() @IsNumber() precio: number;
-  @ApiProperty({ required: false }) @IsOptional() @IsString() comentario?: string;
-  @ApiProperty({ required: false }) @IsOptional() @IsString() tiempoEntrega?: string;
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  comentario?: string;
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  tiempoEntrega?: string;
 }
 
 @Injectable()
@@ -18,7 +35,9 @@ export class QuotesService {
 
   async create(dto: CreateQuoteDto) {
     if (!dto.providerId && !dto.workshopId) {
-      throw new BadRequestException('Debe especificar providerId o workshopId.');
+      throw new BadRequestException(
+        'Debe especificar providerId o workshopId.',
+      );
     }
     return this.prisma.quote.create({
       data: {
@@ -51,7 +70,14 @@ export class QuotesService {
   async findByProvider(providerId: string) {
     return this.prisma.quote.findMany({
       where: { providerId },
-      include: { request: { include: { user: { select: { name: true, phone: true } }, vehicle: true } } },
+      include: {
+        request: {
+          include: {
+            user: { select: { name: true, phone: true } },
+            vehicle: true,
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -59,7 +85,14 @@ export class QuotesService {
   async findByWorkshop(workshopId: string) {
     return this.prisma.quote.findMany({
       where: { workshopId },
-      include: { request: { include: { user: { select: { name: true, phone: true } }, vehicle: true } } },
+      include: {
+        request: {
+          include: {
+            user: { select: { name: true, phone: true } },
+            vehicle: true,
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -71,7 +104,10 @@ export class QuotesService {
     });
     if (!quote) throw new NotFoundException('Cotización no encontrada');
 
-    const updated = await this.prisma.quote.update({ where: { id }, data: { estado: status as any } });
+    const updated = await this.prisma.quote.update({
+      where: { id },
+      data: { estado: status as any },
+    });
 
     if (status === 'ACCEPTED' && quote.workshopId && quote.request) {
       const existing = await this.prisma.workshopJob.findFirst({
@@ -86,9 +122,14 @@ export class QuotesService {
           data: {
             workshopId: quote.workshopId,
             requestId: request.id,
-            marca: request.vehicle?.marca || aiParsed?.marca || 'No especificado',
-            modelo: request.vehicle?.modelo || aiParsed?.modelo || 'No especificado',
-            anio: request.vehicle?.anio || aiParsed?.anio || new Date().getFullYear(),
+            marca:
+              request.vehicle?.marca || aiParsed?.marca || 'No especificado',
+            modelo:
+              request.vehicle?.modelo || aiParsed?.modelo || 'No especificado',
+            anio:
+              request.vehicle?.anio ||
+              aiParsed?.anio ||
+              new Date().getFullYear(),
             placa: request.vehicle?.placa,
             problema: request.descripcion,
             clienteNombre: request.user.name,

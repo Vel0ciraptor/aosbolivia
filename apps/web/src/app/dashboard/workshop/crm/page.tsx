@@ -10,6 +10,7 @@ import {
   CheckCircle2, Wrench, ArrowRight, User, Phone, FileText,
   Calendar, History, AlertTriangle, Camera, Package, PenTool,
   Download, Image as ImageIcon, CheckSquare, Square, Fuel, Lock,
+  DollarSign, Play, Timer, ClipboardList,
 } from 'lucide-react';
 
 interface WorkshopJob {
@@ -27,10 +28,23 @@ interface WorkshopJob {
   firmaDigital?: string;
   imagenes?: string[];
   imagenesTerminado?: string[];
+  tipoTrabajo?: { categorias?: string[]; otro?: string } | null;
+  horasEstimadas?: number | null;
+  mecanicosAsignados?: Worklog[];
+  precioServicio?: number | null;
   createdAt: string;
   logs?: JobLog[];
   checkpoints?: Checkpoint[];
   partNeeds?: PartNeed[];
+}
+
+interface Worklog {
+  key: string;
+  userId: string;
+  nombre: string;
+  inicio?: string | null;
+  fin?: string | null;
+  horasReales?: number | null;
 }
 
 interface JobLog {
@@ -56,6 +70,9 @@ interface PartNeed {
   cantidad: number;
   esInsumo: boolean;
   yaUsado: boolean;
+  precioUnitario?: number | null;
+  yaUsadoEn?: string | null;
+  usadoPorNombre?: string | null;
   inventoryItemId?: string;
   inventoryItem?: { id: string; nombre: string; stock: number };
 }
@@ -86,6 +103,18 @@ const STATUS_META: Record<string, { label: string; icon: any; color: string; bg:
   SALIDA: { label: 'Salida', icon: ArrowRight, color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/20', next: 'FINALIZADO' },
   FINALIZADO: { label: 'Finalizado', icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
 };
+
+const TRABAJOS_TIPOS = [
+  'Mecánica general',
+  'Eléctrico',
+  'Carrocería',
+  'Transmisión',
+  'Suspensión',
+  'Frenos',
+  'Motor',
+  'Diagnóstico',
+  'Otro',
+];
 
 export default function WorkshopCrmPage() {
   const { workshop, loading: loadingWorkshop, error: workshopError } = useWorkshopProfile();
@@ -123,6 +152,24 @@ export default function WorkshopCrmPage() {
   const [inventoryItems, setInventoryItems] = useState<any[]>([]);
   const [reportHtml, setReportHtml] = useState<string | null>(null);
   const reportIframeRef = useRef<HTMLIFrameElement>(null);
+
+  // ── Mejoras v2 (tipo de trabajo, mecánicos, costos, historial) ──
+  const isMechanic = user?.workshopUserRole === 'MECANICO';
+  const [tipoTrabajoSel, setTipoTrabajoSel] = useState<string[]>([]);
+  const [tipoTrabajoOtro, setTipoTrabajoOtro] = useState('');
+  const [teamUsers, setTeamUsers] = useState<any[]>([]);
+  const [assignUserId, setAssignUserId] = useState('');
+  const [horasEstimadasInput, setHorasEstimadasInput] = useState('');
+  const [precioServicioInput, setPrecioServicioInput] = useState('');
+  const [partPriceEdits, setPartPriceEdits] = useState<Record<string, string>>({});
+  const [activeTab, setActiveTab] = useState<'jobs' | 'historial'>('jobs');
+  const [histTab, setHistTab] = useState<'hours' | 'movements'>('hours');
+  const [histFrom, setHistFrom] = useState('');
+  const [histTo, setHistTo] = useState('');
+  const [mechanicHours, setMechanicHours] = useState<any[]>([]);
+  const [invMovements, setInvMovements] = useState<any[]>([]);
+  const [histLoading, setHistLoading] = useState(false);
+  const [savingDetail, setSavingDetail] = useState(false);
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -215,13 +262,42 @@ export default function WorkshopCrmPage() {
     setDetailJob(job); setLoadingDetail(true);
     try {
       const res = await api.get(`/workshops/me/jobs/${job.id}`);
-      setDetailJob(res.data);
-      setDetailLogs(res.data.logs || []);
-      setCheckpoints(res.data.checkpoints || []);
-      setPartNeeds(res.data.partNeeds || []);
-      if (res.data.estado === 'TRABAJANDO') fetchInventory();
+      const data = res.data;
+      setDetailJob(data);
+      setDetailLogs(data.logs || []);
+      setCheckpoints(data.checkpoints || []);
+      setPartNeeds(data.partNeeds || []);
+      setTipoTrabajoSel(data.tipoTrabajo?.categorias || []);
+      setTipoTrabajoOtro(data.tipoTrabajo?.otro || '');
+      setHorasEstimadasInput(data.horasEstimadas ? String(data.horasEstimadas) : '');
+      setPrecioServicioInput(data.precioServicio != null ? String(data.precioServicio) : '');
+      setPartPriceEdits({});
+      fetchTeamUsers();
+      if (data.estado === 'TRABAJANDO') fetchInventory();
     } catch (err) { console.error(err); }
     finally { setLoadingDetail(false); }
+  };
+
+  const fetchTeamUsers = async () => {
+    try {
+      const res = await api.get('/workshops/me/users');
+      setTeamUsers((res.data || []).filter(
+        (u: any) => ['MECANICO', 'JEFE_MECANICO'].includes(u.role) && u.status !== 'INACTIVE',
+      ));
+    } catch (err) { console.error(err); }
+  };
+
+  const loadHistorial = async () => {
+    setHistLoading(true);
+    try {
+      const [h, m] = await Promise.all([
+        api.get('/workshops/me/mechanic-hours', { params: { from: histFrom || undefined, to: histTo || undefined } }),
+        api.get('/workshops/me/inventory-movements'),
+      ]);
+      setMechanicHours(h.data || []);
+      setInvMovements(m.data || []);
+    } catch (err) { console.error(err); }
+    finally { setHistLoading(false); }
   };
 
   const openStatusModal = (job: WorkshopJob) => { setStatusModalJob(job); setStatusObs(''); setStatusPassword(''); };
@@ -236,9 +312,18 @@ export default function WorkshopCrmPage() {
       setStatusModalJob(null); setStatusPassword(''); await fetchJobs();
       if (detailJob?.id === statusModalJob.id) {
         const res = await api.get(`/workshops/me/jobs/${statusModalJob.id}`);
-        setDetailJob(res.data); setDetailLogs(res.data.logs || []);
-        setCheckpoints(res.data.checkpoints || []);
-        setPartNeeds(res.data.partNeeds || []);
+        const data = res.data;
+        setDetailJob(data); setDetailLogs(data.logs || []);
+        setCheckpoints(data.checkpoints || []);
+        setPartNeeds(data.partNeeds || []);
+        setTipoTrabajoSel(data.tipoTrabajo?.categorias || []);
+        setTipoTrabajoOtro(data.tipoTrabajo?.otro || '');
+        setHorasEstimadasInput(data.horasEstimadas ? String(data.horasEstimadas) : '');
+        setPrecioServicioInput(data.precioServicio != null ? String(data.precioServicio) : '');
+        setPartPriceEdits({});
+      }
+      if (newStatus === 'FINALIZADO') {
+        setTimeout(() => { handleDownloadPdf(statusModalJob.id); }, 300);
       }
     } catch (err: any) { alert(err.response?.data?.message || 'No se pudo cambiar el estado.'); }
     finally { setChangingStatus(false); }
@@ -345,6 +430,116 @@ export default function WorkshopCrmPage() {
     try { const res = await api.get('/workshops/me/inventory'); setInventoryItems(res.data || []); } catch {}
   };
 
+  // ── Tipo de trabajo ──
+  const saveTipoTrabajo = async (sel: string[], otro: string) => {
+    if (!detailJob) return;
+    try {
+      await api.put(`/workshops/me/jobs/${detailJob.id}`, { tipoTrabajo: { categorias: sel, otro: otro.trim() || undefined } });
+    } catch (err: any) { alert(err.response?.data?.message || 'No se pudo guardar el tipo de trabajo.'); }
+  };
+
+  const toggleTipoTrabajo = (t: string) => {
+    const next = tipoTrabajoSel.includes(t) ? tipoTrabajoSel.filter((x) => x !== t) : [...tipoTrabajoSel, t];
+    setTipoTrabajoSel(next);
+    saveTipoTrabajo(next, tipoTrabajoOtro);
+  };
+
+  // ── Horas estimadas ──
+  const saveHorasEstimadas = async () => {
+    if (!detailJob) return;
+    const horas = parseInt(horasEstimadasInput);
+    if (isNaN(horas) || horas <= 0) { setHorasEstimadasInput(detailJob.horasEstimadas ? String(detailJob.horasEstimadas) : ''); return; }
+    try {
+      await api.put(`/workshops/me/jobs/${detailJob.id}`, { horasEstimadas: horas });
+      setDetailJob({ ...detailJob, horasEstimadas: horas });
+    } catch (err: any) { alert(err.response?.data?.message || 'No se guardó.'); }
+  };
+
+  // ── Asignación de mecánicos ──
+  const handleAsignarMecanico = async () => {
+    if (!detailJob || !assignUserId) return;
+    const u = teamUsers.find((x: any) => x.id === assignUserId);
+    if (!u) return;
+    const wl: Worklog[] = (detailJob.mecanicosAsignados || []).slice();
+    if (wl.some((w) => w.userId === assignUserId)) { alert('Ese mecánico ya está asignado.'); return; }
+    const entry: Worklog = { key: `${Date.now()}`, userId: u.id, nombre: u.name, inicio: null, fin: null, horasReales: null };
+    setSavingDetail(true);
+    try {
+      await api.put(`/workshops/me/jobs/${detailJob.id}`, { mecanicosAsignados: [...wl, entry] });
+      setDetailJob({ ...detailJob, mecanicosAsignados: [...wl, entry] });
+      setAssignUserId('');
+      await fetchJobs();
+    } catch (err: any) { alert(err.response?.data?.message || 'No se pudo asignar.'); }
+    finally { setSavingDetail(false); }
+  };
+
+  const handleRemoveMecanico = async (w: Worklog) => {
+    if (!detailJob) return;
+    if (w.inicio && !w.fin) { alert('Primero termina el trabajo en curso.'); return; }
+    const updated = (detailJob.mecanicosAsignados || []).filter((x) => x.key !== w.key);
+    try {
+      await api.put(`/workshops/me/jobs/${detailJob.id}`, { mecanicosAsignados: updated });
+      setDetailJob({ ...detailJob, mecanicosAsignados: updated });
+      await fetchJobs();
+    } catch (err: any) { alert(err.response?.data?.message || 'No se pudo quitar.'); }
+  };
+
+  // ── Start / Stop trabajo ──
+  const handleStartWork = async (w: Worklog) => {
+    if (!detailJob) return;
+    try {
+      const res = await api.post(`/workshops/me/jobs/${detailJob.id}/work/start`, (w.userId && !isMechanic) ? { userId: w.userId } : {});
+      setDetailJob({ ...detailJob, mecanicosAsignados: res.data || [] });
+      await fetchJobs();
+    } catch (err: any) { alert(err.response?.data?.message || 'No se pudo iniciar el trabajo.'); }
+  };
+
+  const handleStopWork = async (w: Worklog) => {
+    if (!detailJob) return;
+    try {
+      const res = await api.post(`/workshops/me/jobs/${detailJob.id}/work/stop`, (w.userId && !isMechanic) ? { userId: w.userId } : {});
+      setDetailJob({ ...detailJob, mecanicosAsignados: res.data || [] });
+      await fetchJobs();
+    } catch (err: any) { alert(err.response?.data?.message || 'No se pudo terminar el trabajo.'); }
+  };
+
+  // ── Costos (precio servicio y repuestos) ──
+  const savePrecioServicio = async () => {
+    if (!detailJob) return;
+    const val = parseFloat(precioServicioInput);
+    if (isNaN(val) || val < 0) { setPrecioServicioInput(detailJob.precioServicio != null ? String(detailJob.precioServicio) : ''); return; }
+    try {
+      await api.put(`/workshops/me/jobs/${detailJob.id}`, { precioServicio: val });
+      setDetailJob({ ...detailJob, precioServicio: val });
+      await fetchJobs();
+    } catch (err: any) { alert(err.response?.data?.message || 'No se guardó.'); }
+  };
+
+  const handlePartPriceBlur = async (pn: PartNeed) => {
+    const val = parseFloat(partPriceEdits[pn.id]);
+    if (isNaN(val) || val < 0) { setPartPriceEdits((p) => ({ ...p, [pn.id]: pn.precioUnitario != null ? String(pn.precioUnitario) : '' })); return; }
+    setPartNeeds(partNeeds.map((p) => (p.id === pn.id ? { ...p, precioUnitario: val } : p)));
+    try {
+      await api.patch(`/workshops/me/jobs/${detailJob?.id}/parts-needed/${pn.id}`, { precioUnitario: val });
+      await fetchJobs();
+    } catch (err: any) { alert(err.response?.data?.message || 'No se guardó el precio.'); }
+  };
+
+  const subtotalRepuestos = (list: PartNeed[]) => (list || []).reduce((s, p) => s + ((p.precioUnitario ?? 0) * p.cantidad), 0);
+  const totalCostos = (detalle: WorkshopJob | null, list: PartNeed[]) => (detalle?.precioServicio ?? 0) + subtotalRepuestos(list);
+
+  // ── Historial: editar horas (admin) ──
+  const handleEditMechanicHour = async (row: any) => {
+    const input = prompt(`Horas reales para ${row.nombre} en ${row.marca} ${row.modelo}:`, row.horasReales ?? '');
+    if (input === null) return;
+    const horas = parseFloat(input);
+    if (isNaN(horas) || horas < 0) { alert('Horas inválidas.'); return; }
+    try {
+      await api.patch(`/workshops/me/jobs/${row.jobId}/worklogs/${row.worklogKey}`, { horasReales: horas });
+      await loadHistorial();
+    } catch (err: any) { alert(err.response?.data?.message || 'No se pudo editar.'); }
+  };
+
   if (loading || loadingWorkshop) {
     return (<div className="flex items-center justify-center py-12"><div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>);
   }
@@ -357,10 +552,139 @@ export default function WorkshopCrmPage() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-zinc-100 flex items-center gap-2"><Car className="w-6 h-6 text-emerald-400" /><span>CRM - Vehículos en Taller</span></h2>
-          <p className="text-sm text-zinc-400">Registro y seguimiento de vehículos que ingresan al taller.</p>
+          <p className="text-sm text-zinc-400">{isMechanic ? 'Vista de mecánico: vehículos en check inicial o trabajando.' : 'Registro y seguimiento de vehículos que ingresan al taller.'}</p>
         </div>
-        <button onClick={openCreate} className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-zinc-950 font-bold text-sm rounded-xl hover:shadow-lg transition-all flex items-center gap-2"><Plus className="w-4 h-4" /><span>Registrar Vehículo</span></button>
+        {!isMechanic && <button onClick={openCreate} className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-zinc-950 font-bold text-sm rounded-xl hover:shadow-lg transition-all flex items-center gap-2"><Plus className="w-4 h-4" /><span>Registrar Vehículo</span></button>}
       </div>
+
+      {!isMechanic && (
+        <div className="flex items-center gap-2">
+          <button onClick={() => setActiveTab('jobs')} className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors flex items-center gap-2 ${activeTab === 'jobs' ? 'bg-zinc-800 text-zinc-100' : 'bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-zinc-800'}`}><Car className="w-4 h-4" /> Vehículos</button>
+          <button onClick={() => { if (activeTab !== 'historial') loadHistorial(); setActiveTab('historial'); }} className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors flex items-center gap-2 ${activeTab === 'historial' ? 'bg-zinc-800 text-zinc-100' : 'bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-zinc-800'}`}><History className="w-4 h-4" /> Historial</button>
+        </div>
+      )}
+
+      {activeTab === 'historial' && !isMechanic && (
+        <div className="p-5 bg-zinc-900 border border-zinc-800 rounded-2xl">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
+            <div className="flex items-center gap-2">
+              <History className="w-5 h-5 text-emerald-400" />
+              <h3 className="font-bold text-zinc-100">Historial del Taller</h3>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <label className="text-[10px] text-zinc-500 font-bold uppercase">Desde</label>
+                <input type="date" value={histFrom} onChange={(e) => setHistFrom(e.target.value)} className="px-2.5 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 text-xs" />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <label className="text-[10px] text-zinc-500 font-bold uppercase">Hasta</label>
+                <input type="date" value={histTo} onChange={(e) => setHistTo(e.target.value)} className="px-2.5 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 text-xs" />
+              </div>
+              <button onClick={loadHistorial} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5"><RefreshCw className="w-3.5 h-3.5" /> Filtrar</button>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 mb-4 pb-3 border-b border-zinc-800">
+            <button onClick={() => setHistTab('hours')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${histTab === 'hours' ? 'bg-amber-500/10 border border-amber-500/30 text-amber-400' : 'bg-zinc-950 border border-zinc-800 text-zinc-500 hover:text-zinc-300'}`}><Timer className="w-3.5 h-3.5" /> Horas de mecánicos</button>
+            <button onClick={() => setHistTab('movements')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${histTab === 'movements' ? 'bg-amber-500/10 border border-amber-500/30 text-amber-400' : 'bg-zinc-950 border border-zinc-800 text-zinc-500 hover:text-zinc-300'}`}><Package className="w-3.5 h-3.5" /> Movimientos de inventario</button>
+          </div>
+          {histLoading ? (
+            <div className="flex items-center justify-center py-10"><div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>
+          ) : histTab === 'hours' ? (
+            (() => {
+              const totalHours = mechanicHours.reduce((s, r) => s + (r.horasReales ?? 0), 0);
+              const totalJobs = new Set(mechanicHours.map((r) => r.jobId)).size;
+              const byMechanic: Record<string, number> = {};
+              mechanicHours.forEach((r) => { byMechanic[r.nombre || 'Sin asignar'] = (byMechanic[r.nombre || 'Sin asignar'] || 0) + (r.horasReales ?? 0); });
+              return (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                    <div className="p-4 bg-zinc-950 border border-zinc-800 rounded-2xl"><p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Horas totales</p><p className="text-2xl font-extrabold text-zinc-100 mt-1">{totalHours.toFixed(2)} h</p></div>
+                    <div className="p-4 bg-zinc-950 border border-zinc-800 rounded-2xl"><p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Vehículos atendidos</p><p className="text-2xl font-extrabold text-zinc-100 mt-1">{totalJobs}</p></div>
+                    <div className="p-4 bg-zinc-950 border border-zinc-800 rounded-2xl"><p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Mecánicos activos</p><p className="text-2xl font-extrabold text-zinc-100 mt-1">{Object.keys(byMechanic).length}</p></div>
+                  </div>
+                  {Object.entries(byMechanic).length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(byMechanic).map(([nombre, h]) => (
+                        <div key={nombre} className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs"><span className="text-zinc-300 font-semibold">{nombre}</span><span className="text-zinc-500 ml-2">{h.toFixed(2)} h</span></div>
+                      ))}
+                    </div>
+                  )}
+                  {mechanicHours.length === 0 ? (
+                    <p className="text-sm text-zinc-500 text-center py-6">Sin registros de horas en el rango seleccionado.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead><tr className="border-b border-zinc-800 text-left text-[10px] uppercase tracking-wider text-zinc-500">
+                          <th className="py-2 pr-3 font-bold">Mecánico</th><th className="py-2 pr-3 font-bold">Vehículo</th><th className="py-2 pr-3 font-bold">Cliente</th><th className="py-2 pr-3 font-bold">Inicio</th><th className="py-2 pr-3 font-bold">Fin</th><th className="py-2 pr-3 font-bold text-right">Horas</th><th className="py-2 font-bold">Editar</th>
+                        </tr></thead>
+                        <tbody>
+                          {mechanicHours.map((r, i) => (
+                            <tr key={i} className="border-b border-zinc-800/60 hover:bg-zinc-900/50">
+                              <td className="py-2.5 pr-3 text-zinc-200 font-semibold">{r.nombre || '-'}</td>
+                              <td className="py-2.5 pr-3 text-zinc-300">{r.marca} {r.modelo}{r.placa ? ` (${r.placa})` : ''}</td>
+                              <td className="py-2.5 pr-3 text-zinc-500">{r.clienteNombre || '-'}</td>
+                              <td className="py-2.5 pr-3 text-zinc-400 text-xs">{r.inicio ? new Date(r.inicio).toLocaleString('es-VE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-'}</td>
+                              <td className="py-2.5 pr-3 text-zinc-400 text-xs">{r.fin ? new Date(r.fin).toLocaleString('es-VE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-'}</td>
+                              <td className="py-2.5 pr-3 text-right font-bold text-zinc-200">{r.horasReales != null ? `${r.horasReales} h` : '-'}</td>
+                              <td className="py-2.5"><button onClick={() => handleEditMechanicHour(r)} className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-bold rounded-lg flex items-center gap-1"><Edit2 className="w-3 h-3" /> Editar</button></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              );
+            })()
+          ) : (
+            (() => {
+              const byItem: Record<string, { cant: number; jobs: number }> = {};
+              invMovements.forEach((mv: any) => {
+                const k = mv.nombre || 'Sin nombre';
+                byItem[k] = byItem[k] || { cant: 0, jobs: 0 };
+                byItem[k].cant += mv.cantidad;
+                byItem[k].jobs += 1;
+              });
+              return (
+                <div className="space-y-4">
+                  {Object.entries(byItem).length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(byItem).map(([nombre, v]) => (
+                        <div key={nombre} className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs"><span className="text-zinc-300 font-semibold">{nombre}</span><span className="text-zinc-500 ml-2">{v.cant} uds · {v.jobs} jobs</span></div>
+                      ))}
+                    </div>
+                  )}
+                  {invMovements.length === 0 ? (
+                    <p className="text-sm text-zinc-500 text-center py-6">Sin movimientos de inventario registrados.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead><tr className="border-b border-zinc-800 text-left text-[10px] uppercase tracking-wider text-zinc-500">
+                          <th className="py-2 pr-3 font-bold">Pieza</th><th className="py-2 pr-3 font-bold">Cant.</th><th className="py-2 pr-3 font-bold">Vehículo</th><th className="py-2 pr-3 font-bold">Cliente</th><th className="py-2 pr-3 font-bold">Salida</th><th className="py-2 font-bold">Usado por</th>
+                        </tr></thead>
+                        <tbody>
+                          {invMovements.map((mv: any, i) => (
+                            <tr key={i} className="border-b border-zinc-800/60 hover:bg-zinc-900/50">
+                              <td className="py-2.5 pr-3 text-zinc-200 font-semibold">{mv.nombre}</td>
+                              <td className="py-2.5 pr-3 text-zinc-300">{mv.cantidad}</td>
+                              <td className="py-2.5 pr-3 text-zinc-400 text-xs">{mv.marca} {mv.modelo}{mv.placa ? ` (${mv.placa})` : ''}</td>
+                              <td className="py-2.5 pr-3 text-zinc-500 text-xs">{mv.clienteNombre || '-'}</td>
+                              <td className="py-2.5 pr-3 text-zinc-400 text-xs">{mv.yaUsadoEn ? new Date(mv.yaUsadoEn).toLocaleString('es-VE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-'}</td>
+                              <td className="py-2.5 text-zinc-400 text-xs">{mv.usadoPorNombre || '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              );
+            })()
+          )}
+        </div>
+      )}
+
+      {activeTab === 'jobs' && (<>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {STATUS_FLOW.map((s) => {
@@ -380,11 +704,14 @@ export default function WorkshopCrmPage() {
       {filtered.length === 0 ? (
         <div className="p-12 bg-zinc-900/30 border border-zinc-800/80 border-dashed rounded-3xl text-center">
           <div className="w-16 h-16 bg-zinc-900 border border-zinc-800 rounded-2xl flex items-center justify-center mx-auto mb-4 text-zinc-500"><Car className="w-8 h-8" /></div>
-          {jobs.length === 0 ? (<>
+          {jobs.length === 0 ? (isMechanic ? (<>
+            <h3 className="font-bold text-zinc-300 text-base">No hay vehículos en tu lista</h3>
+            <p className="text-zinc-500 text-sm mt-1 max-w-sm mx-auto">Se muestran aquí los vehículos en check inicial o trabajando.</p>
+          </>) : (<>
             <h3 className="font-bold text-zinc-300 text-base">No hay vehículos registrados</h3>
             <p className="text-zinc-500 text-sm mt-1 max-w-sm mx-auto">Registra el primer vehículo que ingrese a tu taller.</p>
             <button onClick={openCreate} className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-semibold border border-zinc-800 rounded-xl transition-colors text-sm"><Plus className="w-3.5 h-3.5" /> Registrar primer vehículo</button>
-          </>) : (<>
+          </>)) : (<>
             <h3 className="font-bold text-zinc-300 text-base">Sin resultados</h3>
             <p className="text-zinc-500 text-sm mt-1">Intenta con otros filtros.</p>
           </>)}
@@ -416,6 +743,7 @@ export default function WorkshopCrmPage() {
                 <div className="flex items-center justify-between mt-2 pt-2 border-t border-zinc-800/50">
                   <span className="text-[9px] text-zinc-600">{new Date(job.createdAt).toLocaleDateString('es-VE', { day: '2-digit', month: 'short' })}</span>
                   <div className="flex items-center gap-1">
+                    {!isMechanic && (<>
                     {nextStatus && nextMeta && (
                       <button onClick={() => openStatusModal(job)} className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded transition-colors flex items-center gap-0.5" title={`Avanzar a: ${nextMeta.label}`}>
                         {React.createElement(nextMeta.icon, { className: 'w-2.5 h-2.5' })}<span className="hidden sm:inline">{nextMeta.label}</span>
@@ -423,6 +751,7 @@ export default function WorkshopCrmPage() {
                     )}
                     <button onClick={() => handleDownloadPdf(job.id)} className="px-1.5 py-1 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-500 text-[10px] rounded transition-colors" title="PDF"><Download className="w-2.5 h-2.5" /></button>
                     <button onClick={() => openEdit(job)} className="px-1.5 py-1 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-500 text-[10px] rounded transition-colors" title="Editar"><Edit2 className="w-2.5 h-2.5" /></button>
+                    </>)}
                   </div>
                 </div>
               </div>
@@ -430,6 +759,7 @@ export default function WorkshopCrmPage() {
           })}
         </div>
       )}
+      </>)}
 
       {isFormOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -475,7 +805,7 @@ export default function WorkshopCrmPage() {
                   <div className="flex items-center gap-3 mb-4 flex-wrap">
                     {(() => { const meta = STATUS_META[detailJob.estado] || STATUS_META.INGRESANDO; const Icon = meta.icon; return (<span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold uppercase tracking-wider ${meta.bg} ${meta.color}`}><Icon className="w-4 h-4" />{meta.label}</span>); })()}
                     {detailJob.requestId && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider bg-zinc-500/10 border-zinc-500/20 text-zinc-400"><FileText className="w-2.5 h-2.5" /> Solicitud</span>}
-                    <button onClick={() => handleDownloadPdf(detailJob.id)} className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors"><Download className="w-3.5 h-3.5" /> PDF</button>
+                    {!isMechanic && <button onClick={() => handleDownloadPdf(detailJob.id)} className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors"><Download className="w-3.5 h-3.5" /> PDF</button>}
                   </div>
                   <h3 className="text-xl font-bold text-zinc-100">{detailJob.marca} {detailJob.modelo} {detailJob.anio}</h3>
                   <div className="flex flex-wrap gap-3 mt-2 text-sm text-zinc-400">
@@ -493,21 +823,100 @@ export default function WorkshopCrmPage() {
 
                 {detailJob.estado === 'CHECK_INICIAL' && (
                   <div className="p-4 bg-zinc-950 border border-zinc-800 rounded-2xl mb-6">
-                    <h4 className="text-sm font-bold text-zinc-300 flex items-center gap-2 mb-4"><CheckSquare className="w-4 h-4 text-amber-400" /> Check Inicial</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      {checkpoints.map((cp) => (
-                        <button key={cp.id} onClick={() => handleCheckpointToggle(cp)} className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${cp.checked ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'}`}>
-                          {cp.checked ? <CheckSquare className="w-4 h-4 text-emerald-400 shrink-0" /> : <Square className="w-4 h-4 text-zinc-600 shrink-0" />}
-                          <span className={`text-sm ${cp.checked ? 'text-emerald-300 line-through' : 'text-zinc-300'}`}>{cp.servicio}</span>
-                        </button>
-                      ))}
+                    <h4 className="text-sm font-bold text-zinc-300 flex items-center gap-2 mb-4"><ClipboardList className="w-4 h-4 text-amber-400" /> Tipo de Trabajo</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {TRABAJOS_TIPOS.filter((t) => t !== 'Otro').map((t) => {
+                        const on = tipoTrabajoSel.includes(t);
+                        return (
+                          <button key={t} onClick={() => toggleTipoTrabajo(t)} disabled={isMechanic}
+                            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${on ? 'bg-amber-500/10 border-amber-500/40 text-amber-300' : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-500'} ${isMechanic ? 'cursor-default opacity-80' : ''}`}>
+                            {t}
+                          </button>
+                        );
+                      })}
+                      <button onClick={() => toggleTipoTrabajo('Otro')} disabled={isMechanic}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${tipoTrabajoSel.includes('Otro') ? 'bg-amber-500/10 border-amber-500/40 text-amber-300' : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-500'} ${isMechanic ? 'cursor-default opacity-80' : ''}`}>Otro</button>
+                    </div>
+                    {(tipoTrabajoSel.includes('Otro') || tipoTrabajoOtro) && (
+                      <div className="mt-3">
+                        <label className="text-[10px] text-zinc-500 font-bold uppercase block mb-1">Especificar</label>
+                        <input value={tipoTrabajoOtro} onChange={(e) => setTipoTrabajoOtro(e.target.value)} onBlur={() => saveTipoTrabajo(tipoTrabajoSel, tipoTrabajoOtro)} disabled={isMechanic}
+                          placeholder="Describa el tipo de trabajo..." className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 text-xs focus:border-amber-500 disabled:opacity-60" />
+                      </div>
+                    )}
+                    <div className="mt-5 -mb-1">
+                      <h4 className="text-sm font-bold text-zinc-300 flex items-center gap-2 mb-3"><CheckSquare className="w-4 h-4 text-amber-400" /> Check Inicial</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {checkpoints.map((cp) => (
+                          <button key={cp.id} onClick={() => handleCheckpointToggle(cp)} disabled={isMechanic} className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${cp.checked ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'} ${isMechanic ? 'cursor-default opacity-80' : ''}`}>
+                            {cp.checked ? <CheckSquare className="w-4 h-4 text-emerald-400 shrink-0" /> : <Square className="w-4 h-4 text-zinc-600 shrink-0" />}
+                            <span className={`text-sm ${cp.checked ? 'text-emerald-300 line-through' : 'text-zinc-300'}`}>{cp.servicio}</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}
 
                 {detailJob.estado === 'TRABAJANDO' && (
                   <div className="p-4 bg-zinc-950 border border-zinc-800 rounded-2xl mb-6">
-                    <h4 className="text-sm font-bold text-zinc-300 flex items-center gap-2 mb-4"><Package className="w-4 h-4 text-purple-400" /> Piezas / Insumos Necesarios</h4>
+                    <h4 className="text-sm font-bold text-zinc-300 flex items-center gap-2 mb-3"><Wrench className="w-4 h-4 text-purple-400" /> Mecánicos y Horas</h4>
+                    <div className="space-y-2 mb-3">
+                      {(detailJob.mecanicosAsignados || []).map((w) => {
+                        const active = !!w.inicio && !w.fin;
+                        const isMine = w.userId === user?.id;
+                        const canOperate = isMechanic ? isMine : true;
+                        return (
+                          <div key={w.key} className="flex items-center gap-3 p-3 bg-zinc-900 border border-zinc-800 rounded-xl">
+                            <div className="w-8 h-8 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0"><User className="w-4 h-4 text-purple-400" /></div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm text-zinc-200 font-semibold">{w.nombre}</p>
+                                {active && <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-400"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />EN CURSO</span>}
+                                {w.horasReales != null && <span className="text-[10px] text-zinc-500 font-mono">{w.horasReales} h</span>}
+                              </div>
+                              <p className="text-[10px] text-zinc-500">
+                                {w.inicio ? `Inicio: ${new Date(w.inicio).toLocaleString('es-VE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}` : 'Sin iniciar'}
+                                {w.fin ? ` · Fin: ${new Date(w.fin).toLocaleString('es-VE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}` : ''}
+                              </p>
+                            </div>
+                            {canOperate && !w.inicio && (
+                              <button onClick={() => handleStartWork(w)} className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 transition-colors"><Play className="w-3 h-3" /> Empezar</button>
+                            )}
+                            {canOperate && active && (
+                              <button onClick={() => handleStopWork(w)} className="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 transition-colors"><Square className="w-3 h-3" /> Terminar</button>
+                            )}
+                            {!isMechanic && !w.inicio && (
+                              <button onClick={() => handleRemoveMecanico(w)} className="p-1.5 text-zinc-500 hover:text-red-400 transition-colors" title="Quitar"><Trash2 className="w-3.5 h-3.5" /></button>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {isMechanic && !(detailJob.mecanicosAsignados || []).some((w) => w.userId === user?.id && w.inicio && !w.fin) && (
+                        <button onClick={() => handleStartWork({ key: 'self', userId: user?.id || '', nombre: user?.name || 'Yo' })} className="w-full px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors"><Play className="w-3.5 h-3.5" /> Empezar mi trabajo</button>
+                      )}
+                    </div>
+                    {!isMechanic && (
+                      <div className="flex gap-2 items-end mb-3">
+                        <div className="flex-1 space-y-1.5">
+                          <label className="text-[10px] text-zinc-500 font-bold uppercase">Asignar mecánico</label>
+                          <select value={assignUserId} onChange={(e) => setAssignUserId(e.target.value)} className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 text-xs focus:outline-none focus:border-purple-500">
+                            <option value="">Seleccionar mecánico...</option>
+                            {teamUsers.map((u: any) => (<option key={u.id} value={u.id}>{u.name} ({u.role})</option>))}
+                          </select>
+                        </div>
+                        <button onClick={handleAsignarMecanico} disabled={!assignUserId || savingDetail} className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg shrink-0 disabled:opacity-40 flex items-center gap-1"><Plus className="w-3.5 h-3.5" /> Asignar</button>
+                      </div>
+                    )}
+                    <div className="flex gap-2 items-end mb-5">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-zinc-500 font-bold uppercase flex items-center gap-1"><Timer className="w-3 h-3" /> Horas estimadas</label>
+                        <input type="number" min="0" step="0.5" value={horasEstimadasInput} onChange={(e) => setHorasEstimadasInput(e.target.value)} onBlur={saveHorasEstimadas} placeholder="0" className="w-28 px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 text-xs font-mono" disabled={isMechanic} />
+                      </div>
+                      <p className="text-[10px] text-zinc-600 pb-2">Se guarda al salir del campo.</p>
+                    </div>
+
+                    <h4 className="text-sm font-bold text-zinc-300 flex items-center gap-2 mb-4 mt-2"><Package className="w-4 h-4 text-purple-400" /> Piezas / Insumos Necesarios</h4>
                     <div className="space-y-2 mb-3">
                       {partNeeds.map((pn) => (
                         <div key={pn.id} className="flex items-center gap-3 p-3 bg-zinc-900 border border-zinc-800 rounded-xl">
@@ -515,12 +924,13 @@ export default function WorkshopCrmPage() {
                             <p className="text-sm text-zinc-200 font-semibold">{pn.nombre}</p>
                             <p className="text-xs text-zinc-500">Cant: {pn.cantidad} {pn.esInsumo ? '(Insumo)' : '(Repuesto)'}{pn.inventoryItem && ` — Stock: ${pn.inventoryItem.stock}`}</p>
                           </div>
-                          {pn.inventoryItemId && !pn.yaUsado && <button onClick={() => handleUsePartNeed(pn.id)} className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg">Usar</button>}
+                          {!isMechanic && pn.inventoryItemId && !pn.yaUsado && <button onClick={() => handleUsePartNeed(pn.id)} className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg">Usar</button>}
                           {pn.yaUsado && <span className="px-2 py-1 bg-emerald-500/10 text-emerald-400 text-[10px] font-bold rounded-lg">Usado</span>}
-                          {!pn.yaUsado && <button onClick={() => handleRemovePartNeed(pn.id)} className="px-2 py-1 text-zinc-500 hover:text-red-400 text-[10px]"><Trash2 className="w-3.5 h-3.5" /></button>}
+                          {!isMechanic && !pn.yaUsado && <button onClick={() => handleRemovePartNeed(pn.id)} className="px-2 py-1 text-zinc-500 hover:text-red-400 text-[10px]"><Trash2 className="w-3.5 h-3.5" /></button>}
                         </div>
                       ))}
                     </div>
+                    {!isMechanic && (
                     <div className="flex gap-2 items-end">
                       <div className="flex-1 space-y-1.5">
                         <label className="text-[10px] text-zinc-500 font-bold uppercase">Buscar pieza/insumo del inventario</label>
@@ -560,6 +970,7 @@ export default function WorkshopCrmPage() {
                       <div className="w-20 space-y-1.5"><label className="text-[10px] text-zinc-500 font-bold uppercase">Cant.</label><input type="number" min="1" value={newPartQty} onChange={(e) => setNewPartQty(e.target.value)} className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 text-xs font-mono" /></div>
                       <button onClick={handleAddPartNeed} disabled={!selectedPartId} className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"><Plus className="w-3.5 h-3.5" /></button>
                     </div>
+                    )}
                     <div className="mt-3">
                       <label className="text-[10px] text-zinc-500 font-bold uppercase flex items-center gap-1 mb-1"><ImageIcon className="w-3 h-3" /> Fotos del trabajo (máx. 5)</label>
                       <input type="file" accept="image/*" multiple onChange={(e) => handleImageUpload(e, 'imagenes')} className="w-full text-xs text-zinc-400" disabled={uploading} />
@@ -577,7 +988,50 @@ export default function WorkshopCrmPage() {
 
                 {detailJob.estado === 'TERMINADO' && (
                   <div className="p-4 bg-zinc-950 border border-zinc-800 rounded-2xl mb-6">
-                    <h4 className="text-sm font-bold text-zinc-300 flex items-center gap-2 mb-4"><Camera className="w-4 h-4 text-emerald-400" /> Fotos del Resultado (Opcional)</h4>
+                    <div className="mb-5">
+                      <h4 className="text-sm font-bold text-zinc-300 flex items-center gap-2 mb-3"><DollarSign className="w-4 h-4 text-emerald-400" /> Cotización / Costos</h4>
+                      <div className="flex gap-2 items-end mb-3">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-zinc-500 font-bold uppercase">Precio del servicio ($)</label>
+                          <input type="number" min="0" step="0.01" value={precioServicioInput} onChange={(e) => setPrecioServicioInput(e.target.value)} onBlur={savePrecioServicio} placeholder="0.00" className="w-36 px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 text-xs font-mono focus:border-emerald-500" />
+                        </div>
+                        <p className="text-[10px] text-zinc-600 pb-2">Se guarda al salir del campo.</p>
+                      </div>
+                      {partNeeds.length > 0 && (
+                        <div className="overflow-x-auto mb-3">
+                          <table className="w-full text-sm">
+                            <thead><tr className="text-left text-[10px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800">
+                              <th className="py-2 pr-3 font-bold">Pieza</th><th className="py-2 pr-3 font-bold">Cant.</th><th className="py-2 pr-3 font-bold text-right">Precio U. ($)</th><th className="py-2 font-bold text-right">Subtotal</th>
+                            </tr></thead>
+                            <tbody>
+                              {partNeeds.map((pn) => (
+                                <tr key={pn.id} className="border-b border-zinc-800/60">
+                                  <td className="py-2 pr-3 text-zinc-200">{pn.nombre}</td>
+                                  <td className="py-2 pr-3 text-zinc-300">{pn.cantidad}</td>
+                                  <td className="py-2 pr-3 text-right">
+                                    <input
+                                      type="number" min="0" step="0.01"
+                                      value={partPriceEdits[pn.id] !== undefined ? partPriceEdits[pn.id] : (pn.precioUnitario != null ? String(pn.precioUnitario) : '')}
+                                      onChange={(e) => setPartPriceEdits((p) => ({ ...p, [pn.id]: e.target.value }))}
+                                      onBlur={() => handlePartPriceBlur(pn)}
+                                      placeholder="—"
+                                      className="w-24 px-2 py-1 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 text-xs font-mono text-right focus:border-emerald-500"
+                                    />
+                                  </td>
+                                  <td className="py-2 pr-3 text-right font-mono text-zinc-400">{((pn.precioUnitario ?? 0) * pn.cantidad).toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                      <div className="flex justify-end items-center gap-6 pt-2 border-t border-zinc-800">
+                        <div className="text-right"><p className="text-[10px] text-zinc-500 font-bold uppercase">Servicio</p><p className="text-sm font-bold text-zinc-200">{((detailJob.precioServicio ?? 0)).toFixed(2)}$</p></div>
+                        <div className="text-right"><p className="text-[10px] text-zinc-500 font-bold uppercase">Repuestos</p><p className="text-sm font-bold text-zinc-200">{subtotalRepuestos(partNeeds).toFixed(2)}$</p></div>
+                        <div className="text-right"><p className="text-[10px] text-emerald-400 font-bold uppercase">Total</p><p className="text-lg font-extrabold text-emerald-400">{totalCostos(detailJob, partNeeds).toFixed(2)}$</p></div>
+                      </div>
+                    </div>
+                    <h4 className="text-sm font-bold text-zinc-300 flex items-center gap-2 mb-4"><Camera className="w-4 h-4 text-emerald-400" /> Fotos del Resultado</h4>
                     <input type="file" accept="image/*" multiple onChange={(e) => handleImageUpload(e, 'imagenesTerminado')} className="w-full text-xs text-zinc-400" disabled={uploading} />
                     {uploading && <p className="text-xs text-amber-400 mt-1">Subiendo imágenes...</p>}
                     {detailJob.imagenesTerminado && (detailJob.imagenesTerminado as string[]).length > 0 && (
@@ -592,6 +1046,47 @@ export default function WorkshopCrmPage() {
 
                 {detailJob.estado === 'SALIDA' && (
                   <div className="p-4 bg-zinc-950 border border-zinc-800 rounded-2xl mb-6">
+                    <h4 className="text-sm font-bold text-zinc-300 flex items-center gap-2 mb-3"><DollarSign className="w-4 h-4 text-zinc-400" /> Resumen de Costos</h4>
+                    <div className="flex gap-2 items-end mb-3">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-zinc-500 font-bold uppercase">Precio del servicio ($)</label>
+                        <input type="number" min="0" step="0.01" value={precioServicioInput} onChange={(e) => setPrecioServicioInput(e.target.value)} onBlur={savePrecioServicio} placeholder="0.00" className="w-36 px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 text-xs font-mono focus:border-emerald-500" />
+                      </div>
+                      <p className="text-[10px] text-zinc-600 pb-2">Se guarda al salir del campo.</p>
+                    </div>
+                    {partNeeds.length > 0 && (
+                      <div className="overflow-x-auto mb-3">
+                        <table className="w-full text-sm">
+                          <thead><tr className="text-left text-[10px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800">
+                            <th className="py-2 pr-3 font-bold">Pieza</th><th className="py-2 pr-3 font-bold">Cant.</th><th className="py-2 pr-3 font-bold text-right">Precio U. ($)</th><th className="py-2 font-bold text-right">Subtotal</th>
+                          </tr></thead>
+                          <tbody>
+                            {partNeeds.map((pn) => (
+                              <tr key={pn.id} className="border-b border-zinc-800/60">
+                                <td className="py-2 pr-3 text-zinc-200">{pn.nombre}</td>
+                                <td className="py-2 pr-3 text-zinc-300">{pn.cantidad}</td>
+                                <td className="py-2 pr-3 text-right">
+                                  <input
+                                    type="number" min="0" step="0.01"
+                                    value={partPriceEdits[pn.id] !== undefined ? partPriceEdits[pn.id] : (pn.precioUnitario != null ? String(pn.precioUnitario) : '')}
+                                    onChange={(e) => setPartPriceEdits((p) => ({ ...p, [pn.id]: e.target.value }))}
+                                    onBlur={() => handlePartPriceBlur(pn)}
+                                    placeholder="—"
+                                    className="w-24 px-2 py-1 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 text-xs font-mono text-right focus:border-emerald-500"
+                                  />
+                                </td>
+                                <td className="py-2 pr-3 text-right font-mono text-zinc-400">{((pn.precioUnitario ?? 0) * pn.cantidad).toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                    <div className="flex justify-end items-center gap-6 pt-2 border-t border-zinc-800 mb-5">
+                      <div className="text-right"><p className="text-[10px] text-zinc-500 font-bold uppercase">Servicio</p><p className="text-sm font-bold text-zinc-200">{((detailJob.precioServicio ?? 0)).toFixed(2)}$</p></div>
+                      <div className="text-right"><p className="text-[10px] text-zinc-500 font-bold uppercase">Repuestos</p><p className="text-sm font-bold text-zinc-200">{subtotalRepuestos(partNeeds).toFixed(2)}$</p></div>
+                      <div className="text-right"><p className="text-[10px] text-emerald-400 font-bold uppercase">Total</p><p className="text-lg font-extrabold text-emerald-400">{totalCostos(detailJob, partNeeds).toFixed(2)}$</p></div>
+                    </div>
                     <h4 className="text-sm font-bold text-zinc-300 flex items-center gap-2 mb-4"><PenTool className="w-4 h-4 text-zinc-400" /> Firma del Cliente</h4>
                     {detailJob.firmaDigital ? (
                       <div className="space-y-3">
@@ -617,6 +1112,7 @@ export default function WorkshopCrmPage() {
                   )}
                 </div>
 
+                {!isMechanic && (
                 <div className="mt-6 pt-4 border-t border-zinc-800 flex justify-end gap-3">
                   {detailJob.estado === 'FINALIZADO' && (
                     <button onClick={() => { setDetailJob(null); openStatusModal(detailJob); }} className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm rounded-xl transition-colors flex items-center gap-2">
@@ -626,6 +1122,7 @@ export default function WorkshopCrmPage() {
                   {STATUS_META[detailJob.estado]?.next && (<button onClick={() => { setDetailJob(null); openStatusModal(detailJob); }} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl transition-colors flex items-center gap-2">Avanzar estado<ChevronRight className="w-4 h-4" /></button>)}
                   <button onClick={() => { setDetailJob(null); openEdit(detailJob); }} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-sm rounded-xl transition-colors flex items-center gap-2"><Edit2 className="w-4 h-4" /> Editar</button>
                 </div>
+              )}
               </>
             )}
           </div>

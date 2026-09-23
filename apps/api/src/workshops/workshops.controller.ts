@@ -1,18 +1,54 @@
-import { Controller, Get, Put, Patch, Post, Delete, Param, Query, Body, UseGuards, Req, Res, UseInterceptors, UploadedFile } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Put,
+  Patch,
+  Post,
+  Delete,
+  Param,
+  Query,
+  Body,
+  UseGuards,
+  Req,
+  Res,
+  UseInterceptors,
+  UploadedFile,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiConsumes,
+  ApiBody,
+} from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { Response } from 'express';
 import { WorkshopsService } from './workshops.service';
 import { UpdateWorkshopDto } from './dto/update-workshop.dto';
-import { CreateWorkshopServiceDto, UpdateWorkshopServiceDto } from './dto/workshop-service.dto';
 import {
-  CreateWorkshopJobDto, UpdateWorkshopJobDto, UpdateJobStatusDto,
-  BulkUpdateCheckpointsDto, CreatePartNeedDto,
+  CreateWorkshopServiceDto,
+  UpdateWorkshopServiceDto,
+} from './dto/workshop-service.dto';
+import {
+  CreateWorkshopJobDto,
+  UpdateWorkshopJobDto,
+  UpdateJobStatusDto,
+  BulkUpdateCheckpointsDto,
+  CreatePartNeedDto,
+  UpdatePartNeedDto,
+  StartStopWorkDto,
+  UpdateWorklogDto,
 } from './dto/workshop-job.dto';
-import { CreateInventoryItemDto, UpdateInventoryItemDto } from './dto/inventory.dto';
-import { CreateWorkshopUserDto, UpdateWorkshopUserDto } from './dto/workshop-user.dto';
+import {
+  CreateInventoryItemDto,
+  UpdateInventoryItemDto,
+} from './dto/inventory.dto';
+import {
+  CreateWorkshopUserDto,
+  UpdateWorkshopUserDto,
+} from './dto/workshop-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Workshops')
@@ -24,7 +60,9 @@ export class WorkshopsController {
 
   @Get()
   @ApiOperation({ summary: 'Listar talleres' })
-  findAll() { return this.workshopsService.findAll(); }
+  findAll() {
+    return this.workshopsService.findAll();
+  }
 
   @Get('me')
   @ApiOperation({ summary: 'Obtener perfil del taller autenticado' })
@@ -52,7 +90,11 @@ export class WorkshopsController {
 
   @Put('me/services/:id')
   @ApiOperation({ summary: 'Actualizar servicio propio del taller' })
-  updateMyService(@Req() req: any, @Param('id') id: string, @Body() dto: UpdateWorkshopServiceDto) {
+  updateMyService(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: UpdateWorkshopServiceDto,
+  ) {
     return this.workshopsService.updateService(req.user.workshopId, id, dto);
   }
 
@@ -67,13 +109,21 @@ export class WorkshopsController {
   @Get('me/jobs')
   @ApiOperation({ summary: 'Listar vehículos en CRM del taller' })
   listMyJobs(@Req() req: any, @Query('estado') estado?: string) {
-    return this.workshopsService.findJobs(req.user.workshopId, estado);
+    return this.workshopsService.findJobs(
+      req.user.workshopId,
+      estado,
+      req.user.workshopUserRole,
+    );
   }
 
   @Get('me/jobs/:id')
   @ApiOperation({ summary: 'Obtener vehículo del CRM' })
   getMyJob(@Req() req: any, @Param('id') id: string) {
-    return this.workshopsService.findJobById(req.user.workshopId, id);
+    return this.workshopsService.findJobById(
+      req.user.workshopId,
+      id,
+      req.user.workshopUserRole,
+    );
   }
 
   @Post('me/jobs')
@@ -84,19 +134,33 @@ export class WorkshopsController {
 
   @Post('me/jobs/from-request/:requestId')
   @ApiOperation({ summary: 'Crear registro CRM desde solicitud' })
-  createMyJobFromRequest(@Req() req: any, @Param('requestId') requestId: string) {
-    return this.workshopsService.createJobFromRequest(req.user.workshopId, requestId);
+  createMyJobFromRequest(
+    @Req() req: any,
+    @Param('requestId') requestId: string,
+  ) {
+    return this.workshopsService.createJobFromRequest(
+      req.user.workshopId,
+      requestId,
+    );
   }
 
   @Put('me/jobs/:id')
   @ApiOperation({ summary: 'Actualizar vehículo en CRM' })
-  updateMyJob(@Req() req: any, @Param('id') id: string, @Body() dto: UpdateWorkshopJobDto) {
+  updateMyJob(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: UpdateWorkshopJobDto,
+  ) {
     return this.workshopsService.updateJob(req.user.workshopId, id, dto);
   }
 
   @Patch('me/jobs/:id/status')
   @ApiOperation({ summary: 'Cambiar estado del vehículo en CRM' })
-  updateMyJobStatus(@Req() req: any, @Param('id') id: string, @Body() dto: UpdateJobStatusDto) {
+  updateMyJobStatus(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: UpdateJobStatusDto,
+  ) {
     return this.workshopsService.updateJobStatus(req.user.workshopId, id, dto, {
       userId: req.user.id,
       userName: req.user.name,
@@ -127,8 +191,16 @@ export class WorkshopsController {
 
   @Put('me/jobs/:id/checkpoints')
   @ApiOperation({ summary: 'Actualizar checkpoints del check inicial' })
-  updateCheckpoints(@Req() req: any, @Param('id') id: string, @Body() dto: BulkUpdateCheckpointsDto) {
-    return this.workshopsService.bulkUpdateCheckpoints(req.user.workshopId, id, dto);
+  updateCheckpoints(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: BulkUpdateCheckpointsDto,
+  ) {
+    return this.workshopsService.bulkUpdateCheckpoints(
+      req.user.workshopId,
+      id,
+      dto,
+    );
   }
 
   // ─── Part Needs ───
@@ -141,20 +213,128 @@ export class WorkshopsController {
 
   @Post('me/jobs/:id/parts-needed')
   @ApiOperation({ summary: 'Agregar pieza/insumo necesario' })
-  createPartNeed(@Req() req: any, @Param('id') id: string, @Body() dto: CreatePartNeedDto) {
-    return this.workshopsService.createPartNeed(req.user.workshopId, id, dto);
+  createPartNeed(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: CreatePartNeedDto,
+  ) {
+    return this.workshopsService.createPartNeed(
+      req.user.workshopId,
+      id,
+      dto,
+      req.user.workshopUserRole,
+    );
   }
 
   @Delete('me/jobs/:id/parts-needed/:pnId')
   @ApiOperation({ summary: 'Quitar pieza/insumo' })
-  removePartNeed(@Req() req: any, @Param('id') id: string, @Param('pnId') pnId: string) {
+  removePartNeed(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Param('pnId') pnId: string,
+  ) {
     return this.workshopsService.removePartNeed(req.user.workshopId, id, pnId);
+  }
+
+  @Patch('me/jobs/:id/parts-needed/:pnId')
+  @ApiOperation({ summary: 'Editar pieza/insumo (nombre, cantidad, precio)' })
+  updatePartNeed(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Param('pnId') pnId: string,
+    @Body() dto: UpdatePartNeedDto,
+  ) {
+    return this.workshopsService.updatePartNeed(
+      req.user.workshopId,
+      id,
+      pnId,
+      dto,
+      req.user.workshopUserRole,
+    );
   }
 
   @Patch('me/jobs/:id/parts-needed/:pnId/use')
   @ApiOperation({ summary: 'Usar pieza/insumo y descontar del inventario' })
-  usePartNeed(@Req() req: any, @Param('id') id: string, @Param('pnId') pnId: string) {
-    return this.workshopsService.usePartNeed(req.user.workshopId, id, pnId);
+  usePartNeed(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Param('pnId') pnId: string,
+  ) {
+    return this.workshopsService.usePartNeed(req.user.workshopId, id, pnId, {
+      userId: req.user.id,
+      userName: req.user.name,
+      role: req.user.workshopUserRole,
+    });
+  }
+
+  // ─── Worklogs (Horas de mecánicos) ───
+
+  @Post('me/jobs/:id/work/start')
+  @ApiOperation({ summary: 'Iniciar trabajo de un mecánico' })
+  startWork(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: StartStopWorkDto,
+  ) {
+    return this.workshopsService.startWork(req.user.workshopId, id, dto, {
+      id: req.user.id,
+      name: req.user.name,
+      role: req.user.workshopUserRole,
+    });
+  }
+
+  @Post('me/jobs/:id/work/stop')
+  @ApiOperation({ summary: 'Terminar trabajo de un mecánico' })
+  stopWork(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: StartStopWorkDto,
+  ) {
+    return this.workshopsService.stopWork(req.user.workshopId, id, dto, {
+      id: req.user.id,
+      role: req.user.workshopUserRole,
+    });
+  }
+
+  @Patch('me/jobs/:id/worklogs/:worklogId')
+  @ApiOperation({ summary: 'Editar horas manualmente (admin)' })
+  updateWorklog(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Param('worklogId') worklogId: string,
+    @Body() dto: UpdateWorklogDto,
+  ) {
+    return this.workshopsService.updateWorklog(
+      req.user.workshopId,
+      id,
+      worklogId,
+      dto,
+      req.user.workshopUserRole,
+    );
+  }
+
+  // ─── Historial (Horas + Movimientos de inventario) ───
+
+  @Get('me/mechanic-hours')
+  @ApiOperation({ summary: 'Horas de mecánicos (historial)' })
+  getMechanicHours(
+    @Req() req: any,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.workshopsService.getMechanicHours(
+      req.user.workshopId,
+      from,
+      to,
+    );
+  }
+
+  @Get('me/inventory-movements')
+  @ApiOperation({
+    summary: 'Movimientos de inventario (salidas de piezas por job)',
+  })
+  getInventoryMovements(@Req() req: any) {
+    return this.workshopsService.getInventoryMovements(req.user.workshopId);
   }
 
   // ─── Inventory ───
@@ -173,8 +353,16 @@ export class WorkshopsController {
 
   @Put('me/inventory/:id')
   @ApiOperation({ summary: 'Actualizar item de inventario' })
-  updateInventory(@Req() req: any, @Param('id') id: string, @Body() dto: UpdateInventoryItemDto) {
-    return this.workshopsService.updateInventoryItem(req.user.workshopId, id, dto);
+  updateInventory(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: UpdateInventoryItemDto,
+  ) {
+    return this.workshopsService.updateInventoryItem(
+      req.user.workshopId,
+      id,
+      dto,
+    );
   }
 
   @Delete('me/inventory/:id')
@@ -199,8 +387,16 @@ export class WorkshopsController {
 
   @Put('me/users/:id')
   @ApiOperation({ summary: 'Actualizar miembro del equipo' })
-  updateMyUser(@Req() req: any, @Param('id') id: string, @Body() dto: UpdateWorkshopUserDto) {
-    return this.workshopsService.updateWorkshopUser(req.user.workshopId, id, dto);
+  updateMyUser(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: UpdateWorkshopUserDto,
+  ) {
+    return this.workshopsService.updateWorkshopUser(
+      req.user.workshopId,
+      id,
+      dto,
+    );
   }
 
   @Delete('me/users/:id')
@@ -212,33 +408,47 @@ export class WorkshopsController {
   // ─── Upload & PDF ───
 
   @Post('me/jobs/:id/images')
-  @UseInterceptors(FileInterceptor('file', {
-    storage: diskStorage({
-      destination: './uploads/workshop-images',
-      filename: (_req, file, cb) => {
-        const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${extname(file.originalname)}`;
-        cb(null, uniqueName);
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads/workshop-images',
+        filename: (_req, file, cb) => {
+          const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${extname(file.originalname)}`;
+          cb(null, uniqueName);
+        },
+      }),
+      limits: { fileSize: 5 * 1024 * 1024 },
+      fileFilter: (_req, file, cb) => {
+        if (!file.mimetype.match(/\/(jpg|jpeg|png|gif|webp)$/)) {
+          cb(new Error('Solo se permiten imágenes'), false);
+        } else {
+          cb(null, true);
+        }
       },
     }),
-    limits: { fileSize: 5 * 1024 * 1024 },
-    fileFilter: (_req, file, cb) => {
-      if (!file.mimetype.match(/\/(jpg|jpeg|png|gif|webp)$/)) {
-        cb(new Error('Solo se permiten imágenes'), false);
-      } else {
-        cb(null, true);
-      }
-    },
-  }))
+  )
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Subir imagen de vehículo' })
-  uploadImage(@Req() req: any, @Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+  uploadImage(
+    @Req() req: any,
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
     return this.workshopsService.uploadJobImage(req.user.workshopId, id, file);
   }
 
   @Get('me/jobs/:id/report')
   @ApiOperation({ summary: 'Generar reporte HTML del vehículo' })
-  async downloadReport(@Req() req: any, @Param('id') id: string, @Res() res: Response) {
-    const html = await this.workshopsService.generateJobReport(req.user.workshopId, id);
+  async downloadReport(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Res() res: Response,
+  ) {
+    const html = await this.workshopsService.generateJobReport(
+      req.user.workshopId,
+      id,
+      req.user.workshopUserRole,
+    );
     res.set({ 'Content-Type': 'text/html; charset=utf-8' });
     res.end(html);
   }
@@ -247,11 +457,17 @@ export class WorkshopsController {
 
   @Get('nearby')
   @ApiOperation({ summary: 'Talleres cercanos' })
-  findNearby(@Query('lat') lat: string, @Query('lng') lng: string, @Query('radius') radius?: string) {
+  findNearby(
+    @Query('lat') lat: string,
+    @Query('lng') lng: string,
+    @Query('radius') radius?: string,
+  ) {
     return this.workshopsService.findNearby(+lat, +lng, radius ? +radius : 50);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener taller por ID' })
-  findOne(@Param('id') id: string) { return this.workshopsService.findOne(id); }
+  findOne(@Param('id') id: string) {
+    return this.workshopsService.findOne(id);
+  }
 }

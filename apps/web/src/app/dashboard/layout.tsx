@@ -79,6 +79,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       ];
     }
 
+    if ((user.role as string) === 'WORKSHOP_USER') {
+      return [
+        ...base,
+        { name: 'CRM', href: '/dashboard/workshop/crm', icon: Car }
+      ];
+    }
+
     if (user.role === 'TOW_SERVICE') {
       return [
         ...base,
@@ -109,6 +116,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       case 'ADMIN': return { text: 'Admin', color: 'bg-red-500/10 text-red-400 border-red-500/20' };
       case 'PROVIDER': return { text: 'Proveedor', color: 'bg-amber-500/10 text-amber-400 border-amber-500/20' };
       case 'WORKSHOP': return { text: 'Taller', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' };
+      case 'WORKSHOP_USER': return { text: user?.workshopUserRole === 'MECANICO' ? 'Mecánico' : 'Taller', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' };
       case 'TOW_SERVICE': return { text: 'Grúa', color: 'bg-rose-500/10 text-rose-400 border-rose-500/20' };
       default: return { text: 'Cliente', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20' };
     }

@@ -28,7 +28,7 @@ function parseError(err: any, fallback: string): string {
   return msg || err.message || fallback;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isAuthenticated: false,
   // Si hay token guardado, empezar en estado de carga para evitar que el
@@ -116,12 +116,16 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   checkAuth: async () => {
     if (typeof window === 'undefined') return;
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      set({ user: null, isAuthenticated: false, isLoading: false });
-      return;
-    }
-    set({ isLoading: true });
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        set({ user: null, isAuthenticated: false, isLoading: false });
+        return;
+      }
+      // Solo bloquear la UI al restaurar la sesión. Si ya hay usuario,
+      // refrescar en segundo plano: poner isLoading=true desmontaría los
+      // hijos del layout y entraría en bucle con los effects que llaman
+      // checkAuth al montar (pantalla de carga infinita).
+      if (!get().user) set({ isLoading: true });
     try {
       const res = await api.get('/auth/me');
       const p = res.data;

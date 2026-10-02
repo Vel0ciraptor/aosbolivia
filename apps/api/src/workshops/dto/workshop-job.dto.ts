@@ -113,12 +113,22 @@ export class UpdateWorkshopJobDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsArray()
+  imagenesIngreso?: string[];
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsArray()
   imagenesTerminado?: string[];
 
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
   firmaDigital?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  firmaIngreso?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()

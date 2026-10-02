@@ -414,6 +414,7 @@ export class WorkshopsService {
       data: {
         ...dto,
         imagenes: dto.imagenes as any,
+        imagenesIngreso: dto.imagenesIngreso as any,
         imagenesTerminado: dto.imagenesTerminado as any,
       },
     });
@@ -1225,6 +1226,7 @@ export class WorkshopsService {
 
     const existingUrls = [
       ...((job.imagenes as string[]) || []),
+      ...((job.imagenesIngreso as string[]) || []),
       ...((job.imagenesTerminado as string[]) || []),
     ];
     let totalBytes = file.size;

@@ -7,10 +7,11 @@ import { api } from '../../lib/api';
 import {
   Car, Settings, Wrench, Truck, LogOut, LayoutDashboard,
   MessageSquareCode, FileText, ClipboardList, PlusCircle,
-  Menu, X, User as UserIcon, Bell, Shield, Users, Store, Package,
-  KeyRound, Eye, EyeOff,
+  Menu, X, User as UserIcon, Shield, Users, Store, Package,
+  KeyRound, Eye, EyeOff, CalendarDays,
 } from 'lucide-react';
 import Link from 'next/link';
+import NotificationCenter from '../../components/NotificationCenter';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, isLoading, logout, checkAuth } = useAuthStore();
@@ -118,6 +119,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { name: 'CRM', href: '/dashboard/workshop/crm', icon: Car },
         { name: 'Solicitudes', href: '/dashboard/workshop/requests', icon: ClipboardList },
         { name: 'Mis Cotizaciones', href: '/dashboard/workshop/quotes', icon: MessageSquareCode },
+        { name: 'Agenda', href: '/dashboard/workshop/schedule', icon: CalendarDays },
         { name: 'Servicios', href: '/dashboard/workshop/services', icon: Wrench },
         { name: 'Inventario', href: '/dashboard/workshop/inventory', icon: Package },
         { name: 'Perfil del Taller', href: '/dashboard/workshop/profile', icon: FileText }
@@ -268,6 +270,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                pathname.includes('/workshop/profile') ? 'Perfil del Taller' :
                pathname.includes('/workshop/services') ? 'Servicios del Taller' :
                pathname.includes('/workshop/quotes') ? 'Mis Cotizaciones' :
+               pathname.includes('/workshop/schedule') ? 'Agenda de Citas' :
                pathname.includes('/workshop/requests') ? 'Solicitudes' :
                pathname.includes('/tow/profile') ? 'Perfil del Servicio' :
                pathname.includes('/tow/requests') ? 'Solicitudes' :
@@ -279,10 +282,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* Header Action Bar */}
           <div className="flex items-center gap-3">
-            <button className="p-2 hover:bg-zinc-900 rounded-xl text-zinc-400 relative">
-              <Bell className="w-5 h-5" />
-              <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-emerald-500 rounded-full" />
-            </button>
+            <NotificationCenter workshopId={user.workshopId} />
             <div className="h-8 w-px bg-zinc-900" />
             <span className="text-xs text-zinc-500 hidden sm:inline-block font-semibold">
               Dev Local Mode (SQLite)

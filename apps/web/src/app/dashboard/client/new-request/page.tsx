@@ -7,6 +7,7 @@ import { api } from '../../../../lib/api';
 import {
   Sparkles, Send, ArrowLeft, AlertCircle, Loader2,
   Car, Tag, MapPin, Wrench, Truck, MessageCircle, CheckCircle2,
+  CalendarDays,
 } from 'lucide-react';
 
 interface Vehicle {
@@ -48,6 +49,7 @@ export default function NewRequestPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [descripcion, setDescripcion] = useState('');
   const [vehicleId, setVehicleId] = useState<string>('');
+  const [fechaCita, setFechaCita] = useState<string>('');
   const [loadingVehicles, setLoadingVehicles] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -117,6 +119,7 @@ export default function NewRequestPage() {
         descripcion: descripcion.trim(),
         vehicleId: vehicleId || undefined,
         categoria,
+        fechaCita: fechaCita ? new Date(fechaCita).toISOString() : undefined,
       });
       const requestId = res.data?.request?.id;
       if (requestId) {
@@ -266,6 +269,40 @@ export default function NewRequestPage() {
                       </button>
                     ))}
                   </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-zinc-300 block">
+                  ¿Cuándo quieres ingresar tu vehículo? (opcional)
+                </label>
+                <p className="text-[11px] text-zinc-500">
+                  Los talleres verán tu fecha deseada y te propondrán una cita disponible en su agenda.
+                </p>
+                <div className="relative">
+                  <CalendarDays className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="datetime-local"
+                    value={fechaCita}
+                    onChange={(e) => setFechaCita(e.target.value)}
+                    min={new Date().toISOString().slice(0, 16)}
+                    disabled={submitting}
+                    className="w-full pl-10 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-100 transition-colors text-sm"
+                  />
+                </div>
+                {fechaCita && (
+                  <p className="text-[11px] text-emerald-300">
+                    Fecha deseada:{' '}
+                    <strong>
+                      {new Date(fechaCita).toLocaleString('es-BO', {
+                        weekday: 'long',
+                        day: 'numeric',
+                        month: 'long',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </strong>
+                  </p>
                 )}
               </div>
 

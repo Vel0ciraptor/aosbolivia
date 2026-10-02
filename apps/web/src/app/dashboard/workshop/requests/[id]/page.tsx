@@ -34,6 +34,7 @@ interface Quote {
   tiempoEntrega?: string;
   estado: string;
   createdAt: string;
+  fechaPropuesta?: string | null;
   workshop?: WorkshopLite | null;
   provider?: WorkshopLite | null;
 }
@@ -53,6 +54,7 @@ interface RequestDetail {
   estado: string;
   descripcion: string;
   createdAt: string;
+  fechaCita?: string | null;
   aiParsed?: {
     categoria?: string;
     marca?: string;
@@ -85,6 +87,9 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
   const [precio, setPrecio] = useState('');
   const [comentario, setComentario] = useState('');
   const [tiempoEntrega, setTiempoEntrega] = useState('');
+  const [fechaPropuesta, setFechaPropuesta] = useState('');
+  const [slots, setSlots] = useState<{ startAt: string }[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -93,6 +98,7 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
       setLoading(true);
       const res = await api.get(`/requests/${id}`);
       setRequest(res.data);
+      setFechaPropuesta((prev) => prev || res.data?.fechaCita || '');
     } catch (err: any) {
       console.error('Error fetching request:', err);
       setError(err.response?.data?.message || 'No se pudo cargar la solicitud.');
@@ -106,6 +112,29 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
   }, [id, fetchRequest]);
 
   const myQuote = request?.quotes?.find((q) => q.workshop?.id === workshop?.id) || null;
+  const canQuote = (request?.estado === 'OPEN' || request?.estado === 'IN_PROGRESS') && !myQuote;
+
+  useEffect(() => {
+    if (!canQuote || !workshop) return;
+    let cancelled = false;
+    setLoadingSlots(true);
+    const from = new Date();
+    const to = new Date(Date.now() + 30 * 24 * 3600 * 1000);
+    api
+      .get(
+        `/workshops/${workshop.id}/slots?from=${from.toISOString().slice(0, 10)}&to=${to.toISOString().slice(0, 10)}`
+      )
+      .then((res) => {
+        if (!cancelled) setSlots(res.data || []);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) setLoadingSlots(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [canQuote, workshop]);
 
   const handleSubmitQuote = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,6 +155,7 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
         precio: precioNum,
         comentario: comentario.trim() || undefined,
         tiempoEntrega: tiempoEntrega.trim() || undefined,
+        fechaPropuesta: fechaPropuesta || undefined,
       });
       setSubmitMessage({ type: 'success', text: '¡Cotización enviada correctamente!' });
       setPrecio('');
@@ -171,7 +201,17 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
 
   const statusMeta = STATUS_META[request.estado] || STATUS_META.OPEN;
   const StatusIcon = statusMeta.icon;
-  const canQuote = (request.estado === 'OPEN' || request.estado === 'IN_PROGRESS') && !myQuote;
+
+  const fmtSlot = (iso: string) =>
+    new Date(iso).toLocaleString('es-BO', {
+      timeZone: 'America/La_Paz',
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
 
   return (
     <div className="space-y-6">
@@ -244,6 +284,15 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
                 })}
               </span>
             </div>
+            {request.fechaCita && (
+              <div className="flex items-center gap-2 text-[11px] text-emerald-300 bg-emerald-500/5 border border-emerald-500/20 rounded-xl px-3 py-2">
+                <Calendar className="w-3.5 h-3.5 shrink-0" />
+                <span>
+                  El cliente quiere ingresar su vehículo:{' '}
+                  <strong>{fmtSlot(request.fechaCita)}</strong>
+                </span>
+              </div>
+            )}
           </div>
 
           {request.aiParsed && (
@@ -428,6 +477,47 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
               </div>
 
               <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-emerald-400" /> Cita de ingreso
+                </label>
+                <select
+                  value={fechaPropuesta}
+                  onChange={(e) => setFechaPropuesta(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 transition-colors text-sm"
+                >
+                  <option value="">Sin fecha por ahora</option>
+                  {request.fechaCita && (
+                    <option value={request.fechaCita}>
+                      Usar la fecha del cliente: {fmtSlot(request.fechaCita)}
+                    </option>
+                  )}
+                  {slots.map((s) => (
+                    <option key={s.startAt} value={s.startAt}>
+                      {fmtSlot(s.startAt)}
+                    </option>
+                  ))}
+                </select>
+                {loadingSlots ? (
+                  <p className="text-[11px] text-zinc-500">Cargando tu agenda...</p>
+                ) : slots.length === 0 ? (
+                  <p className="text-[11px] text-zinc-500">
+                    No tienes citas disponibles.{' '}
+                    <Link
+                      href="/dashboard/workshop/schedule"
+                      className="text-emerald-400 hover:underline font-semibold"
+                    >
+                      Configura tu agenda
+                    </Link>{' '}
+                    para proponer horarios.
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-zinc-500">
+                    {slots.length} citas libres en los próximos 30 días
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-zinc-300">Detalle del servicio</label>
                 <textarea
                   value={comentario}
@@ -477,6 +567,12 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
                   <div className="flex items-center justify-between p-2 bg-zinc-950/60 rounded-lg">
                     <span className="text-zinc-500">Entrega</span>
                     <span className="text-zinc-300 font-semibold">{myQuote.tiempoEntrega}</span>
+                  </div>
+                )}
+                {myQuote.fechaPropuesta && (
+                  <div className="flex items-center justify-between p-2 bg-zinc-950/60 rounded-lg">
+                    <span className="text-zinc-500">Cita propuesta</span>
+                    <span className="text-emerald-300 font-semibold">{fmtSlot(myQuote.fechaPropuesta)}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between p-2 bg-zinc-950/60 rounded-lg">

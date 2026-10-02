@@ -80,6 +80,7 @@ model Request {
   descripcion     String
   aiParsed        Json?           // resultado del parser IA mock
   estado          String          @default("OPEN")
+  fechaCita       DateTime?       // fecha/hora que desea el cliente para ingresar
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
@@ -88,6 +89,7 @@ model Request {
   quotes  Quote[]
   messages Message[]
   jobs    WorkshopJob[]
+  appointments Appointment[]
 
   @@map("requests")
 }
@@ -146,20 +148,22 @@ model Part {
 // ─────────────────────────────────────────────
 
 model Quote {
-  id            String      @id @default(cuid())
-  requestId     String
-  providerId    String?
-  workshopId    String?
-  precio        Decimal
-  comentario    String?
-  tiempoEntrega String?
-  estado        String      @default("PENDING")
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id             String      @id @default(cuid())
+  requestId      String
+  providerId     String?
+  workshopId     String?
+  precio         Decimal
+  comentario     String?
+  tiempoEntrega  String?
+  estado         String      @default("PENDING")
+  fechaPropuesta DateTime?   // cita propuesta por el taller
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
   request   Request   @relation(fields: [requestId], references: [id], onDelete: Cascade)
   provider  Provider? @relation(fields: [providerId], references: [id])
   workshop  Workshop? @relation(fields: [workshopId], references: [id])
+  appointment Appointment?
 
   @@map("quotes")
 }
@@ -189,6 +193,9 @@ model Workshop {
   jobs     WorkshopJob[]
   inventory InventoryItem[]
   workshopUsers WorkshopUser[]
+  availability WorkshopAvailability[]
+  appointments Appointment[]
+  notifications Notification[]
 
   @@map("workshops")
 }
@@ -245,8 +252,11 @@ model WorkshopJob {
   clienteNombre     String
   clienteTelefono   String?
   estado            String          @default("INGRESANDO")
+  fechaCita         DateTime?
   firmaDigital      String?
+  firmaIngreso      String?
   imagenes          Json?
+  imagenesIngreso   Json?
   imagenesTerminado Json?
   tipoTrabajo       Json?
   horasEstimadas    Int?
@@ -399,4 +409,68 @@ model PasswordResetToken {
 
   @@index([userId])
   @@map("password_reset_tokens")
+}
+
+// ─────────────────────────────────────────────
+// AGENDA (Disponibilidad de citas del taller)
+// ─────────────────────────────────────────────
+
+model WorkshopAvailability {
+  id           String   @id @default(cuid())
+  workshopId   String
+  fecha        DateTime @db.Date   // día concreto con bloques
+  horaInicio   String               // "08:00"
+  horaFin      String               // "12:00"
+  slotMinutes  Int      @default(30)
+  createdAt    DateTime @default(now())
+
+  workshop Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+
+  @@index([workshopId, fecha])
+  @@map("workshop_availability")
+}
+
+// ─────────────────────────────────────────────
+// CITAS (Reserva de un slot por el cliente)
+// ─────────────────────────────────────────────
+
+model Appointment {
+  id           String    @id @default(cuid())
+  workshopId   String
+  requestId    String?
+  quoteId      String?   @unique
+  clientUserId String
+  startAt      DateTime
+  endAt        DateTime
+  status       String    @default("BOOKED") // BOOKED | CANCELLED
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  workshop Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  quote    Quote?   @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+  request  Request? @relation(fields: [requestId], references: [id], onDelete: SetNull)
+
+  @@index([workshopId, startAt])
+  @@map("appointments")
+}
+
+// ─────────────────────────────────────────────
+// NOTIFICACIONES (Avisos al taller, ej. cotización aceptada)
+// ─────────────────────────────────────────────
+
+model Notification {
+  id          String    @id @default(cuid())
+  workshopId  String
+  tipo        String    // QUOTE_ACCEPTED | QUOTE_RECEIVED | APPOINTMENT_BOOKED ...
+  titulo      String
+  mensaje     String
+  quoteId     String?
+  requestId   String?
+  leida       Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  workshop Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+
+  @@index([workshopId, leida, createdAt])
+  @@map("notifications")
 }

@@ -44,7 +44,10 @@ export class QuotesController {
 
   @Put(':id/status')
   @ApiOperation({ summary: 'Actualizar estado de cotización' })
-  updateStatus(@Param('id') id: string, @Body() body: { status: string }) {
-    return this.quotesService.updateStatus(id, body.status);
+  updateStatus(
+    @Param('id') id: string,
+    @Body() body: { status: string; citaStartAt?: string },
+  ) {
+    return this.quotesService.updateStatus(id, body.status, body.citaStartAt);
   }
 }

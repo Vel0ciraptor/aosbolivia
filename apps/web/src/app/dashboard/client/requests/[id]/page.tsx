@@ -34,7 +34,10 @@ interface Quote {
   tiempoEntrega?: string;
   estado: string;
   createdAt: string;
-  provider: Provider;
+  provider?: Provider;
+  workshop?: { nombre: string; telefono?: string };
+  workshopId?: string;
+  fechaPropuesta?: string | null;
 }
 
 interface MessageItem {
@@ -52,6 +55,7 @@ interface RequestDetail {
   estado: string;
   descripcion: string;
   createdAt: string;
+  fechaCita?: string | null;
   aiParsed?: {
     categoria?: string;
     marca?: string;
@@ -86,8 +90,137 @@ const QUOTE_STATUS_META: Record<string, { label: string; color: string; bg: stri
   PENDING: { label: 'Pendiente', color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
   ACCEPTED: { label: 'Aceptada', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
   REJECTED: { label: 'Rechazada', color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20' },
-  EXPIRED: { label: 'Expirada', color: 'text-zinc-500', bg: 'bg-zinc-500/10 border-zinc-500/20' },
+  EXPIRED: { label: 'Expirada', color: 'text-zinc-400', bg: 'bg-zinc-500/10 border-zinc-500/20' },
 };
+
+interface Slot {
+  startAt: string;
+  endAt: string;
+}
+
+function fmtFecha(iso: string): string {
+  return new Date(iso).toLocaleString('es-BO', {
+    timeZone: 'America/La_Paz',
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+}
+
+function CitaPicker({
+  workshopId,
+  propuesta,
+  fechaDeseada,
+  value,
+  onChange,
+}: {
+  workshopId: string;
+  propuesta?: string | null;
+  fechaDeseada?: string | null;
+  value: string | null;
+  onChange: (v: string | null) => void;
+}) {
+  const [slots, setSlots] = useState<Slot[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const from = new Date();
+    const to = new Date(Date.now() + 30 * 24 * 3600 * 1000);
+    api
+      .get(
+        `/workshops/${workshopId}/slots?from=${from.toISOString().slice(0, 10)}&to=${to.toISOString().slice(0, 10)}`
+      )
+      .then((res) => {
+        if (!cancelled) setSlots(res.data || []);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [workshopId]);
+
+  const label = (iso: string) => fmtFecha(iso);
+
+  return (
+    <div className="p-3 bg-zinc-950/60 border border-zinc-800/60 rounded-xl mb-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <Calendar className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Cita de ingreso</p>
+          {value && (
+            <span className="text-[11px] font-bold text-emerald-300 truncate">
+              {label(value)}
+            </span>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 shrink-0"
+        >
+          {open ? 'Ocultar' : 'Escoger otra cita'}
+        </button>
+      </div>
+
+      {propuesta && (
+        <p className="text-[11px] text-zinc-400 mt-1.5">
+          📅 El taller propone: <strong className="text-zinc-200">{label(propuesta)}</strong>
+        </p>
+      )}
+      {!propuesta && fechaDeseada && (
+        <p className="text-[11px] text-zinc-400 mt-1.5">
+          📅 Tu fecha deseada: <strong className="text-zinc-200">{label(fechaDeseada)}</strong>
+        </p>
+      )}
+
+      {open && (
+        <div className="mt-2">
+          {loading ? (
+            <div className="flex items-center gap-2 text-[11px] text-zinc-500 py-2">
+              <span className="w-3.5 h-3.5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+              Cargando citas disponibles...
+            </div>
+          ) : slots.length === 0 ? (
+            <p className="text-[11px] text-zinc-500 py-2">
+              Este taller no tiene citas disponibles en los próximos días. Acepta con la
+              fecha propuesta o espera a que abran agenda.
+            </p>
+          ) : (
+            <>
+              <select
+                value={value ?? ''}
+                onChange={(e) => onChange(e.target.value || null)}
+                className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-200 text-xs font-semibold"
+              >
+                {!propuesta && !fechaDeseada && <option value="">Sin cita por ahora</option>}
+                {propuesta && <option value={propuesta}>Propuesta: {label(propuesta)}</option>}
+                {value && value !== propuesta && !slots.some((s) => s.startAt === value) && (
+                  <option value={value}>Seleccionada: {label(value)}</option>
+                )}
+                {slots.map((s) => (
+                  <option key={s.startAt} value={s.startAt}>
+                    {label(s.startAt)}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-zinc-600 mt-1.5">
+                {slots.length} citas libres en los próximos 30 días
+              </p>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function RequestDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -96,6 +229,7 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
   const [error, setError] = useState<string | null>(null);
   const [updatingQuoteId, setUpdatingQuoteId] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [selectedSlots, setSelectedSlots] = useState<Record<string, string | null>>({});
 
   const fetchRequest = React.useCallback(async () => {
     try {
@@ -114,14 +248,23 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
     if (id) fetchRequest();
   }, [id, fetchRequest]);
 
-  const handleQuoteAction = React.useCallback(async (quoteId: string, action: 'ACCEPTED' | 'REJECTED') => {
+  const handleQuoteAction = React.useCallback(async (
+    quoteId: string,
+    action: 'ACCEPTED' | 'REJECTED',
+    citaStartAt?: string | null,
+  ) => {
     setUpdatingQuoteId(quoteId);
     setActionMessage(null);
     try {
-      await api.put(`/quotes/${quoteId}/status`, { status: action });
+      await api.put(`/quotes/${quoteId}/status`, {
+        status: action,
+        ...(action === 'ACCEPTED' && citaStartAt ? { citaStartAt } : {}),
+      });
       setActionMessage({
         type: 'success',
-        text: action === 'ACCEPTED' ? 'Cotización aceptada correctamente.' : 'Cotización rechazada.',
+        text: action === 'ACCEPTED'
+          ? 'Cotización aceptada. La cita quedó reservada y el taller fue notificado.'
+          : 'Cotización rechazada.',
       });
       await fetchRequest();
     } catch (err: any) {
@@ -237,6 +380,15 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
                 })}
               </span>
             </div>
+            {request.fechaCita && (
+              <div className="flex items-center gap-2 text-[11px] text-emerald-300 bg-emerald-500/5 border border-emerald-500/20 rounded-xl px-3 py-2">
+                <Calendar className="w-3.5 h-3.5 shrink-0" />
+                <span>
+                  Fecha deseada de ingreso:{' '}
+                  <strong>{fmtFecha(request.fechaCita)}</strong>
+                </span>
+              </div>
+            )}
           </div>
 
           {request.aiParsed && (
@@ -335,8 +487,15 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
                           <div>
                             <div className="flex items-center gap-2">
                               <h4 className="font-bold text-zinc-200 text-sm">
-                                {q.provider?.nombre || 'Proveedor'}
+                                {q.workshop?.nombre || q.provider?.nombre || 'Proveedor'}
                               </h4>
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider border ${
+                                q.workshop
+                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                  : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                              }`}>
+                                {q.workshop ? 'Taller' : 'Repuestos'}
+                              </span>
                               {isBestPrice && (
                                 <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-emerald-500/30">
                                   Mejor precio
@@ -386,10 +545,42 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
                         )}
                       </div>
 
+                      {q.fechaPropuesta && (
+                        <div className="flex items-center gap-1.5 text-[11px] text-emerald-300 mb-3">
+                          <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>
+                            📅 Cita propuesta:{' '}
+                            <strong>{fmtFecha(q.fechaPropuesta)}</strong>
+                          </span>
+                        </div>
+                      )}
+
+                      {canAct && q.workshopId && (
+                        <CitaPicker
+                          workshopId={q.workshopId}
+                          propuesta={q.fechaPropuesta}
+                          fechaDeseada={request.fechaCita}
+                          value={
+                            selectedSlots[q.id] !== undefined
+                              ? selectedSlots[q.id]
+                              : (q.fechaPropuesta ?? request.fechaCita ?? null)
+                          }
+                          onChange={(v) => setSelectedSlots((s) => ({ ...s, [q.id]: v }))}
+                        />
+                      )}
+
                       {canAct && (
                         <div className="flex items-center gap-2 pt-3 border-t border-zinc-800/60">
                           <button
-                            onClick={() => handleQuoteAction(q.id, 'ACCEPTED')}
+                            onClick={() =>
+                              handleQuoteAction(
+                                q.id,
+                                'ACCEPTED',
+                                selectedSlots[q.id] !== undefined
+                                  ? selectedSlots[q.id]
+                                  : (q.fechaPropuesta ?? request.fechaCita ?? null),
+                              )
+                            }
                             disabled={updatingQuoteId === q.id}
                             className="flex-1 px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
                           >

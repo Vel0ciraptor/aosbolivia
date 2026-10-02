@@ -26,6 +26,7 @@ export class RequestsService {
         titulo,
         descripcion: dto.descripcion,
         aiParsed: parsed as any,
+        fechaCita: dto.fechaCita ? new Date(dto.fechaCita) : null,
       },
       include: {
         vehicle: true,

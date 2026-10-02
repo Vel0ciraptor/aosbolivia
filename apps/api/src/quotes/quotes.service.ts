@@ -5,7 +5,13 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { IsString, IsNumber, IsOptional, ValidateIf } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  ValidateIf,
+  IsDateString,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateQuoteDto {
@@ -27,6 +33,37 @@ export class CreateQuoteDto {
   @IsOptional()
   @IsString()
   tiempoEntrega?: string;
+  @ApiProperty({
+    required: false,
+    description: 'Cita propuesta por el taller (ISO 8601)',
+  })
+  @IsOptional()
+  @IsDateString()
+  fechaPropuesta?: string;
+}
+
+// Bolivia no aplica horario de verano
+const TZ_NAME = 'America/La_Paz';
+
+function dateKeyOf(d: Date): string {
+  return d.toLocaleDateString('en-CA', { timeZone: TZ_NAME });
+}
+
+function minutesOf(hhmm: string): number {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function fmtCita(d: Date): string {
+  return d.toLocaleString('es-BO', {
+    timeZone: TZ_NAME,
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
 }
 
 @Injectable()
@@ -47,6 +84,9 @@ export class QuotesService {
         precio: dto.precio,
         comentario: dto.comentario,
         tiempoEntrega: dto.tiempoEntrega,
+        fechaPropuesta: dto.fechaPropuesta
+          ? new Date(dto.fechaPropuesta)
+          : null,
       },
       include: {
         provider: { select: { nombre: true } },
@@ -97,61 +137,162 @@ export class QuotesService {
     });
   }
 
-  async updateStatus(id: string, status: string) {
+  async updateStatus(id: string, status: string, citaStartAt?: string) {
     const quote = await this.prisma.quote.findUnique({
       where: { id },
       include: { request: { include: { vehicle: true, user: true } } },
     });
     if (!quote) throw new NotFoundException('Cotización no encontrada');
 
-    const updated = await this.prisma.quote.update({
-      where: { id },
-      data: { estado: status as any },
-    });
+    if (status !== 'ACCEPTED') {
+      return this.prisma.quote.update({
+        where: { id },
+        data: { estado: status as any },
+      });
+    }
 
-    if (status === 'ACCEPTED' && quote.workshopId && quote.request) {
-      const existing = await this.prisma.workshopJob.findFirst({
-        where: { workshopId: quote.workshopId, requestId: quote.requestId },
+    const request = quote.request;
+
+    // Cita elegida: la que escoge el cliente ahora > la propuesta por el taller
+    // > la fecha deseada en la solicitud
+    let slotStart: Date | null = null;
+    if (citaStartAt) {
+      slotStart = new Date(citaStartAt);
+      if (isNaN(slotStart.getTime())) {
+        throw new BadRequestException('Fecha de cita inválida');
+      }
+    } else if (quote.fechaPropuesta) {
+      slotStart = new Date(quote.fechaPropuesta);
+    } else if (request?.fechaCita) {
+      slotStart = new Date(request.fechaCita);
+    }
+
+    // Duración de la cita: según el bloque de disponibilidad del taller
+    let endAt: Date | null = null;
+    if (slotStart && quote.workshopId) {
+      const key = dateKeyOf(slotStart);
+      const mins =
+        slotStart.getUTCHours() * 60 + slotStart.getUTCMinutes();
+      const localMins = mins - 4 * 60; // → hora en Bolivia
+      const blocks = await this.prisma.workshopAvailability.findMany({
+        where: { workshopId: quote.workshopId },
+      });
+      const block = blocks.find(
+        (b) =>
+          b.fecha.toISOString().slice(0, 10) === key &&
+          localMins >= minutesOf(b.horaInicio) &&
+          localMins < minutesOf(b.horaFin),
+      );
+      const duration = block?.slotMinutes ?? 60;
+      endAt = new Date(slotStart.getTime() + duration * 60000);
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      // Las demás cotizaciones pendientes de la solicitud quedan rechazadas
+      await tx.quote.updateMany({
+        where: {
+          requestId: quote.requestId,
+          id: { not: id },
+          estado: 'PENDING',
+        },
+        data: { estado: 'REJECTED' },
       });
 
-      if (!existing) {
-        const request = quote.request;
-        const aiParsed = request.aiParsed as any;
+      const upd = await tx.quote.update({
+        where: { id },
+        data: { estado: 'ACCEPTED' },
+      });
 
-        const job = await this.prisma.workshopJob.create({
-          data: {
-            workshopId: quote.workshopId,
-            requestId: request.id,
-            marca:
-              request.vehicle?.marca || aiParsed?.marca || 'No especificado',
-            modelo:
-              request.vehicle?.modelo || aiParsed?.modelo || 'No especificado',
-            anio:
-              request.vehicle?.anio ||
-              aiParsed?.anio ||
-              new Date().getFullYear(),
-            placa: request.vehicle?.placa,
-            problema: request.descripcion,
-            clienteNombre: request.user.name,
-            clienteTelefono: request.user.phone,
-            estado: 'INGRESANDO',
-          },
+      if (request) {
+        await tx.request.update({
+          where: { id: quote.requestId },
+          data: { estado: 'IN_PROGRESS' },
+        });
+      }
+
+      if (quote.workshopId && request && slotStart && endAt) {
+        const existingAppt = await tx.appointment.findUnique({
+          where: { quoteId: id },
+        });
+        if (!existingAppt) {
+          await tx.appointment.create({
+            data: {
+              workshopId: quote.workshopId,
+              requestId: quote.requestId,
+              quoteId: id,
+              clientUserId: request.userId,
+              startAt: slotStart,
+              endAt,
+              status: 'BOOKED',
+            },
+          });
+        }
+      }
+
+      if (quote.workshopId && request) {
+        const existing = await tx.workshopJob.findFirst({
+          where: { workshopId: quote.workshopId, requestId: quote.requestId },
         });
 
-        await this.prisma.workshopJobLog.create({
+        if (!existing) {
+          const aiParsed = request.aiParsed as any;
+
+          const job = await tx.workshopJob.create({
+            data: {
+              workshopId: quote.workshopId,
+              requestId: request.id,
+              marca:
+                request.vehicle?.marca || aiParsed?.marca || 'No especificado',
+              modelo:
+                request.vehicle?.modelo ||
+                aiParsed?.modelo ||
+                'No especificado',
+              anio:
+                request.vehicle?.anio ||
+                aiParsed?.anio ||
+                new Date().getFullYear(),
+              placa: request.vehicle?.placa,
+              problema: request.descripcion,
+              clienteNombre: request.user.name,
+              clienteTelefono: request.user.phone,
+              estado: 'INGRESANDO',
+              fechaCita: slotStart,
+            },
+          });
+
+          await tx.workshopJobLog.create({
+            data: {
+              jobId: job.id,
+              estado: 'INGRESANDO',
+              observaciones: `Creado automáticamente desde solicitud aceptada: ${request.titulo}`,
+            },
+          });
+        } else if (slotStart) {
+          await tx.workshopJob.update({
+            where: { id: existing.id },
+            data: { fechaCita: slotStart },
+          });
+        }
+      }
+
+      if (quote.workshopId) {
+        await tx.notification.create({
           data: {
-            jobId: job.id,
-            estado: 'INGRESANDO',
-            observaciones: `Creado automáticamente desde solicitud aceptada: ${request.titulo}`,
+            workshopId: quote.workshopId,
+            tipo: 'QUOTE_ACCEPTED',
+            titulo: '¡Cotización aceptada!',
+            mensaje:
+              `El cliente ${request?.user?.name || ''} aceptó tu cotización ` +
+              `de Bs ${quote.precio} para "${request?.titulo || ''}".` +
+              (slotStart ? ` Cita: ${fmtCita(slotStart)}.` : ''),
+            quoteId: id,
+            requestId: quote.requestId,
           },
         });
       }
 
-      await this.prisma.request.update({
-        where: { id: quote.requestId },
-        data: { estado: 'IN_PROGRESS' },
-      });
-    }
+      return upd;
+    });
 
     return updated;
   }

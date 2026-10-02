@@ -13,6 +13,8 @@ import { WorkshopsModule } from './workshops/workshops.module';
 import { TowsModule } from './tows/tows.module';
 import { AiModule } from './ai/ai.module';
 import { AdminModule } from './admin/admin.module';
+import { AgendaModule } from './agenda/agenda.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -32,6 +34,8 @@ import { AdminModule } from './admin/admin.module';
     TowsModule,
     AiModule,
     AdminModule,
+    AgendaModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
 })

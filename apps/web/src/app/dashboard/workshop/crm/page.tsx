@@ -25,8 +25,11 @@ interface WorkshopJob {
   clienteTelefono?: string;
   estado: string;
   requestId?: string;
+  fechaCita?: string | null;
   firmaDigital?: string;
+  firmaIngreso?: string;
   imagenes?: string[];
+  imagenesIngreso?: string[];
   imagenesTerminado?: string[];
   tipoTrabajo?: { categorias?: string[]; otro?: string } | null;
   horasEstimadas?: number | null;
@@ -149,6 +152,7 @@ export default function WorkshopCrmPage() {
 
   const [uploading, setUploading] = useState(false);
   const [signatureOpen, setSignatureOpen] = useState(false);
+  const [sigTarget, setSigTarget] = useState<'salida' | 'ingreso'>('salida');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [inventoryItems, setInventoryItems] = useState<any[]>([]);
   const [reportHtml, setReportHtml] = useState<string | null>(null);
@@ -373,7 +377,7 @@ export default function WorkshopCrmPage() {
     } catch (err: any) { alert(err.response?.data?.message || 'No se pudo descontar.'); }
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'imagenes' | 'imagenesTerminado') => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'imagenes' | 'imagenesTerminado' | 'imagenesIngreso') => {
     if (!detailJob || !e.target.files) return;
     const files = Array.from(e.target.files).slice(0, 5);
     setUploading(true);
@@ -395,7 +399,7 @@ export default function WorkshopCrmPage() {
     finally { setUploading(false); }
   };
 
-  const handleRemoveImage = async (url: string, field: 'imagenes' | 'imagenesTerminado') => {
+  const handleRemoveImage = async (url: string, field: 'imagenes' | 'imagenesTerminado' | 'imagenesIngreso') => {
     if (!detailJob) return;
     const updated = ((detailJob[field] as string[]) || []).filter((u) => u !== url);
     try {
@@ -407,9 +411,10 @@ export default function WorkshopCrmPage() {
   const handleSaveSignature = async () => {
     if (!detailJob || !canvasRef.current) return;
     const dataUrl = canvasRef.current.toDataURL('image/png');
+    const field = sigTarget === 'ingreso' ? 'firmaIngreso' : 'firmaDigital';
     try {
-      await api.put(`/workshops/me/jobs/${detailJob.id}`, { firmaDigital: dataUrl });
-      setDetailJob({ ...detailJob, firmaDigital: dataUrl });
+      await api.put(`/workshops/me/jobs/${detailJob.id}`, { [field]: dataUrl });
+      setDetailJob({ ...detailJob, [field]: dataUrl });
       setSignatureOpen(false);
     } catch (err: any) { alert(err.response?.data?.message || 'No se pudo guardar la firma.'); }
   };
@@ -738,6 +743,12 @@ export default function WorkshopCrmPage() {
                 <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                   {job.placa && <span className="px-1.5 py-0.5 bg-zinc-950 border border-zinc-800 rounded text-[9px] font-mono text-zinc-400">{job.placa}</span>}
                   {job.kilometraje && <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-zinc-950 border border-zinc-800 rounded text-[9px] text-zinc-400"><Fuel className="w-2.5 h-2.5" />{job.kilometraje.toLocaleString()}</span>}
+                  {job.fechaCita && (
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded text-[9px] text-blue-300 font-bold" title="Cita de ingreso">
+                      <Calendar className="w-2.5 h-2.5" />
+                      {new Date(job.fechaCita).toLocaleString('es-BO', { timeZone: 'America/La_Paz', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false })}
+                    </span>
+                  )}
                 </div>
                 <p className="text-[11px] text-zinc-500 mt-1.5 line-clamp-1">{job.clienteNombre}</p>
                 <p className="text-[10px] text-zinc-600 mt-0.5 line-clamp-1">{job.problema}</p>
@@ -806,6 +817,16 @@ export default function WorkshopCrmPage() {
                   <div className="flex items-center gap-3 mb-4 flex-wrap">
                     {(() => { const meta = STATUS_META[detailJob.estado] || STATUS_META.INGRESANDO; const Icon = meta.icon; return (<span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold uppercase tracking-wider ${meta.bg} ${meta.color}`}><Icon className="w-4 h-4" />{meta.label}</span>); })()}
                     {detailJob.requestId && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider bg-zinc-500/10 border-zinc-500/20 text-zinc-400"><FileText className="w-2.5 h-2.5" /> Solicitud</span>}
+                    {detailJob.fechaCita && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 border-blue-500/20 text-blue-300">
+                        <Calendar className="w-2.5 h-2.5" /> Cita:{' '}
+                        {new Date(detailJob.fechaCita).toLocaleString('es-BO', {
+                          timeZone: 'America/La_Paz',
+                          weekday: 'short', day: 'numeric', month: 'short',
+                          hour: '2-digit', minute: '2-digit', hour12: false,
+                        })}
+                      </span>
+                    )}
                     {!isMechanic && <button onClick={() => handleDownloadPdf(detailJob.id)} className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors"><Download className="w-3.5 h-3.5" /> PDF</button>}
                   </div>
                   <h3 className="text-xl font-bold text-zinc-100">{detailJob.marca} {detailJob.modelo} {detailJob.anio}</h3>
@@ -821,6 +842,63 @@ export default function WorkshopCrmPage() {
                 </div>
 
                 <div className="p-4 bg-zinc-950 border border-zinc-800 rounded-2xl mb-6"><div className="flex items-center gap-2 mb-2"><AlertTriangle className="w-4 h-4 text-zinc-500" /><span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Problema reportado</span></div><p className="text-sm text-zinc-300">{detailJob.problema}</p></div>
+
+                {detailJob.estado === 'INGRESANDO' && (
+                  <div className="p-4 bg-zinc-950 border border-blue-500/20 rounded-2xl mb-6">
+                    <h4 className="text-sm font-bold text-zinc-300 flex items-center gap-2 mb-4">
+                      <Camera className="w-4 h-4 text-blue-400" /> Ingreso del vehículo
+                    </h4>
+
+                    <div className="mb-4">
+                      <label className="text-[10px] text-zinc-500 font-bold uppercase flex items-center gap-1 mb-1">
+                        <ImageIcon className="w-3 h-3" /> Fotos de ingreso (máx. 5)
+                      </label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={(e) => handleImageUpload(e, 'imagenesIngreso')}
+                        className="w-full text-xs text-zinc-400"
+                        disabled={uploading}
+                      />
+                      {uploading && <p className="text-xs text-amber-400 mt-1">Subiendo imágenes...</p>}
+                      {detailJob.imagenesIngreso && (detailJob.imagenesIngreso as string[]).length > 0 && (
+                        <div className="flex gap-2 mt-2 flex-wrap">
+                          {(detailJob.imagenesIngreso as string[]).map((url, i) => (
+                            <div key={i} className="relative group">
+                              <img src={url} alt="" className="w-16 h-16 object-cover rounded-lg border border-zinc-800" />
+                              <button onClick={() => handleRemoveImage(url, 'imagenesIngreso')} className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 rounded-full text-white text-[8px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">x</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <h4 className="text-sm font-bold text-zinc-300 flex items-center gap-2 mb-3">
+                        <PenTool className="w-4 h-4 text-blue-400" /> Firma del cliente al entregar el vehículo
+                      </h4>
+                      {detailJob.firmaIngreso ? (
+                        <div className="space-y-3">
+                          <img src={detailJob.firmaIngreso} alt="Firma de ingreso" className="h-24 border border-zinc-800 rounded-xl bg-white p-2" />
+                          <button
+                            onClick={() => { setSigTarget('ingreso'); setSignatureOpen(true); }}
+                            className="text-xs text-zinc-500 hover:text-zinc-300 underline"
+                          >
+                            Cambiar firma
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => { setSigTarget('ingreso'); setSignatureOpen(true); }}
+                          className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-semibold rounded-xl transition-colors flex items-center gap-2"
+                        >
+                          <PenTool className="w-4 h-4" /> Capturar firma de ingreso
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {detailJob.estado === 'CHECK_INICIAL' && (
                   <div className="p-4 bg-zinc-950 border border-zinc-800 rounded-2xl mb-6">
@@ -1092,10 +1170,10 @@ export default function WorkshopCrmPage() {
                     {detailJob.firmaDigital ? (
                       <div className="space-y-3">
                         <img src={detailJob.firmaDigital} alt="Firma" className="h-24 border border-zinc-800 rounded-xl bg-white p-2" />
-                        <button onClick={() => setSignatureOpen(true)} className="text-xs text-zinc-500 hover:text-zinc-300 underline">Cambiar firma</button>
+                        <button onClick={() => { setSigTarget('salida'); setSignatureOpen(true); }} className="text-xs text-zinc-500 hover:text-zinc-300 underline">Cambiar firma</button>
                       </div>
                     ) : (
-                      <button onClick={() => { setSignatureOpen(true); fetchInventory(); }} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-semibold rounded-xl transition-colors flex items-center gap-2"><PenTool className="w-4 h-4" /> Capturar firma</button>
+                      <button onClick={() => { setSigTarget('salida'); setSignatureOpen(true); fetchInventory(); }} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-semibold rounded-xl transition-colors flex items-center gap-2"><PenTool className="w-4 h-4" /> Capturar firma</button>
                     )}
                   </div>
                 )}
@@ -1186,7 +1264,7 @@ export default function WorkshopCrmPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl relative p-6">
             <button onClick={() => setSignatureOpen(false)} className="absolute top-4 right-4 p-2 hover:bg-zinc-800 rounded-xl text-zinc-400 transition-colors"><X className="w-5 h-5" /></button>
-            <h3 className="text-lg font-bold text-zinc-200 mb-4 flex items-center gap-2"><PenTool className="w-5 h-5 text-zinc-400" /> Firme aquí</h3>
+            <h3 className="text-lg font-bold text-zinc-200 mb-4 flex items-center gap-2"><PenTool className="w-5 h-5 text-zinc-400" /> {sigTarget === 'ingreso' ? 'Firma de ingreso — firme aquí' : 'Firme aquí'}</h3>
             <div className="bg-white rounded-xl p-1 mb-4"><canvas ref={canvasRef} width={400} height={200} className="w-full rounded-lg cursor-crosshair touch-none" onMouseDown={(e) => { const ctx = canvasRef.current?.getContext('2d'); if (!ctx) return; ctx.beginPath(); ctx.moveTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY); }} onMouseMove={(e) => { if (e.buttons !== 1) return; const ctx = canvasRef.current?.getContext('2d'); if (!ctx) return; ctx.lineTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY); ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke(); }} /></div>
             <div className="flex justify-end gap-3"><button onClick={clearCanvas} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-semibold rounded-xl">Limpiar</button><button onClick={handleSaveSignature} className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl">Guardar firma</button></div>
           </div>

@@ -6,8 +6,9 @@ import { api } from '../../../../lib/api';
 import { useTowProfile } from '../../../../store/useTowProfile';
 import {
   Truck, ArrowLeft, Save, Loader2, AlertCircle, CheckCircle2,
-  Building2, Phone, MapPin, Hash, DollarSign, Compass,
+  Building2, Phone, MapPin, DollarSign, Compass,
 } from 'lucide-react';
+import LocationFields from '../../../../components/LocationFields';
 
 export default function TowProfilePage() {
   const { tow, loading, error, reload } = useTowProfile();
@@ -244,36 +245,12 @@ export default function TowProfilePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
-              <Hash className="w-3.5 h-3.5" /> Latitud <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="number"
-              step="any"
-              value={latitud}
-              onChange={(e) => setLatitud(e.target.value)}
-              placeholder="10.5050"
-              className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-rose-500 text-zinc-100 text-sm font-mono"
-              required
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
-              <Hash className="w-3.5 h-3.5" /> Longitud <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="number"
-              step="any"
-              value={longitud}
-              onChange={(e) => setLongitud(e.target.value)}
-              placeholder="-66.9200"
-              className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-rose-500 text-zinc-100 text-sm font-mono"
-              required
-            />
-          </div>
-        </div>
+        <LocationFields
+          latitud={latitud}
+          longitud={longitud}
+          onLatitudChange={setLatitud}
+          onLongitudChange={setLongitud}
+        />
 
         <div className="p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-xl">
           <p className="text-[11px] text-indigo-300">

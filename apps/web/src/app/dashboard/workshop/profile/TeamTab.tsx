@@ -4,7 +4,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../../../../lib/api';
 import {
   Users, Plus, Loader2, AlertCircle, CheckCircle2, Copy, Share2,
-  Shield, Wrench, Package, Calculator, Eye, MoreVertical, Trash2, Edit, X,
+  Shield, Wrench, Package, Calculator, Eye, EyeOff, MoreVertical, Trash2, Edit, X,
+  KeyRound,
 } from 'lucide-react';
 
 interface WorkshopUser {
@@ -60,6 +61,7 @@ export default function TeamTab({ workshopName }: TeamTabProps) {
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState<WorkshopUser | null>(null);
+  const [showResetModal, setShowResetModal] = useState<WorkshopUser | null>(null);
   const [showCredentials, setShowCredentials] = useState(false);
   const [credentials, setCredentials] = useState<{ name: string; email: string; password: string } | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -129,6 +131,28 @@ export default function TeamTab({ workshopName }: TeamTabProps) {
       setMessage({
         type: 'error',
         text: err.response?.data?.message || 'No se pudo desactivar',
+      });
+      setTimeout(() => setMessage(null), 3000);
+    }
+  };
+
+  const handleResetPassword = async (id: string, password?: string) => {
+    try {
+      const res = await api.post(`/workshops/me/users/${id}/reset-password`, {
+        password: password || undefined,
+      });
+      setShowResetModal(null);
+      setCredentials({
+        name: res.data.name,
+        email: res.data.email,
+        password: res.data.plainPassword,
+      });
+      setMessage({ type: 'success', text: 'Contraseña restablecida' });
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err: any) {
+      setMessage({
+        type: 'error',
+        text: err.response?.data?.message || 'No se pudo restablecer la contraseña',
       });
       setTimeout(() => setMessage(null), 3000);
     }
@@ -284,11 +308,22 @@ export default function TeamTab({ workshopName }: TeamTabProps) {
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => copyCredentials(user.name, user.email, '••••••••')}
+                            onClick={() => {
+                              navigator.clipboard.writeText(user.email);
+                              setMessage({ type: 'success', text: 'Correo copiado al portapapeles' });
+                              setTimeout(() => setMessage(null), 3000);
+                            }}
                             className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors"
-                            title="Copiar info"
+                            title="Copiar correo"
                           >
                             <Copy className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setShowResetModal(user)}
+                            className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-emerald-400 transition-colors"
+                            title="Cambiar contraseña"
+                          >
+                            <KeyRound className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => setShowEditModal(user)}
@@ -330,6 +365,14 @@ export default function TeamTab({ workshopName }: TeamTabProps) {
           user={showEditModal}
           onClose={() => setShowEditModal(null)}
           onSubmit={(data) => handleUpdate(showEditModal.id, data)}
+        />
+      )}
+
+      {showResetModal && (
+        <ResetPasswordModal
+          user={showResetModal}
+          onClose={() => setShowResetModal(null)}
+          onSubmit={(password) => handleResetPassword(showResetModal.id, password)}
         />
       )}
 
@@ -647,6 +690,102 @@ function CredentialsModal({
         >
           Entendido
         </button>
+      </div>
+    </div>
+  );
+}
+
+function ResetPasswordModal({
+  user,
+  onClose,
+  onSubmit,
+}: {
+  user: WorkshopUser;
+  onClose: () => void;
+  onSubmit: (password?: string) => void;
+}) {
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    await onSubmit(password.trim() || undefined);
+    setLoading(false);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-bold text-zinc-100 flex items-center gap-2">
+            <KeyRound className="w-5 h-5 text-emerald-400" />
+            Cambiar contraseña
+          </h3>
+          <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <p className="text-sm text-zinc-400">
+          Nueva contraseña para <span className="font-semibold text-zinc-200">{user.name}</span> (
+          <span className="font-mono text-xs">{user.email}</span>)
+        </p>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-zinc-300">Nueva contraseña</label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+                minLength={6}
+                className="w-full px-4 pr-11 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <p className="text-[11px] text-zinc-500">
+              Déjala vacía para generar una contraseña automática.
+            </p>
+          </div>
+
+          <div className="pt-4 flex justify-end gap-3 border-t border-zinc-800">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2.5 bg-zinc-950 border border-zinc-800 hover:bg-zinc-900 rounded-xl text-zinc-300 text-sm font-semibold transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading || (!!password && password.length < 6)}
+              className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-zinc-950 font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Generando...</span>
+                </>
+              ) : (
+                <>
+                  <KeyRound className="w-4 h-4" />
+                  <span>Guardar contraseña</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

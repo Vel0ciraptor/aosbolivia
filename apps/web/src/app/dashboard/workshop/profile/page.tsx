@@ -1,16 +1,56 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import Link from 'next/link';
 import { api } from '../../../../lib/api';
 import { useWorkshopProfile } from '../../../../store/useWorkshopProfile';
 import {
   Building2, ArrowLeft, Save, Loader2, AlertCircle, CheckCircle2,
-  Phone, MapPin, Hash, Wrench, Users,
+  Phone, MapPin, Wrench, Users, ImagePlus, Trash2,
 } from 'lucide-react';
 import TeamTab from './TeamTab';
+import LocationFields from '../../../../components/LocationFields';
 
 type Tab = 'profile' | 'team';
+
+const MAX_LOGO_SIZE = 300;
+
+function resizeLogo(file: File): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, MAX_LOGO_SIZE / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('No se pudo procesar la imagen'));
+        return;
+      }
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      canvas.toBlob(
+        (blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error('No se pudo comprimir la imagen'));
+        },
+        'image/jpeg',
+        0.85,
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Archivo de imagen no válido'));
+    };
+    img.src = url;
+  });
+}
 
 export default function WorkshopProfilePage() {
   const { workshop, loading, error, reload } = useWorkshopProfile();
@@ -24,6 +64,62 @@ export default function WorkshopProfilePage() {
   const [initialized, setInitialized] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setMessage({ type: 'error', text: 'Selecciona un archivo de imagen válido.' });
+      return;
+    }
+    try {
+      setLogoUploading(true);
+      setMessage(null);
+      const blob = await resizeLogo(file);
+      if (blob.size > 300 * 1024) {
+        setMessage({ type: 'error', text: 'El logo pesa más de 300 KB después de comprimir. Elige una imagen más ligera.' });
+        return;
+      }
+      const formData = new FormData();
+      formData.append('file', blob, 'logo.jpg');
+      await api.post('/workshops/me/logo', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setMessage({ type: 'success', text: 'Logo actualizado correctamente.' });
+      reload();
+      setTimeout(() => setMessage(null), 3500);
+    } catch (err: any) {
+      setMessage({
+        type: 'error',
+        text: err.response?.data?.message || 'No se pudo subir el logo.',
+      });
+      setTimeout(() => setMessage(null), 5000);
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const handleRemoveLogo = async () => {
+    if (!confirm('¿Eliminar el logo del taller?')) return;
+    try {
+      setLogoUploading(true);
+      await api.delete('/workshops/me/logo');
+      setMessage({ type: 'success', text: 'Logo eliminado.' });
+      reload();
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err: any) {
+      setMessage({
+        type: 'error',
+        text: err.response?.data?.message || 'No se pudo eliminar el logo.',
+      });
+      setTimeout(() => setMessage(null), 5000);
+    } finally {
+      setLogoUploading(false);
+    }
+  };
 
   React.useEffect(() => {
     if (workshop && !initialized) {
@@ -164,12 +260,57 @@ export default function WorkshopProfilePage() {
       {activeTab === 'profile' && (
         <form onSubmit={handleSubmit} className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-5">
           <div className="flex items-center gap-4 pb-5 border-b border-zinc-800">
-            <div className="w-14 h-14 rounded-2xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-emerald-400">
-              <Building2 className="w-7 h-7" />
+            <div className="relative">
+              {workshop.imageUrl ? (
+                <img
+                  src={workshop.imageUrl}
+                  alt={`Logo de ${workshop.nombre}`}
+                  className="w-14 h-14 rounded-2xl border border-zinc-800 object-cover bg-zinc-950"
+                />
+              ) : (
+                <div className="w-14 h-14 rounded-2xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-emerald-400">
+                  <Building2 className="w-7 h-7" />
+                </div>
+              )}
+              {logoUploading && (
+                <div className="absolute inset-0 bg-zinc-950/70 rounded-2xl flex items-center justify-center">
+                  <Loader2 className="w-5 h-5 text-emerald-400 animate-spin" />
+                </div>
+              )}
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <h3 className="text-base font-bold text-zinc-200">{workshop.nombre}</h3>
               <p className="text-xs text-zinc-500">ID: {workshop.id.slice(0, 12)}...</p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                <button
+                  type="button"
+                  onClick={() => logoInputRef.current?.click()}
+                  disabled={logoUploading}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-xs font-semibold text-zinc-300 transition-colors disabled:opacity-50"
+                >
+                  <ImagePlus className="w-3.5 h-3.5" />
+                  {workshop.imageUrl ? 'Cambiar logo' : 'Subir logo'}
+                </button>
+                {workshop.imageUrl && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveLogo}
+                    disabled={logoUploading}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-950/30 hover:bg-red-950/50 border border-red-900/40 rounded-lg text-xs font-semibold text-red-400 transition-colors disabled:opacity-50"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Quitar
+                  </button>
+                )}
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  className="hidden"
+                  onChange={handleLogoSelect}
+                />
+              </div>
+              <p className="text-[10px] text-zinc-600 mt-1">Máximo 300x300 px · 300 KB (se redimensiona y comprime automáticamente)</p>
             </div>
           </div>
 
@@ -227,36 +368,12 @@ export default function WorkshopProfilePage() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
-                <Hash className="w-3.5 h-3.5" /> Latitud <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="number"
-                step="any"
-                value={latitud}
-                onChange={(e) => setLatitud(e.target.value)}
-                placeholder="10.4806"
-                className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm font-mono"
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
-                <Hash className="w-3.5 h-3.5" /> Longitud <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="number"
-                step="any"
-                value={longitud}
-                onChange={(e) => setLongitud(e.target.value)}
-                placeholder="-66.9036"
-                className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm font-mono"
-                required
-              />
-            </div>
-          </div>
+          <LocationFields
+            latitud={latitud}
+            longitud={longitud}
+            onLatitudChange={setLatitud}
+            onLongitudChange={setLongitud}
+          />
 
           <div className="p-3 bg-emerald-500/5 border border-emerald-500/10 rounded-xl">
             <p className="text-[11px] text-emerald-300">

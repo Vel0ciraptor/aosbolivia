@@ -39,6 +39,8 @@ model User {
   // Grúa (si role = TOW_SERVICE)
   towService TowService?
 
+  passwordResetTokens PasswordResetToken[]
+
   @@map("users")
 }
 
@@ -379,4 +381,22 @@ model Message {
   sender  User    @relation(fields: [senderId], references: [id])
 
   @@map("messages")
+}
+
+// ─────────────────────────────────────────────
+// PASSWORD RESET (Olvidé mi contraseña)
+// ─────────────────────────────────────────────
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
 }

@@ -3,10 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '../../store/useAuthStore';
+import { api } from '../../lib/api';
 import {
   Car, Settings, Wrench, Truck, LogOut, LayoutDashboard,
   MessageSquareCode, FileText, ClipboardList, PlusCircle,
-  Menu, X, User as UserIcon, Bell, Shield, Users, Store, Package
+  Menu, X, User as UserIcon, Bell, Shield, Users, Store, Package,
+  KeyRound, Eye, EyeOff,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -15,6 +17,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showChangePwd, setShowChangePwd] = useState(false);
+  const [pwdCurrent, setPwdCurrent] = useState('');
+  const [pwdNew, setPwdNew] = useState('');
+  const [pwdShow, setPwdShow] = useState(false);
+  const [pwdLoading, setPwdLoading] = useState(false);
+  const [pwdMsg, setPwdMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -40,6 +48,43 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const handleLogout = () => {
     logout();
     router.push('/login');
+  };
+
+  const isWorkshopUser = (user.role as string) === 'WORKSHOP_USER';
+
+  const openChangePwd = () => {
+    setPwdCurrent('');
+    setPwdNew('');
+    setPwdMsg(null);
+    setShowChangePwd(true);
+  };
+
+  const handleChangePwd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pwdNew.length < 6) {
+      setPwdMsg({ type: 'error', text: 'La nueva contraseña debe tener al menos 6 caracteres' });
+      return;
+    }
+    setPwdLoading(true);
+    setPwdMsg(null);
+    try {
+      await api.post('/workshops/me/change-password', {
+        currentPassword: pwdCurrent,
+        newPassword: pwdNew,
+      });
+      setPwdMsg({ type: 'success', text: 'Contraseña actualizada correctamente' });
+      setTimeout(() => {
+        setShowChangePwd(false);
+        setPwdMsg(null);
+      }, 1500);
+    } catch (err: any) {
+      setPwdMsg({
+        type: 'error',
+        text: err.response?.data?.message || 'No se pudo cambiar la contraseña',
+      });
+    } finally {
+      setPwdLoading(false);
+    }
   };
 
   // Define sidebar items based on role
@@ -177,6 +222,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </div>
 
+          {isWorkshopUser && (
+            <button
+              onClick={openChangePwd}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-emerald-400 text-sm font-semibold rounded-2xl transition-all border border-zinc-800"
+            >
+              <KeyRound className="w-4 h-4" />
+              <span>Cambiar contraseña</span>
+            </button>
+          )}
+
           <button
             onClick={handleLogout}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-zinc-900 hover:bg-red-950/20 hover:text-red-400 text-zinc-400 text-sm font-semibold rounded-2xl transition-all border border-zinc-800 hover:border-red-900/30"
@@ -293,6 +348,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </div>
                 </div>
 
+                {isWorkshopUser && (
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      openChangePwd();
+                    }}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-emerald-400 text-sm font-semibold rounded-2xl transition-all border border-zinc-800"
+                  >
+                    <KeyRound className="w-4 h-4" />
+                    <span>Cambiar contraseña</span>
+                  </button>
+                )}
+
                 <button
                   onClick={handleLogout}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-zinc-900 hover:bg-red-950/20 hover:text-red-400 text-zinc-400 text-sm font-semibold rounded-2xl transition-all border border-zinc-800 hover:border-red-900/30"
@@ -311,6 +379,78 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {children}
         </main>
       </div>
+
+      {/* CHANGE PASSWORD MODAL */}
+      {showChangePwd && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <form onSubmit={handleChangePwd} className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-zinc-100 flex items-center gap-2">
+                <KeyRound className="w-5 h-5 text-emerald-400" />
+                Cambiar contraseña
+              </h3>
+              <button type="button" onClick={() => setShowChangePwd(false)} className="p-2 hover:bg-zinc-800 rounded-xl text-zinc-400 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {pwdMsg && (
+              <div className={`p-3 rounded-xl text-sm flex items-center gap-2 ${
+                pwdMsg.type === 'success'
+                  ? 'bg-emerald-950/30 border border-emerald-800/50 text-emerald-200'
+                  : 'bg-red-950/30 border border-red-800/50 text-red-200'
+              }`}>
+                {pwdMsg.text}
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-zinc-300">Contraseña actual *</label>
+              <div className="relative">
+                <input
+                  type={pwdShow ? 'text' : 'password'}
+                  value={pwdCurrent}
+                  onChange={(e) => setPwdCurrent(e.target.value)}
+                  placeholder="Tu contraseña actual"
+                  required
+                  minLength={6}
+                  className="w-full px-4 pr-11 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+                />
+                <button type="button" onClick={() => setPwdShow((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors" aria-label={pwdShow ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
+                  {pwdShow ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-zinc-300">Nueva contraseña *</label>
+              <div className="relative">
+                <input
+                  type={pwdShow ? 'text' : 'password'}
+                  value={pwdNew}
+                  onChange={(e) => setPwdNew(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
+                  required
+                  minLength={6}
+                  className="w-full px-4 pr-11 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+                />
+                <button type="button" onClick={() => setPwdShow((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors" aria-label={pwdShow ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
+                  {pwdShow ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-zinc-800">
+              <button type="button" onClick={() => setShowChangePwd(false)} className="px-4 py-2.5 bg-zinc-950 border border-zinc-800 hover:bg-zinc-900 rounded-xl text-zinc-300 text-sm font-semibold transition-colors">
+                Cancelar
+              </button>
+              <button type="submit" disabled={pwdLoading} className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-zinc-950 font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50">
+                {pwdLoading ? <><KeyRound className="w-4 h-4 animate-spin" /><span>Guardando...</span></> : <>Guardar</>}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
     </div>
   );

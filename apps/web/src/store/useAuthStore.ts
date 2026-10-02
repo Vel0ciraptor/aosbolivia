@@ -31,7 +31,10 @@ function parseError(err: any, fallback: string): string {
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
-  isLoading: false,
+  // Si hay token guardado, empezar en estado de carga para evitar que el
+  // layout redirija a /login antes de que /auth/me responda (carrera).
+  isLoading:
+    typeof window !== 'undefined' && !!localStorage.getItem('accessToken'),
   error: null,
 
   login: async (credentials) => {
@@ -115,9 +118,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (typeof window === 'undefined') return;
     const token = localStorage.getItem('accessToken');
     if (!token) {
-      set({ user: null, isAuthenticated: false });
+      set({ user: null, isAuthenticated: false, isLoading: false });
       return;
     }
+    set({ isLoading: true });
     try {
       const res = await api.get('/auth/me');
       const p = res.data;
@@ -132,11 +136,20 @@ export const useAuthStore = create<AuthState>((set) => ({
           workshopId: p.workshopId,
         },
         isAuthenticated: true,
+        isLoading: false,
       });
-    } catch {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      set({ user: null, isAuthenticated: false });
+    } catch (err: any) {
+      // Solo cerrar sesión si el servidor respondió 401 y no se pudo refrescar.
+      // Errores transitorios (5xx, timeout, red) NO deben desloguear.
+      const status = err.response?.status;
+      if (status === 401 || status === 403) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        set({ user: null, isAuthenticated: false, isLoading: false });
+      } else {
+        // Mantener la sesión existente ante fallos temporales
+        set({ isLoading: false });
+      }
     }
   },
 }));

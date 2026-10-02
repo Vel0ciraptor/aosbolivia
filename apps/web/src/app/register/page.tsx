@@ -4,13 +4,14 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '../../store/useAuthStore';
-import { User, Mail, Phone, KeyRound, AlertCircle, ArrowRight, Car, Settings, ShieldAlert, Wrench, Truck } from 'lucide-react';
+import { User, Mail, Phone, KeyRound, AlertCircle, ArrowRight, Car, Settings, ShieldAlert, Wrench, Truck, Eye, EyeOff } from 'lucide-react';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<'CLIENT' | 'PROVIDER' | 'WORKSHOP' | 'TOW_SERVICE'>('CLIENT');
   const [formError, setFormError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -228,12 +229,20 @@ export default function RegisterPage() {
               <div className="relative">
                 <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="Mínimo 6 caracteres"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-2xl focus:outline-none focus:border-indigo-500 text-zinc-100 transition-colors placeholder:text-zinc-600"
+                  className="w-full pl-12 pr-12 py-3 bg-zinc-950 border border-zinc-800 rounded-2xl focus:outline-none focus:border-indigo-500 text-zinc-100 transition-colors placeholder:text-zinc-600"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
               </div>
             </div>
           </div>

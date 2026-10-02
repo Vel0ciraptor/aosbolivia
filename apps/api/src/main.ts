@@ -16,6 +16,7 @@ async function bootstrap() {
   mkdirSync(join(process.cwd(), 'uploads', 'workshop-images'), {
     recursive: true,
   });
+  mkdirSync(join(process.cwd(), 'uploads', 'logos'), { recursive: true });
 
   // Archivos estáticos (imágenes subidas)
   app.useStaticAssets(join(__dirname, '..', 'uploads'), { prefix: '/uploads' });

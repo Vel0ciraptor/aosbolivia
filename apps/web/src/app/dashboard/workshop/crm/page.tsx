@@ -10,7 +10,7 @@ import {
   CheckCircle2, Wrench, ArrowRight, User, Phone, FileText,
   Calendar, History, AlertTriangle, Camera, Package, PenTool,
   Download, Image as ImageIcon, CheckSquare, Square, Fuel, Lock,
-  DollarSign, Play, Timer, ClipboardList,
+  DollarSign, Play, Timer, ClipboardList, Eye, EyeOff,
 } from 'lucide-react';
 
 interface WorkshopJob {
@@ -137,6 +137,7 @@ export default function WorkshopCrmPage() {
   const [statusModalJob, setStatusModalJob] = useState<WorkshopJob | null>(null);
   const [statusObs, setStatusObs] = useState('');
   const [statusPassword, setStatusPassword] = useState('');
+  const [showStatusPassword, setShowStatusPassword] = useState(false);
   const [changingStatus, setChangingStatus] = useState(false);
 
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
@@ -1154,7 +1155,12 @@ export default function WorkshopCrmPage() {
             <div className="space-y-1.5 mb-4"><label className="text-xs font-semibold text-zinc-300">Observaciones (opcional)</label><textarea value={statusObs} onChange={(e) => setStatusObs(e.target.value)} rows={2} placeholder="Detalles del cambio de estado..." className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm resize-none" /></div>
             <div className="space-y-1.5 mb-6">
               <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5"><Lock className="w-3.5 h-3.5 text-zinc-500" /> Contraseña de firma <span className="text-red-400">*</span></label>
-              <input type="password" value={statusPassword} onChange={(e) => setStatusPassword(e.target.value)} placeholder="Ingrese su contraseña para firmar" className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm" />
+              <div className="relative">
+                <input type={showStatusPassword ? 'text' : 'password'} value={statusPassword} onChange={(e) => setStatusPassword(e.target.value)} placeholder="Ingrese su contraseña para firmar" className="w-full px-4 py-2.5 pr-11 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm" />
+                <button type="button" onClick={() => setShowStatusPassword((v) => !v)} aria-label={showStatusPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors">
+                  {showStatusPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
             <div className="flex justify-end gap-3">
               <button onClick={() => setStatusModalJob(null)} className="px-4 py-2.5 bg-zinc-950 border border-zinc-800 hover:bg-zinc-900 rounded-xl text-zinc-300 text-sm font-semibold transition-colors">Cancelar</button>

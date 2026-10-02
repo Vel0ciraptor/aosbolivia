@@ -35,3 +35,26 @@ export class LoginDto {
   @IsString()
   password: string;
 }
+
+export class RefreshDto {
+  @ApiProperty()
+  @IsString()
+  refreshToken: string;
+}
+
+export class ForgotPasswordDto {
+  @ApiProperty({ example: 'juan@example.com' })
+  @IsEmail()
+  email: string;
+}
+
+export class ResetPasswordDto {
+  @ApiProperty()
+  @IsString()
+  token: string;
+
+  @ApiProperty({ example: 'NuevaClave123!' })
+  @IsString()
+  @MinLength(6)
+  password: string;
+}

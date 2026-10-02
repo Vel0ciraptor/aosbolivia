@@ -49,6 +49,8 @@ import {
 import {
   CreateWorkshopUserDto,
   UpdateWorkshopUserDto,
+  ResetWorkshopUserPasswordDto,
+  ChangeOwnPasswordDto,
 } from './dto/workshop-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -411,6 +413,35 @@ export class WorkshopsController {
     return this.workshopsService.removeWorkshopUser(req.user.workshopId, id);
   }
 
+  @Post('me/users/:id/reset-password')
+  @ApiOperation({ summary: 'Restablecer contraseña de un miembro del equipo' })
+  resetMyUserPassword(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: ResetWorkshopUserPasswordDto,
+  ) {
+    return this.workshopsService.resetWorkshopUserPassword(
+      req.user.workshopId,
+      id,
+      dto,
+    );
+  }
+
+  @Post('me/change-password')
+  @ApiOperation({ summary: 'Cambiar mi propia contraseña (miembro de equipo)' })
+  changeMyPassword(@Req() req: any, @Body() dto: ChangeOwnPasswordDto) {
+    if (req.user.role !== 'WORKSHOP_USER') {
+      throw new BadRequestException(
+        'Solo los miembros del equipo usan este endpoint',
+      );
+    }
+    return this.workshopsService.changeOwnWorkshopUserPassword(
+      req.user.id,
+      dto.currentPassword,
+      dto.newPassword,
+    );
+  }
+
   // ─── Upload & PDF ───
 
   @Post('me/jobs/:id/images')
@@ -462,6 +493,51 @@ export class WorkshopsController {
     );
     res.set({ 'Content-Type': 'text/html; charset=utf-8' });
     res.end(html);
+  }
+
+  // ─── Logo del taller ───
+
+  @Post('me/logo')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads/logos',
+        filename: (_req, file, cb) => {
+          const uniqueName = `logo-${Date.now()}-${Math.round(Math.random() * 1e9)}${extname(file.originalname)}`;
+          cb(null, uniqueName);
+        },
+      }),
+      limits: { fileSize: 300 * 1024 },
+      fileFilter: (_req, file, cb) => {
+        if (!file.mimetype.match(/\/(jpg|jpeg|png|gif|webp)$/)) {
+          cb(null, false);
+        } else {
+          cb(null, true);
+        }
+      },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Subir logo del taller (máx 300x300 px y 300 KB)' })
+  uploadLogo(@Req() req: any, @UploadedFile() file: Express.Multer.File) {
+    if (req.user.role === 'WORKSHOP_USER') {
+      throw new BadRequestException('Solo el dueño del taller puede cambiar el logo');
+    }
+    if (!file) {
+      throw new BadRequestException(
+        'Solo se permiten imágenes JPG, PNG, GIF o WebP de máximo 300 KB',
+      );
+    }
+    return this.workshopsService.uploadLogo(req.user.workshopId, file);
+  }
+
+  @Delete('me/logo')
+  @ApiOperation({ summary: 'Eliminar logo del taller' })
+  removeLogo(@Req() req: any) {
+    if (req.user.role === 'WORKSHOP_USER') {
+      throw new BadRequestException('Solo el dueño del taller puede cambiar el logo');
+    }
+    return this.workshopsService.removeLogo(req.user.workshopId);
   }
 
   // ─── Otros ───

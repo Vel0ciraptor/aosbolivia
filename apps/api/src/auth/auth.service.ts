@@ -2,20 +2,35 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
+  BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
-import { RegisterDto, LoginDto } from './dto/auth.dto';
+import {
+  RegisterDto,
+  LoginDto,
+  RefreshDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+} from './dto/auth.dto';
+import { MailService } from './mail.service';
 import { Role } from '../common/enums';
+
+const PASSWORD_RESET_TTL_MS = 30 * 60 * 1000; // 30 minutos
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private prisma: PrismaService,
     private jwt: JwtService,
     private config: ConfigService,
+    private mail: MailService,
   ) {}
 
   async register(dto: RegisterDto, role: Role = Role.CLIENT) {
@@ -119,6 +134,113 @@ export class AuthService {
     }
 
     throw new UnauthorizedException('Credenciales incorrectas');
+  }
+
+  async refresh(dto: RefreshDto) {
+    let payload: any;
+    try {
+      payload = this.jwt.verify(dto.refreshToken, {
+        secret: this.config.get('JWT_REFRESH_SECRET'),
+      });
+    } catch {
+      throw new UnauthorizedException('Sesión expirada, inicia sesión nuevamente');
+    }
+
+    // Refrescar sesión de WorkshopUser
+    if (payload.role === 'WORKSHOP_USER') {
+      const workshopUser = await this.prisma.workshopUser.findUnique({
+        where: { id: payload.sub },
+      });
+      if (!workshopUser || workshopUser.status !== 'ACTIVE') {
+        throw new UnauthorizedException('Sesión expirada, inicia sesión nuevamente');
+      }
+      return this.generateWorkshopUserTokens(workshopUser);
+    }
+
+    // Refrescar sesión de usuario normal
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+    });
+    if (!user) {
+      throw new UnauthorizedException('Sesión expirada, inicia sesión nuevamente');
+    }
+    return this.generateTokens(user);
+  }
+
+  async forgotPassword(dto: ForgotPasswordDto) {
+    // Respuesta idéntica exista o no el correo (no revelar cuentas)
+    const response: { success: boolean; sent?: boolean; devResetUrl?: string } =
+      { success: true };
+
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+    if (!user) {
+      this.logger.warn(`forgot-password: correo no registrado (${dto.email})`);
+      return response;
+    }
+
+    // Invalidar tokens anteriores sin usar
+    await this.prisma.passwordResetToken.updateMany({
+      where: { userId: user.id, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+
+    const token = randomBytes(32).toString('hex');
+    await this.prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        token,
+        expiresAt: new Date(Date.now() + PASSWORD_RESET_TTL_MS),
+      },
+    });
+
+    const frontendUrl = this.config.get('FRONTEND_URL') || 'http://localhost:3003';
+    const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
+
+    if (this.mail.isConfigured) {
+      try {
+        await this.mail.sendPasswordResetEmail(user.email, user.name, resetUrl);
+        response.sent = true;
+      } catch (err: any) {
+        this.logger.error(`No se pudo enviar el correo: ${err?.message || err}`);
+      }
+    }
+
+    // Sin correo configurado (o falló) en desarrollo, devolvemos el enlace directamente
+    if (!response.sent && process.env.NODE_ENV !== 'production') {
+      response.devResetUrl = resetUrl;
+      this.logger.warn(`forgot-password (dev): ${resetUrl}`);
+    }
+
+    return response;
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const record = await this.prisma.passwordResetToken.findUnique({
+      where: { token: dto.token },
+    });
+    if (!record || record.usedAt || record.expiresAt.getTime() < Date.now()) {
+      throw new BadRequestException(
+        'El enlace de restablecimiento no es válido o expiró. Solicita uno nuevo.',
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(dto.password, 10);
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: record.userId },
+        data: { password: hashedPassword },
+      }),
+      this.prisma.passwordResetToken.update({
+        where: { id: record.id },
+        data: { usedAt: new Date() },
+      }),
+    ]);
+
+    this.logger.log(`Contraseña restablecida para user ${record.userId}`);
+    return { success: true };
   }
 
   async getWorkshopUserProfile(workshopUserId: string) {

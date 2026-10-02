@@ -25,8 +25,11 @@ import {
 import {
   CreateWorkshopUserDto,
   UpdateWorkshopUserDto,
+  ResetWorkshopUserPasswordDto,
 } from './dto/workshop-user.dto';
 import * as bcrypt from 'bcryptjs';
+import { isEmail } from 'class-validator';
+import { randomBytes } from 'crypto';
 import { readFile, stat, unlink } from 'fs/promises';
 import { basename, extname, join } from 'path';
 
@@ -49,9 +52,85 @@ const MECHANIC_EDITABLE_STATES = ['CHECK_INICIAL', 'TRABAJANDO'];
 
 const MAX_JOB_IMAGES_BYTES = 50 * 1024 * 1024;
 const UPLOAD_IMAGES_DIR = join(process.cwd(), 'uploads', 'workshop-images');
+const UPLOAD_LOGOS_DIR = join(process.cwd(), 'uploads', 'logos');
+const MAX_LOGO_BYTES = 300 * 1024; // 300 KB
+const MAX_LOGO_DIMENSION = 300; // 300x300 px
 
 const imageKey = (url: string) => basename(url.split('?')[0]);
 const WORKLOG_ADMIN_ROLES = ['SUPERVISOR', 'JEFE_MECANICO', 'CONTABILIDAD'];
+
+// Lee las dimensiones de PNG, JPEG, GIF o WEBP sin dependencias externas
+function getImageDimensions(buf: Buffer): { width: number; height: number } | null {
+  try {
+    // PNG: firma + IHDR en offset 16
+    if (buf.length > 24 && buf.readUInt32BE(0) === 0x89504e47) {
+      return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
+    }
+    // GIF
+    if (buf.length > 10 && buf.toString('ascii', 0, 3) === 'GIF') {
+      return { width: buf.readUInt16LE(6), height: buf.readUInt16LE(8) };
+    }
+    // WEBP (RIFF....WEBP)
+    if (
+      buf.length > 30 &&
+      buf.toString('ascii', 0, 4) === 'RIFF' &&
+      buf.toString('ascii', 8, 12) === 'WEBP'
+    ) {
+      const fourcc = buf.toString('ascii', 12, 16);
+      if (fourcc === 'VP8 ') {
+        return {
+          width: buf.readUInt16LE(26) & 0x3fff,
+          height: buf.readUInt16LE(28) & 0x3fff,
+        };
+      }
+      if (fourcc === 'VP8L') {
+        const bits = buf.readUInt32LE(21);
+        return {
+          width: (bits & 0x3fff) + 1,
+          height: ((bits >> 14) & 0x3fff) + 1,
+        };
+      }
+      if (fourcc === 'VP8X') {
+        return {
+          width: buf.readUIntLE(24, 3) + 1,
+          height: buf.readUIntLE(27, 3) + 1,
+        };
+      }
+    }
+    // JPEG: buscar marcador SOF0-SOF15
+    if (buf.length > 4 && buf[0] === 0xff && buf[1] === 0xd8) {
+      let i = 2;
+      while (i < buf.length - 9) {
+        if (buf[i] !== 0xff) {
+          i++;
+          continue;
+        }
+        const marker = buf[i + 1];
+        if (marker === 0xd8 || (marker >= 0xd0 && marker <= 0xd9)) {
+          i += 2;
+          continue;
+        }
+        const len = buf.readUInt16BE(i + 2);
+        const isSof =
+          marker >= 0xc0 &&
+          marker <= 0xcf &&
+          marker !== 0xc4 &&
+          marker !== 0xc8 &&
+          marker !== 0xcc;
+        if (isSof) {
+          return {
+            height: buf.readUInt16BE(i + 5),
+            width: buf.readUInt16BE(i + 7),
+          };
+        }
+        i += 2 + len;
+      }
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
 
 @Injectable()
 export class WorkshopsService {
@@ -970,10 +1049,17 @@ export class WorkshopsService {
     });
     if (!workshop) throw new NotFoundException('Taller no encontrado');
 
-    const email = `${dto.emailPrefix.toLowerCase().trim()}@${workshop.nombre
+    const domain = workshop.nombre
       .toLowerCase()
       .replace(/\s+/g, '')
-      .replace(/[^a-z0-9]/g, '')}.com`;
+      .replace(/[^a-z0-9]/g, '');
+    const email = `${dto.emailPrefix.toLowerCase().trim()}@${domain}.com`;
+
+    if (!domain || !isEmail(email)) {
+      throw new BadRequestException(
+        'El correo generado no es válido. Verifica el nombre del taller y el prefijo del correo',
+      );
+    }
 
     const existing = await this.prisma.workshopUser.findUnique({
       where: { workshopId_email: { workshopId, email } },
@@ -1055,6 +1141,54 @@ export class WorkshopsService {
     });
   }
 
+  async resetWorkshopUserPassword(
+    workshopId: string,
+    userId: string,
+    dto: ResetWorkshopUserPasswordDto,
+  ) {
+    const user = await this.prisma.workshopUser.findUnique({
+      where: { id: userId },
+    });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    if (user.workshopId !== workshopId)
+      throw new ForbiddenException('Sin permiso');
+
+    const plainPassword = dto.password || this.generatePassword();
+    const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
+    await this.prisma.workshopUser.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+
+    return { id: user.id, name: user.name, email: user.email, plainPassword };
+  }
+
+  async changeOwnWorkshopUserPassword(
+    workshopUserId: string,
+    currentPassword: string,
+    newPassword: string,
+  ) {
+    const user = await this.prisma.workshopUser.findUnique({
+      where: { id: workshopUserId },
+    });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    if (user.status !== 'ACTIVE')
+      throw new ForbiddenException('Cuenta desactivada');
+
+    const match = await bcrypt.compare(currentPassword, user.password);
+    if (!match)
+      throw new BadRequestException('La contraseña actual es incorrecta');
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await this.prisma.workshopUser.update({
+      where: { id: workshopUserId },
+      data: { password: hashedPassword },
+    });
+
+    return { success: true };
+  }
+
   async findWorkshopUserByEmail(email: string) {
     return this.prisma.workshopUser.findFirst({
       where: { email, status: 'ACTIVE' },
@@ -1065,9 +1199,10 @@ export class WorkshopsService {
   private generatePassword(): string {
     const chars =
       'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%';
+    const bytes = randomBytes(12);
     let password = '';
     for (let i = 0; i < 12; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length));
+      password += chars.charAt(bytes[i] % chars.length);
     }
     return password;
   }
@@ -1114,6 +1249,85 @@ export class WorkshopsService {
     const baseUrl = process.env.APP_URL || 'http://localhost:3004';
     const url = `${baseUrl}/uploads/workshop-images/${file.filename}`;
     return { url };
+  }
+
+  // ─────────────────────────────────────────────
+  // LOGO DEL TALLER (máx 300x300 px / 300 KB)
+  // ─────────────────────────────────────────────
+
+  async uploadLogo(workshopId: string, file: Express.Multer.File) {
+    const workshop = await this.prisma.workshop.findUnique({
+      where: { id: workshopId },
+    });
+    if (!workshop) throw new NotFoundException('Taller no encontrado');
+
+    const discard = async () => {
+      try {
+        await unlink(join(UPLOAD_LOGOS_DIR, file.filename));
+      } catch {
+        // ya no existe
+      }
+    };
+
+    if (file.size > MAX_LOGO_BYTES) {
+      await discard();
+      throw new BadRequestException(
+        `El logo no puede pesar más de ${MAX_LOGO_BYTES / 1024} KB`,
+      );
+    }
+
+    const dims = getImageDimensions(await readFile(file.path));
+    if (!dims) {
+      await discard();
+      throw new BadRequestException('No se pudo leer la imagen del logo');
+    }
+    if (dims.width > MAX_LOGO_DIMENSION || dims.height > MAX_LOGO_DIMENSION) {
+      await discard();
+      throw new BadRequestException(
+        `El logo debe medir máximo ${MAX_LOGO_DIMENSION}x${MAX_LOGO_DIMENSION} px (recibido ${dims.width}x${dims.height})`,
+      );
+    }
+
+    // Eliminar logo anterior
+    if (workshop.imageUrl) {
+      try {
+        await unlink(join(UPLOAD_LOGOS_DIR, imageKey(workshop.imageUrl)));
+      } catch {
+        // el logo anterior ya no existe
+      }
+    }
+
+    const baseUrl = process.env.APP_URL || 'http://localhost:3004';
+    const url = `${baseUrl}/uploads/logos/${file.filename}`;
+
+    await this.prisma.workshop.update({
+      where: { id: workshopId },
+      data: { imageUrl: url },
+    });
+
+    return { url, width: dims.width, height: dims.height };
+  }
+
+  async removeLogo(workshopId: string) {
+    const workshop = await this.prisma.workshop.findUnique({
+      where: { id: workshopId },
+    });
+    if (!workshop) throw new NotFoundException('Taller no encontrado');
+
+    if (workshop.imageUrl) {
+      try {
+        await unlink(join(UPLOAD_LOGOS_DIR, imageKey(workshop.imageUrl)));
+      } catch {
+        // el archivo ya no existe
+      }
+    }
+
+    await this.prisma.workshop.update({
+      where: { id: workshopId },
+      data: { imageUrl: null },
+    });
+
+    return { success: true };
   }
 
   // ─────────────────────────────────────────────

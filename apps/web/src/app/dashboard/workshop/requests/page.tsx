@@ -26,6 +26,8 @@ interface RequestItem {
   createdAt: string;
   user: { name: string; email?: string; phone?: string };
   vehicle?: Vehicle | null;
+  workshopId?: string | null;
+  workshop?: { id: string; nombre: string } | null;
   aiParsed?: { pieza?: string; marca?: string; modelo?: string; anio?: number } | null;
   _count?: { quotes: number };
 }
@@ -189,6 +191,12 @@ export default function WorkshopRequestsPage() {
                         <StatusIcon className="w-3 h-3" />
                         {statusMeta.label}
                       </span>
+                      {r.workshopId && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 border-amber-500/30 text-amber-300">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Elegido por el cliente
+                        </span>
+                      )}
                       {myQuoteStatus && (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 border-emerald-500/20 text-emerald-400">
                           <CheckCircle2 className="w-3 h-3" />

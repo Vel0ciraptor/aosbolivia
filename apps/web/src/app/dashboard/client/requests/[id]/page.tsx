@@ -56,6 +56,7 @@ interface RequestDetail {
   descripcion: string;
   createdAt: string;
   fechaCita?: string | null;
+  workshop?: { id: string; nombre: string } | null;
   aiParsed?: {
     categoria?: string;
     marca?: string;
@@ -335,6 +336,12 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
               <StatusIcon className="w-3 h-3" />
               {statusMeta.label}
             </span>
+            {request.workshop && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 border-amber-500/30 text-amber-300">
+                <Building2 className="w-3 h-3" />
+                Solo lo ve: {request.workshop.nombre}
+              </span>
+            )}
           </div>
           <h2 className="text-2xl font-bold text-zinc-100 truncate">{request.titulo}</h2>
         </div>

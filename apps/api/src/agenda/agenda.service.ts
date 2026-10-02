@@ -254,6 +254,47 @@ export class AgendaService {
     return slots;
   }
 
+  // Verifica que un slot pedido por el cliente (ISO 8601) siga libre:
+  // alineado a un bloque de agenda del taller y sin solape con citas BOOKED.
+  async isSlotFree(workshopId: string, startISO: string): Promise<boolean> {
+    const start = new Date(startISO);
+    if (isNaN(start.getTime())) return false;
+    const now = Date.now();
+    if (start.getTime() <= now) return false;
+
+    // Hora mural (Bolivia) del inicio del slot
+    const offsetMs =
+      (Number(TZ_OFFSET.slice(1, 3)) * 60 + Number(TZ_OFFSET.slice(4, 6))) *
+      60000 *
+      (TZ_OFFSET.startsWith('-') ? -1 : 1);
+    const local = new Date(start.getTime() + offsetMs);
+    const key = local.toISOString().slice(0, 10);
+    const wallMin = local.getUTCHours() * 60 + local.getUTCMinutes();
+
+    const blocks = await this.prisma.workshopAvailability.findMany({
+      where: { workshopId },
+    });
+    const block = blocks.find((b) => {
+      if (blockKey(b.fecha) !== key) return false;
+      const startMin = minutesOf(b.horaInicio);
+      const endMin = minutesOf(b.horaFin);
+      const step = b.slotMinutes || 30;
+      if (wallMin < startMin || wallMin + step > endMin) return false;
+      return (wallMin - startMin) % step === 0;
+    });
+    if (!block) return false;
+
+    const step = block.slotMinutes || 30;
+    const endAt = new Date(start.getTime() + step * 60000);
+    const appointments = await this.prisma.appointment.findMany({
+      where: { workshopId, status: 'BOOKED' },
+    });
+    const taken = appointments.some(
+      (a) => start.getTime() < a.endAt.getTime() && endAt.getTime() > a.startAt.getTime(),
+    );
+    return !taken;
+  }
+
   async findAppointments(workshopId: string, from?: string, to?: string) {
     const list = await this.prisma.appointment.findMany({
       where: { workshopId, status: 'BOOKED' },

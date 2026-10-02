@@ -38,19 +38,23 @@ export class RequestsController {
   @ApiOperation({
     summary: 'Listar todas las solicitudes (Admin/Proveedor/Taller/Grúa)',
   })
-  findAllAdmin() {
-    return this.requestsService.findAll();
+  findAllAdmin(@Req() req: any) {
+    return this.requestsService.findAll(req.user);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener solicitud con cotizaciones y mensajes' })
-  findOne(@Param('id') id: string) {
-    return this.requestsService.findOne(id);
+  findOne(@Param('id') id: string, @Req() req: any) {
+    return this.requestsService.findOne(id, req.user);
   }
 
   @Put(':id/status')
   @ApiOperation({ summary: 'Actualizar estado de la solicitud' })
-  updateStatus(@Param('id') id: string, @Body() body: { estado: string }) {
-    return this.requestsService.updateStatus(id, body.estado);
+  updateStatus(
+    @Param('id') id: string,
+    @Body() body: { estado: string },
+    @Req() req: any,
+  ) {
+    return this.requestsService.updateStatus(id, body.estado, req.user);
   }
 }

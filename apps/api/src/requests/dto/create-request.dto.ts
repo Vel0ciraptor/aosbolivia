@@ -26,4 +26,14 @@ export class CreateRequestDto {
   @IsOptional()
   @IsDateString()
   fechaCita?: string;
+
+  @ApiProperty({
+    required: false,
+    description:
+      'Taller de confianza: si se envía, la solicitud solo es visible para ese taller y debe incluir fechaCita con un slot libre',
+    example: 'clxxx...',
+  })
+  @IsOptional()
+  @IsString()
+  workshopId?: string;
 }

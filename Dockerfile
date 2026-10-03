@@ -50,7 +50,7 @@ RUN mkdir -p /app/apps/api/uploads/workshop-images /app/apps/api/uploads/logos \
 # Web (standalone)
 COPY --from=builder /app/apps/web/.next/standalone ./
 COPY --from=builder /app/apps/web/.next/static ./.next/static
-COPY --from=builder /app/apps/web/public ./apps/web/public
+COPY --from=builder /app/apps/web/public ./public
 
 # Start script
 COPY start.sh ./

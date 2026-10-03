@@ -309,9 +309,9 @@ export default function TowRequestDetailPage({ params }: { params: Promise<{ id:
                 <span className="text-[11px] text-zinc-500 font-semibold uppercase">Por km</span>
                 <span className="text-sm font-bold text-zinc-200 font-mono">${costoKmNum.toFixed(2)}/km</span>
               </div>
-              <div className="flex items-center justify-between p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
-                <span className="text-xs text-emerald-300 font-bold uppercase tracking-wider">Costo total est.</span>
-                <span className="text-2xl font-extrabold text-emerald-400 font-mono">${costEstimate.toFixed(2)}</span>
+              <div className="flex items-center justify-between p-4 bg-brand-500/10 border border-brand-500/30 rounded-xl">
+                <span className="text-xs text-brand-300 font-bold uppercase tracking-wider">Costo total est.</span>
+                <span className="text-2xl font-extrabold text-brand-400 font-mono">${costEstimate.toFixed(2)}</span>
               </div>
             </div>
 
@@ -331,7 +331,7 @@ export default function TowRequestDetailPage({ params }: { params: Promise<{ id:
               href={mapsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-sm font-bold rounded-xl transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-brand-300 text-sm font-bold rounded-xl transition-colors"
             >
               <Navigation className="w-4 h-4" />
               Abrir en Google Maps
@@ -357,7 +357,7 @@ export default function TowRequestDetailPage({ params }: { params: Promise<{ id:
             {request.user.phone && (
               <a
                 href={`tel:${request.user.phone}`}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-sm font-bold rounded-xl transition-colors"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-brand-300 text-sm font-bold rounded-xl transition-colors"
               >
                 <Phone className="w-4 h-4" />
                 Llamar al cliente
@@ -376,7 +376,7 @@ export default function TowRequestDetailPage({ params }: { params: Promise<{ id:
                   <button
                     onClick={() => handleUpdateStatus('IN_PROGRESS')}
                     disabled={updating}
-                    className="w-full px-4 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-sm font-bold rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-full px-4 py-2.5 bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-brand-300 text-sm font-bold rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
                     Asignarme este servicio

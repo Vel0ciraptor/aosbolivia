@@ -9,7 +9,7 @@ export class AppController {
   healthCheck() {
     return {
       status: 'ok',
-      service: 'RepuestoIA API',
+      service: 'AOSBolivia API',
       version: '1.0.0',
       timestamp: new Date().toISOString(),
     };

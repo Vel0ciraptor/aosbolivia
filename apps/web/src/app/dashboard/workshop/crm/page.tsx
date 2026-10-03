@@ -569,7 +569,7 @@ export default function WorkshopCrmPage() {
   };
 
   if (loading || loadingWorkshop) {
-    return (<div className="flex items-center justify-center py-12"><div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>);
+    return (<div className="flex items-center justify-center py-12"><div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" /></div>);
   }
   if (workshopError || !workshop) {
     return (<div className="p-8 bg-red-950/20 border border-red-800/40 rounded-2xl text-center"><AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3" /><h3 className="font-bold text-zinc-200">No se pudo cargar el perfil del taller</h3><p className="text-sm text-zinc-400 mt-1">{workshopError}</p></div>);
@@ -579,10 +579,10 @@ export default function WorkshopCrmPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-zinc-100 flex items-center gap-2"><Car className="w-6 h-6 text-emerald-400" /><span>CRM - Vehículos en Taller</span></h2>
+          <h2 className="text-2xl font-bold text-zinc-100 flex items-center gap-2"><Car className="w-6 h-6 text-brand-400" /><span>CRM - Vehículos en Taller</span></h2>
           <p className="text-sm text-zinc-400">{isMechanic ? 'Vista de mecánico: vehículos en check inicial o trabajando.' : 'Registro y seguimiento de vehículos que ingresan al taller.'}</p>
         </div>
-        {!isMechanic && <button onClick={openCreate} className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-zinc-950 font-bold text-sm rounded-xl hover:shadow-lg transition-all flex items-center gap-2"><Plus className="w-4 h-4" /><span>Registrar Vehículo</span></button>}
+        {!isMechanic && <button onClick={openCreate} className="px-4 py-2.5 bg-gradient-to-r from-brand-500 to-brand-600 text-white font-bold text-sm rounded-xl hover:shadow-lg transition-all flex items-center gap-2"><Plus className="w-4 h-4" /><span>Registrar Vehículo</span></button>}
       </div>
 
       {!isMechanic && (
@@ -596,7 +596,7 @@ export default function WorkshopCrmPage() {
         <div className="p-5 bg-zinc-900 border border-zinc-800 rounded-2xl">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
             <div className="flex items-center gap-2">
-              <History className="w-5 h-5 text-emerald-400" />
+              <History className="w-5 h-5 text-brand-400" />
               <h3 className="font-bold text-zinc-100">Historial del Taller</h3>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -608,7 +608,7 @@ export default function WorkshopCrmPage() {
                 <label className="text-[10px] text-zinc-500 font-bold uppercase">Hasta</label>
                 <input type="date" value={histTo} onChange={(e) => setHistTo(e.target.value)} className="px-2.5 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 text-xs" />
               </div>
-              <button onClick={loadHistorial} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5"><RefreshCw className="w-3.5 h-3.5" /> Filtrar</button>
+              <button onClick={loadHistorial} className="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5"><RefreshCw className="w-3.5 h-3.5" /> Filtrar</button>
             </div>
           </div>
           <div className="flex items-center gap-2 mb-4 pb-3 border-b border-zinc-800">
@@ -616,7 +616,7 @@ export default function WorkshopCrmPage() {
             <button onClick={() => setHistTab('movements')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${histTab === 'movements' ? 'bg-amber-500/10 border border-amber-500/30 text-amber-400' : 'bg-zinc-950 border border-zinc-800 text-zinc-500 hover:text-zinc-300'}`}><Package className="w-3.5 h-3.5" /> Movimientos de inventario</button>
           </div>
           {histLoading ? (
-            <div className="flex items-center justify-center py-10"><div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>
+            <div className="flex items-center justify-center py-10"><div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" /></div>
           ) : histTab === 'hours' ? (
             (() => {
               const totalHours = mechanicHours.reduce((s, r) => s + (r.horasReales ?? 0), 0);
@@ -725,7 +725,7 @@ export default function WorkshopCrmPage() {
       </div>
 
       <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl flex flex-col md:flex-row gap-3">
-        <div className="flex-1 relative"><Search className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por marca, modelo, placa, cliente..." className="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 transition-colors text-sm" /></div>
+        <div className="flex-1 relative"><Search className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por marca, modelo, placa, cliente..." className="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors text-sm" /></div>
         <button onClick={fetchJobs} className="px-3 py-2.5 bg-zinc-950 border border-zinc-800 hover:bg-zinc-900 rounded-xl text-zinc-300 transition-colors" title="Recargar"><RefreshCw className="w-4 h-4" /></button>
       </div>
 
@@ -760,7 +760,7 @@ export default function WorkshopCrmPage() {
                   )}
                 </div>
                 <button onClick={() => openDetail(job)} className="text-left w-full">
-                  <h3 className="text-sm font-bold text-zinc-100 group-hover:text-emerald-300 transition-colors truncate">{job.marca} {job.modelo} <span className="text-zinc-500 font-normal">{job.anio}</span></h3>
+                  <h3 className="text-sm font-bold text-zinc-100 group-hover:text-brand-300 transition-colors truncate">{job.marca} {job.modelo} <span className="text-zinc-500 font-normal">{job.anio}</span></h3>
                 </button>
                 <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                   {job.placa && <span className="px-1.5 py-0.5 bg-zinc-950 border border-zinc-800 rounded text-[9px] font-mono text-zinc-400">{job.placa}</span>}
@@ -779,7 +779,7 @@ export default function WorkshopCrmPage() {
                   <div className="flex items-center gap-1">
                     {!isMechanic && (<>
                     {nextStatus && nextMeta && (
-                      <button onClick={() => openStatusModal(job)} className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded transition-colors flex items-center gap-0.5" title={`Avanzar a: ${nextMeta.label}`}>
+                      <button onClick={() => openStatusModal(job)} className="px-2 py-1 bg-brand-600 hover:bg-brand-700 text-white text-[10px] font-bold rounded transition-colors flex items-center gap-0.5" title={`Avanzar a: ${nextMeta.label}`}>
                         {React.createElement(nextMeta.icon, { className: 'w-2.5 h-2.5' })}<span className="hidden sm:inline">{nextMeta.label}</span>
                       </button>
                     )}
@@ -799,25 +799,25 @@ export default function WorkshopCrmPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-xl bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl relative p-6 max-h-[90vh] overflow-y-auto">
             <button onClick={closeForm} className="absolute top-4 right-4 p-2 hover:bg-zinc-800 rounded-xl text-zinc-400 transition-colors"><X className="w-5 h-5" /></button>
-            <h3 className="text-xl font-bold text-zinc-200 mb-1 flex items-center gap-2"><Car className="w-5 h-5 text-emerald-400" />{editingJob ? 'Editar Vehículo' : 'Registrar Vehículo'}</h3>
+            <h3 className="text-xl font-bold text-zinc-200 mb-1 flex items-center gap-2"><Car className="w-5 h-5 text-brand-400" />{editingJob ? 'Editar Vehículo' : 'Registrar Vehículo'}</h3>
             <p className="text-xs text-zinc-500 mb-6">Complete los datos del vehículo que ingresa al taller.</p>
             {formError && (<div className="mb-4 p-3 bg-red-950/30 border border-red-800/50 rounded-xl flex items-start gap-2 text-red-200 text-xs"><AlertCircle className="w-4 h-4 shrink-0 text-red-400 mt-0.5" /><span>{formError}</span></div>)}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Marca <span className="text-red-400">*</span></label><input type="text" value={form.marca} onChange={(e) => setForm({ ...form, marca: e.target.value })} placeholder="Ej: Toyota" className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm" /></div>
-                <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Modelo <span className="text-red-400">*</span></label><input type="text" value={form.modelo} onChange={(e) => setForm({ ...form, modelo: e.target.value })} placeholder="Ej: Hilux" className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm" /></div>
+                <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Marca <span className="text-red-400">*</span></label><input type="text" value={form.marca} onChange={(e) => setForm({ ...form, marca: e.target.value })} placeholder="Ej: Toyota" className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm" /></div>
+                <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Modelo <span className="text-red-400">*</span></label><input type="text" value={form.modelo} onChange={(e) => setForm({ ...form, modelo: e.target.value })} placeholder="Ej: Hilux" className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm" /></div>
               </div>
               <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Año <span className="text-red-400">*</span></label><input type="number" min="1900" max={new Date().getFullYear() + 1} value={form.anio} onChange={(e) => setForm({ ...form, anio: e.target.value })} placeholder="2020" className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm font-mono" /></div>
-                <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Placa</label><input type="text" value={form.placa} onChange={(e) => setForm({ ...form, placa: e.target.value })} placeholder="ABC-123" className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm font-mono uppercase" /></div>
-                <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Kilometraje</label><input type="number" min="0" value={form.kilometraje} onChange={(e) => setForm({ ...form, kilometraje: e.target.value })} placeholder="125000" className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm font-mono" /></div>
+                <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Año <span className="text-red-400">*</span></label><input type="number" min="1900" max={new Date().getFullYear() + 1} value={form.anio} onChange={(e) => setForm({ ...form, anio: e.target.value })} placeholder="2020" className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm font-mono" /></div>
+                <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Placa</label><input type="text" value={form.placa} onChange={(e) => setForm({ ...form, placa: e.target.value })} placeholder="ABC-123" className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm font-mono uppercase" /></div>
+                <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Kilometraje</label><input type="number" min="0" value={form.kilometraje} onChange={(e) => setForm({ ...form, kilometraje: e.target.value })} placeholder="125000" className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm font-mono" /></div>
               </div>
-              <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Cliente <span className="text-red-400">*</span></label><input type="text" value={form.clienteNombre} onChange={(e) => setForm({ ...form, clienteNombre: e.target.value })} placeholder="Nombre del cliente" className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm" /></div>
-              <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Teléfono del cliente</label><input type="tel" value={form.clienteTelefono} onChange={(e) => setForm({ ...form, clienteTelefono: e.target.value })} placeholder="+58 412 1234567" className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm" /></div>
-              <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Problema reportado <span className="text-red-400">*</span></label><textarea value={form.problema} onChange={(e) => setForm({ ...form, problema: e.target.value })} rows={3} placeholder="Describa el problema..." className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm resize-none" /></div>
+              <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Cliente <span className="text-red-400">*</span></label><input type="text" value={form.clienteNombre} onChange={(e) => setForm({ ...form, clienteNombre: e.target.value })} placeholder="Nombre del cliente" className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm" /></div>
+              <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Teléfono del cliente</label><input type="tel" value={form.clienteTelefono} onChange={(e) => setForm({ ...form, clienteTelefono: e.target.value })} placeholder="+58 412 1234567" className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm" /></div>
+              <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Problema reportado <span className="text-red-400">*</span></label><textarea value={form.problema} onChange={(e) => setForm({ ...form, problema: e.target.value })} rows={3} placeholder="Describa el problema..." className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm resize-none" /></div>
               <div className="pt-4 flex justify-end gap-3 border-t border-zinc-800">
                 <button type="button" onClick={closeForm} className="px-4 py-2.5 bg-zinc-950 border border-zinc-800 hover:bg-zinc-900 rounded-xl text-zinc-300 text-sm font-semibold transition-colors">Cancelar</button>
-                <button type="submit" disabled={saving} className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-zinc-950 font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50">
+                <button type="submit" disabled={saving} className="px-5 py-2.5 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50">
                   {saving ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Guardando...</span></> : <><Save className="w-4 h-4" /><span>{editingJob ? 'Guardar cambios' : 'Registrar vehículo'}</span></>}
                 </button>
               </div>
@@ -832,7 +832,7 @@ export default function WorkshopCrmPage() {
             <button onClick={() => setDetailJob(null)} className="absolute top-4 right-4 p-2 hover:bg-zinc-800 rounded-xl text-zinc-400 transition-colors z-10"><X className="w-5 h-5" /></button>
 
             {loadingDetail ? (
-              <div className="flex items-center justify-center py-12"><div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>
+              <div className="flex items-center justify-center py-12"><div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" /></div>
             ) : (
               <>
                 <div className="mb-6">
@@ -849,7 +849,7 @@ export default function WorkshopCrmPage() {
                         })}
                       </span>
                     )}
-                    {!isMechanic && <button onClick={() => handleDownloadPdf(detailJob.id)} className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors"><Download className="w-3.5 h-3.5" /> PDF</button>}
+                    {!isMechanic && <button onClick={() => handleDownloadPdf(detailJob.id)} className="inline-flex items-center gap-1 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-lg transition-colors"><Download className="w-3.5 h-3.5" /> PDF</button>}
                   </div>
                   <h3 className="text-xl font-bold text-zinc-100">{detailJob.marca} {detailJob.modelo} {detailJob.anio}</h3>
                   <div className="flex flex-wrap gap-3 mt-2 text-sm text-zinc-400">
@@ -978,9 +978,9 @@ export default function WorkshopCrmPage() {
                       <h4 className="text-sm font-bold text-zinc-300 flex items-center gap-2 mb-3"><CheckSquare className="w-4 h-4 text-amber-400" /> Check Inicial</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         {checkpoints.map((cp) => (
-                          <button key={cp.id} onClick={() => handleCheckpointToggle(cp)} disabled={isMechanic} className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${cp.checked ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'} ${isMechanic ? 'cursor-default opacity-80' : ''}`}>
-                            {cp.checked ? <CheckSquare className="w-4 h-4 text-emerald-400 shrink-0" /> : <Square className="w-4 h-4 text-zinc-600 shrink-0" />}
-                            <span className={`text-sm ${cp.checked ? 'text-emerald-300 line-through' : 'text-zinc-300'}`}>{cp.servicio}</span>
+                          <button key={cp.id} onClick={() => handleCheckpointToggle(cp)} disabled={isMechanic} className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${cp.checked ? 'bg-brand-500/10 border-brand-500/30' : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'} ${isMechanic ? 'cursor-default opacity-80' : ''}`}>
+                            {cp.checked ? <CheckSquare className="w-4 h-4 text-brand-400 shrink-0" /> : <Square className="w-4 h-4 text-zinc-600 shrink-0" />}
+                            <span className={`text-sm ${cp.checked ? 'text-brand-300 line-through' : 'text-zinc-300'}`}>{cp.servicio}</span>
                           </button>
                         ))}
                       </div>
@@ -1002,7 +1002,7 @@ export default function WorkshopCrmPage() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
                                 <p className="text-sm text-zinc-200 font-semibold">{w.nombre}</p>
-                                {active && <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-400"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />EN CURSO</span>}
+                                {active && <span className="flex items-center gap-1 text-[9px] font-bold text-brand-400"><span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse" />EN CURSO</span>}
                                 {w.horasReales != null && <span className="text-[10px] text-zinc-500 font-mono">{w.horasReales} h</span>}
                               </div>
                               <p className="text-[10px] text-zinc-500">
@@ -1011,7 +1011,7 @@ export default function WorkshopCrmPage() {
                               </p>
                             </div>
                             {canOperate && !w.inicio && (
-                              <button onClick={() => handleStartWork(w)} className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 transition-colors"><Play className="w-3 h-3" /> Empezar</button>
+                              <button onClick={() => handleStartWork(w)} className="px-2.5 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 transition-colors"><Play className="w-3 h-3" /> Empezar</button>
                             )}
                             {canOperate && active && (
                               <button onClick={() => handleStopWork(w)} className="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 transition-colors"><Square className="w-3 h-3" /> Terminar</button>
@@ -1023,7 +1023,7 @@ export default function WorkshopCrmPage() {
                         );
                       })}
                       {isMechanic && !(detailJob.mecanicosAsignados || []).some((w) => w.userId === user?.id && w.inicio && !w.fin) && (
-                        <button onClick={() => handleStartWork({ key: 'self', userId: user?.id || '', nombre: user?.name || 'Yo' })} className="w-full px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors"><Play className="w-3.5 h-3.5" /> Empezar mi trabajo</button>
+                        <button onClick={() => handleStartWork({ key: 'self', userId: user?.id || '', nombre: user?.name || 'Yo' })} className="w-full px-3 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors"><Play className="w-3.5 h-3.5" /> Empezar mi trabajo</button>
                       )}
                     </div>
                     {!isMechanic && (
@@ -1054,8 +1054,8 @@ export default function WorkshopCrmPage() {
                             <p className="text-sm text-zinc-200 font-semibold">{pn.nombre}</p>
                             <p className="text-xs text-zinc-500">Cant: {pn.cantidad} {pn.esInsumo ? '(Insumo)' : '(Repuesto)'}{pn.inventoryItem && ` — Stock: ${pn.inventoryItem.stock}`}</p>
                           </div>
-                          {!isMechanic && pn.inventoryItemId && !pn.yaUsado && <button onClick={() => handleUsePartNeed(pn.id)} className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg">Usar</button>}
-                          {pn.yaUsado && <span className="px-2 py-1 bg-emerald-500/10 text-emerald-400 text-[10px] font-bold rounded-lg">Usado</span>}
+                          {!isMechanic && pn.inventoryItemId && !pn.yaUsado && <button onClick={() => handleUsePartNeed(pn.id)} className="px-2 py-1 bg-brand-600 hover:bg-brand-700 text-white text-[10px] font-bold rounded-lg">Usar</button>}
+                          {pn.yaUsado && <span className="px-2 py-1 bg-brand-500/10 text-brand-400 text-[10px] font-bold rounded-lg">Usado</span>}
                           {!isMechanic && !pn.yaUsado && <button onClick={() => handleRemovePartNeed(pn.id)} className="px-2 py-1 text-zinc-500 hover:text-red-400 text-[10px]"><Trash2 className="w-3.5 h-3.5" /></button>}
                         </div>
                       ))}
@@ -1119,11 +1119,11 @@ export default function WorkshopCrmPage() {
                 {detailJob.estado === 'TERMINADO' && (
                   <div className="p-4 bg-zinc-950 border border-zinc-800 rounded-2xl mb-6">
                     <div className="mb-5">
-                      <h4 className="text-sm font-bold text-zinc-300 flex items-center gap-2 mb-3"><DollarSign className="w-4 h-4 text-emerald-400" /> Cotización / Costos</h4>
+                      <h4 className="text-sm font-bold text-zinc-300 flex items-center gap-2 mb-3"><DollarSign className="w-4 h-4 text-brand-400" /> Cotización / Costos</h4>
                       <div className="flex gap-2 items-end mb-3">
                         <div className="space-y-1.5">
                           <label className="text-[10px] text-zinc-500 font-bold uppercase">Precio del servicio ($)</label>
-                          <input type="number" min="0" step="0.01" value={precioServicioInput} onChange={(e) => setPrecioServicioInput(e.target.value)} onBlur={savePrecioServicio} placeholder="0.00" className="w-36 px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 text-xs font-mono focus:border-emerald-500" />
+                          <input type="number" min="0" step="0.01" value={precioServicioInput} onChange={(e) => setPrecioServicioInput(e.target.value)} onBlur={savePrecioServicio} placeholder="0.00" className="w-36 px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 text-xs font-mono focus:border-brand-500" />
                         </div>
                         <p className="text-[10px] text-zinc-600 pb-2">Se guarda al salir del campo.</p>
                       </div>
@@ -1145,7 +1145,7 @@ export default function WorkshopCrmPage() {
                                       onChange={(e) => setPartPriceEdits((p) => ({ ...p, [pn.id]: e.target.value }))}
                                       onBlur={() => handlePartPriceBlur(pn)}
                                       placeholder="—"
-                                      className="w-24 px-2 py-1 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 text-xs font-mono text-right focus:border-emerald-500"
+                                      className="w-24 px-2 py-1 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 text-xs font-mono text-right focus:border-brand-500"
                                     />
                                   </td>
                                   <td className="py-2 pr-3 text-right font-mono text-zinc-400">{((Number(pn.precioUnitario) || 0) * pn.cantidad).toFixed(2)}</td>
@@ -1158,10 +1158,10 @@ export default function WorkshopCrmPage() {
                       <div className="flex justify-end items-center gap-6 pt-2 border-t border-zinc-800">
                         <div className="text-right"><p className="text-[10px] text-zinc-500 font-bold uppercase">Servicio</p><p className="text-sm font-bold text-zinc-200">{((Number(detailJob.precioServicio) || 0)).toFixed(2)}$</p></div>
                         <div className="text-right"><p className="text-[10px] text-zinc-500 font-bold uppercase">Repuestos</p><p className="text-sm font-bold text-zinc-200">{subtotalRepuestos(partNeeds).toFixed(2)}$</p></div>
-                        <div className="text-right"><p className="text-[10px] text-emerald-400 font-bold uppercase">Total</p><p className="text-lg font-extrabold text-emerald-400">{totalCostos(detailJob, partNeeds).toFixed(2)}$</p></div>
+                        <div className="text-right"><p className="text-[10px] text-brand-400 font-bold uppercase">Total</p><p className="text-lg font-extrabold text-brand-400">{totalCostos(detailJob, partNeeds).toFixed(2)}$</p></div>
                       </div>
                     </div>
-                    <h4 className="text-sm font-bold text-zinc-300 flex items-center gap-2 mb-4"><Camera className="w-4 h-4 text-emerald-400" /> Fotos del Resultado</h4>
+                    <h4 className="text-sm font-bold text-zinc-300 flex items-center gap-2 mb-4"><Camera className="w-4 h-4 text-brand-400" /> Fotos del Resultado</h4>
                     <input type="file" accept="image/*" multiple onChange={(e) => handleImageUpload(e, 'imagenesTerminado')} className="w-full text-xs text-zinc-400" disabled={uploading} />
                     {uploading && <p className="text-xs text-amber-400 mt-1">Subiendo imágenes...</p>}
                     {detailJob.imagenesTerminado && (detailJob.imagenesTerminado as string[]).length > 0 && (
@@ -1180,7 +1180,7 @@ export default function WorkshopCrmPage() {
                     <div className="flex gap-2 items-end mb-3">
                       <div className="space-y-1.5">
                         <label className="text-[10px] text-zinc-500 font-bold uppercase">Precio del servicio ($)</label>
-                        <input type="number" min="0" step="0.01" value={precioServicioInput} onChange={(e) => setPrecioServicioInput(e.target.value)} onBlur={savePrecioServicio} placeholder="0.00" className="w-36 px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 text-xs font-mono focus:border-emerald-500" />
+                        <input type="number" min="0" step="0.01" value={precioServicioInput} onChange={(e) => setPrecioServicioInput(e.target.value)} onBlur={savePrecioServicio} placeholder="0.00" className="w-36 px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 text-xs font-mono focus:border-brand-500" />
                       </div>
                       <p className="text-[10px] text-zinc-600 pb-2">Se guarda al salir del campo.</p>
                     </div>
@@ -1202,7 +1202,7 @@ export default function WorkshopCrmPage() {
                                     onChange={(e) => setPartPriceEdits((p) => ({ ...p, [pn.id]: e.target.value }))}
                                     onBlur={() => handlePartPriceBlur(pn)}
                                     placeholder="—"
-                                    className="w-24 px-2 py-1 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 text-xs font-mono text-right focus:border-emerald-500"
+                                    className="w-24 px-2 py-1 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 text-xs font-mono text-right focus:border-brand-500"
                                   />
                                 </td>
                                 <td className="py-2 pr-3 text-right font-mono text-zinc-400">{((Number(pn.precioUnitario) || 0) * pn.cantidad).toFixed(2)}</td>
@@ -1215,7 +1215,7 @@ export default function WorkshopCrmPage() {
                     <div className="flex justify-end items-center gap-6 pt-2 border-t border-zinc-800 mb-5">
                       <div className="text-right"><p className="text-[10px] text-zinc-500 font-bold uppercase">Servicio</p><p className="text-sm font-bold text-zinc-200">{((Number(detailJob.precioServicio) || 0)).toFixed(2)}$</p></div>
                       <div className="text-right"><p className="text-[10px] text-zinc-500 font-bold uppercase">Repuestos</p><p className="text-sm font-bold text-zinc-200">{subtotalRepuestos(partNeeds).toFixed(2)}$</p></div>
-                      <div className="text-right"><p className="text-[10px] text-emerald-400 font-bold uppercase">Total</p><p className="text-lg font-extrabold text-emerald-400">{totalCostos(detailJob, partNeeds).toFixed(2)}$</p></div>
+                      <div className="text-right"><p className="text-[10px] text-brand-400 font-bold uppercase">Total</p><p className="text-lg font-extrabold text-brand-400">{totalCostos(detailJob, partNeeds).toFixed(2)}$</p></div>
                     </div>
                     <h4 className="text-sm font-bold text-zinc-300 flex items-center gap-2 mb-4"><PenTool className="w-4 h-4 text-zinc-400" /> Firma del Cliente</h4>
                     {detailJob.firmaDigital ? (
@@ -1256,7 +1256,7 @@ export default function WorkshopCrmPage() {
                         onClick={() => { setDetailJob(null); openStatusModal(detailJob); }}
                         disabled={faltaKm}
                         title={faltaKm ? 'Primero registra el kilometraje de ingreso' : undefined}
-                        className={`px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl transition-colors flex items-center gap-2 ${faltaKm ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm rounded-xl transition-colors flex items-center gap-2 ${faltaKm ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         Avanzar estado<ChevronRight className="w-4 h-4" />
                       </button>
@@ -1276,7 +1276,7 @@ export default function WorkshopCrmPage() {
           <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl relative p-6">
             <button onClick={() => setStatusModalJob(null)} className="absolute top-4 right-4 p-2 hover:bg-zinc-800 rounded-xl text-zinc-400 transition-colors"><X className="w-5 h-5" /></button>
             <h3 className="text-xl font-bold text-zinc-200 mb-1 flex items-center gap-2">
-              {statusModalJob.estado === 'FINALIZADO' ? <><RefreshCw className="w-5 h-5 text-amber-400" />Reabrir Vehículo</> : <><ArrowRight className="w-5 h-5 text-emerald-400" />Cambiar Estado</>}
+              {statusModalJob.estado === 'FINALIZADO' ? <><RefreshCw className="w-5 h-5 text-amber-400" />Reabrir Vehículo</> : <><ArrowRight className="w-5 h-5 text-brand-400" />Cambiar Estado</>}
             </h3>
             <p className="text-xs text-zinc-500 mb-4">{statusModalJob.marca} {statusModalJob.modelo} {statusModalJob.anio}</p>
             {user && (
@@ -1299,11 +1299,11 @@ export default function WorkshopCrmPage() {
                 <span>Primero registra el kilometraje de ingreso en la ficha del vehículo (sección &quot;Ingreso del vehículo&quot;).</span>
               </div>
             )}
-            <div className="space-y-1.5 mb-4"><label className="text-xs font-semibold text-zinc-300">Observaciones (opcional)</label><textarea value={statusObs} onChange={(e) => setStatusObs(e.target.value)} rows={2} placeholder="Detalles del cambio de estado..." className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm resize-none" /></div>
+            <div className="space-y-1.5 mb-4"><label className="text-xs font-semibold text-zinc-300">Observaciones (opcional)</label><textarea value={statusObs} onChange={(e) => setStatusObs(e.target.value)} rows={2} placeholder="Detalles del cambio de estado..." className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm resize-none" /></div>
             <div className="space-y-1.5 mb-6">
               <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5"><Lock className="w-3.5 h-3.5 text-zinc-500" /> Contraseña de firma <span className="text-red-400">*</span></label>
               <div className="relative">
-                <input type={showStatusPassword ? 'text' : 'password'} value={statusPassword} onChange={(e) => setStatusPassword(e.target.value)} placeholder="Ingrese su contraseña para firmar" className="w-full px-4 py-2.5 pr-11 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm" />
+                <input type={showStatusPassword ? 'text' : 'password'} value={statusPassword} onChange={(e) => setStatusPassword(e.target.value)} placeholder="Ingrese su contraseña para firmar" className="w-full px-4 py-2.5 pr-11 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm" />
                 <button type="button" onClick={() => setShowStatusPassword((v) => !v)} aria-label={showStatusPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors">
                   {showStatusPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -1320,7 +1320,7 @@ export default function WorkshopCrmPage() {
                 className={`px-5 py-2.5 font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50 ${
                   statusModalJob.estado === 'FINALIZADO'
                     ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-zinc-950'
-                    : 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-zinc-950'
+                    : 'bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white'
                 }`}>
                 {changingStatus ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Cambiando...</span></> : <><CheckCircle2 className="w-4 h-4" /><span>{statusModalJob.estado === 'FINALIZADO' ? 'Reabrir' : 'Confirmar cambio'}</span></>}
               </button>
@@ -1335,7 +1335,7 @@ export default function WorkshopCrmPage() {
             <button onClick={() => setSignatureOpen(false)} className="absolute top-4 right-4 p-2 hover:bg-zinc-800 rounded-xl text-zinc-400 transition-colors"><X className="w-5 h-5" /></button>
             <h3 className="text-lg font-bold text-zinc-200 mb-4 flex items-center gap-2"><PenTool className="w-5 h-5 text-zinc-400" /> {sigTarget === 'ingreso' ? 'Firma de ingreso — firme aquí' : 'Firme aquí'}</h3>
             <div className="bg-white rounded-xl p-1 mb-4"><canvas ref={canvasRef} width={400} height={200} className="w-full rounded-lg cursor-crosshair touch-none" onMouseDown={(e) => { const ctx = canvasRef.current?.getContext('2d'); if (!ctx) return; ctx.beginPath(); ctx.moveTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY); }} onMouseMove={(e) => { if (e.buttons !== 1) return; const ctx = canvasRef.current?.getContext('2d'); if (!ctx) return; ctx.lineTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY); ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke(); }} /></div>
-            <div className="flex justify-end gap-3"><button onClick={clearCanvas} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-semibold rounded-xl">Limpiar</button><button onClick={handleSaveSignature} className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl">Guardar firma</button></div>
+            <div className="flex justify-end gap-3"><button onClick={clearCanvas} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-semibold rounded-xl">Limpiar</button><button onClick={handleSaveSignature} className="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm rounded-xl">Guardar firma</button></div>
           </div>
         </div>
       )}
@@ -1347,7 +1347,7 @@ export default function WorkshopCrmPage() {
               <X className="w-4 h-4" /> Cerrar
             </button>
             <h3 className="text-sm font-bold text-zinc-300">Reporte de servicio</h3>
-            <button onClick={() => reportIframeRef.current?.contentWindow?.print()} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl flex items-center gap-2 transition-colors">
+            <button onClick={() => reportIframeRef.current?.contentWindow?.print()} className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold rounded-xl flex items-center gap-2 transition-colors">
               <Download className="w-4 h-4" /> Imprimir / PDF
             </button>
           </div>

@@ -42,7 +42,20 @@
   --color-zinc-800: var(--zinc-800);
   --color-zinc-900: var(--zinc-900);
   --color-zinc-950: var(--zinc-950);
-  
+
+  /* AOSBolivia brand (tomado del logo) */
+  --color-brand-50: #f0f7ff;
+  --color-brand-100: #e0efff;
+  --color-brand-200: #c6e0ff;
+  --color-brand-300: #9dc9ff;
+  --color-brand-400: #63a9ff;
+  --color-brand-500: #0a80fd;
+  --color-brand-600: #0066e0;
+  --color-brand-700: #0b50cc;
+  --color-brand-800: #0f43a4;
+  --color-brand-900: #123a82;
+  --color-brand-950: #0b2450;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

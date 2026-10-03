@@ -225,7 +225,7 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -274,7 +274,7 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
         </Link>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2 mb-1">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 border-emerald-500/20 text-emerald-400">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider bg-brand-500/10 border-brand-500/20 text-brand-400">
               <Wrench className="w-3 h-3" /> TALLER
             </span>
             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${statusMeta.bg} ${statusMeta.color}`}>
@@ -283,7 +283,7 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
             </span>
             {myQuote && (
               <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${
-                myQuote.estado === 'ACCEPTED' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
+                myQuote.estado === 'ACCEPTED' ? 'bg-brand-500/10 border-brand-500/20 text-brand-400' :
                 myQuote.estado === 'REJECTED' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
                 'bg-amber-500/10 border-amber-500/20 text-amber-400'
               }`}>
@@ -319,7 +319,7 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
         <div className="lg:col-span-2 space-y-6">
           <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-4">
             <div className="flex items-center gap-2 pb-3 border-b border-zinc-800/60">
-              <FileText className="w-4 h-4 text-emerald-400" />
+              <FileText className="w-4 h-4 text-brand-400" />
               <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">Descripción del Cliente</h3>
             </div>
             <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
@@ -335,7 +335,7 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
               </span>
             </div>
             {request.fechaCita && (
-              <div className="flex items-center gap-2 text-[11px] text-emerald-300 bg-emerald-500/5 border border-emerald-500/20 rounded-xl px-3 py-2">
+              <div className="flex items-center gap-2 text-[11px] text-brand-300 bg-brand-500/5 border border-brand-500/20 rounded-xl px-3 py-2">
                 <Calendar className="w-3.5 h-3.5 shrink-0" />
                 <span>
                   El cliente quiere ingresar su vehículo:{' '}
@@ -346,9 +346,9 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
           </div>
 
           {request.aiParsed && (
-            <div className="p-6 bg-gradient-to-br from-emerald-950/30 to-zinc-900 border border-emerald-500/20 rounded-2xl space-y-4">
-              <div className="flex items-center gap-2 pb-3 border-b border-emerald-500/20">
-                <Sparkles className="w-4 h-4 text-emerald-400" />
+            <div className="p-6 bg-gradient-to-br from-brand-950/30 to-zinc-900 border border-brand-500/20 rounded-2xl space-y-4">
+              <div className="flex items-center gap-2 pb-3 border-b border-brand-500/20">
+                <Sparkles className="w-4 h-4 text-brand-400" />
                 <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">Datos Detectados</h3>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -371,8 +371,8 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
                   </div>
                 )}
                 {request.aiParsed.pieza && (
-                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
-                    <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">Servicio</p>
+                  <div className="p-3 bg-brand-500/10 border border-brand-500/30 rounded-xl">
+                    <p className="text-[10px] text-brand-400 font-bold uppercase tracking-wider">Servicio</p>
                     <p className="text-sm text-zinc-100 font-bold mt-0.5 capitalize">{request.aiParsed.pieza}</p>
                   </div>
                 )}
@@ -383,11 +383,11 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
           {request.vehicle && (
             <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-3">
               <div className="flex items-center gap-2 pb-3 border-b border-zinc-800/60">
-                <Car className="w-4 h-4 text-emerald-400" />
+                <Car className="w-4 h-4 text-brand-400" />
                 <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">Vehículo del Cliente</h3>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-emerald-400">
+                <div className="w-12 h-12 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-brand-400">
                   <Car className="w-6 h-6" />
                 </div>
                 <div>
@@ -418,7 +418,7 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
             <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-3">
               <div className="flex items-center justify-between pb-3 border-b border-zinc-800/60">
                 <div className="flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-emerald-400" />
+                  <MessageSquare className="w-4 h-4 text-brand-400" />
                   <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">
                     Otras Cotizaciones ({request.quotes.length})
                   </h3>
@@ -439,7 +439,7 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
                       key={q.id}
                       className={`p-3 rounded-xl border flex items-center justify-between gap-3 ${
                         isMine
-                          ? 'bg-emerald-500/10 border-emerald-500/30'
+                          ? 'bg-brand-500/10 border-brand-500/30'
                           : 'bg-zinc-950/40 border-zinc-800/60'
                       }`}
                     >
@@ -468,7 +468,7 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
         <div className="space-y-4">
           <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-3">
             <div className="flex items-center gap-2 pb-3 border-b border-zinc-800/60">
-              <UserIcon className="w-4 h-4 text-emerald-400" />
+              <UserIcon className="w-4 h-4 text-brand-400" />
               <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">Cliente</h3>
             </div>
             <div className="flex items-center gap-3">
@@ -503,7 +503,7 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
                 {request.fechaCita ? ' y reservó una cita:' : '.'}
               </p>
               {request.fechaCita && (
-                <div className="flex items-center gap-2 text-[11px] text-emerald-300 bg-emerald-500/5 border border-emerald-500/20 rounded-xl px-3 py-2">
+                <div className="flex items-center gap-2 text-[11px] text-brand-300 bg-brand-500/5 border border-brand-500/20 rounded-xl px-3 py-2">
                   <Calendar className="w-3.5 h-3.5 shrink-0" />
                   <span><strong>{fmtSlot(request.fechaCita)}</strong></span>
                 </div>
@@ -518,7 +518,7 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
                     <button
                       onClick={handleAccept}
                       disabled={acting}
-                      className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-zinc-950 font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                      className="flex-1 px-4 py-2.5 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                       {acting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                       Aceptar
@@ -545,9 +545,9 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
           )}
 
           {canQuote ? (
-            <form onSubmit={handleSubmitQuote} className="p-6 bg-gradient-to-br from-emerald-950/30 to-zinc-900 border border-emerald-500/20 rounded-2xl space-y-4">
+            <form onSubmit={handleSubmitQuote} className="p-6 bg-gradient-to-br from-brand-950/30 to-zinc-900 border border-brand-500/20 rounded-2xl space-y-4">
               <div className="flex items-center gap-2">
-                <Send className="w-4 h-4 text-emerald-400" />
+                <Send className="w-4 h-4 text-brand-400" />
                 <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">Enviar Cotización</h3>
               </div>
 
@@ -562,7 +562,7 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
                   value={precio}
                   onChange={(e) => setPrecio(e.target.value)}
                   placeholder="120.00"
-                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 transition-colors text-sm font-mono"
+                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors text-sm font-mono"
                   required
                 />
               </div>
@@ -576,18 +576,18 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
                   value={tiempoEntrega}
                   onChange={(e) => setTiempoEntrega(e.target.value)}
                   placeholder="Ej: 1-2 días hábiles"
-                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 transition-colors text-sm"
+                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors text-sm"
                 />
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-emerald-400" /> Cita de ingreso
+                  <Calendar className="w-3.5 h-3.5 text-brand-400" /> Cita de ingreso
                 </label>
                 <select
                   value={fechaPropuesta}
                   onChange={(e) => setFechaPropuesta(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 transition-colors text-sm"
+                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors text-sm"
                 >
                   <option value="">Sin fecha por ahora</option>
                   {request.fechaCita && (
@@ -608,7 +608,7 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
                     No tienes citas disponibles.{' '}
                     <Link
                       href="/dashboard/workshop/schedule"
-                      className="text-emerald-400 hover:underline font-semibold"
+                      className="text-brand-400 hover:underline font-semibold"
                     >
                       Configura tu agenda
                     </Link>{' '}
@@ -628,14 +628,14 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
                   onChange={(e) => setComentario(e.target.value)}
                   rows={3}
                   placeholder="Diagnóstico, repuestos necesarios, garantía..."
-                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 transition-colors text-sm resize-none"
+                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors text-sm resize-none"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-zinc-950 font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full px-4 py-2.5 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {submitting ? (
                   <>
@@ -676,13 +676,13 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
                 {myQuote.fechaPropuesta && (
                   <div className="flex items-center justify-between p-2 bg-zinc-950/60 rounded-lg">
                     <span className="text-zinc-500">Cita propuesta</span>
-                    <span className="text-emerald-300 font-semibold">{fmtSlot(myQuote.fechaPropuesta)}</span>
+                    <span className="text-brand-300 font-semibold">{fmtSlot(myQuote.fechaPropuesta)}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between p-2 bg-zinc-950/60 rounded-lg">
                   <span className="text-zinc-500">Estado</span>
                   <span className={`font-bold ${
-                    myQuote.estado === 'ACCEPTED' ? 'text-emerald-400' :
+                    myQuote.estado === 'ACCEPTED' ? 'text-brand-400' :
                     myQuote.estado === 'REJECTED' ? 'text-red-400' : 'text-amber-400'
                   }`}>
                     {myQuote.estado === 'ACCEPTED' ? 'Aceptada' : myQuote.estado === 'REJECTED' ? 'Rechazada' : 'Pendiente'}

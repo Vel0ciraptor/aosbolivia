@@ -110,17 +110,17 @@ export default function InventoryPage() {
     catch (err: any) { alert(err.response?.data?.message || 'No se pudo eliminar.'); }
   };
 
-  if (loading || loadingWorkshop) return (<div className="flex items-center justify-center py-12"><div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>);
+  if (loading || loadingWorkshop) return (<div className="flex items-center justify-center py-12"><div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" /></div>);
   if (workshopError || !workshop) return (<div className="p-8 bg-red-950/20 border border-red-800/40 rounded-2xl text-center"><AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3" /><h3 className="font-bold text-zinc-200">No se pudo cargar el perfil</h3></div>);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-zinc-100 flex items-center gap-2"><Package className="w-6 h-6 text-emerald-400" /><span>Inventario del Taller</span></h2>
+          <h2 className="text-2xl font-bold text-zinc-100 flex items-center gap-2"><Package className="w-6 h-6 text-brand-400" /><span>Inventario del Taller</span></h2>
           <p className="text-sm text-zinc-400">Repuestos e insumos disponibles.</p>
         </div>
-        <button onClick={openCreate} className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-zinc-950 font-bold text-sm rounded-xl hover:shadow-lg transition-all flex items-center gap-2"><Plus className="w-4 h-4" /> Agregar item</button>
+        <button onClick={openCreate} className="px-4 py-2.5 bg-gradient-to-r from-brand-500 to-brand-600 text-white font-bold text-sm rounded-xl hover:shadow-lg transition-all flex items-center gap-2"><Plus className="w-4 h-4" /> Agregar item</button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -138,10 +138,10 @@ export default function InventoryPage() {
       </div>
 
       <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl flex flex-col md:flex-row gap-3">
-        <div className="flex-1 relative"><Search className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nombre..." className="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm" /></div>
+        <div className="flex-1 relative"><Search className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nombre..." className="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm" /></div>
         <div className="flex gap-2">
           {['ALL', ...CATEGORIAS].map((c) => (
-            <button key={c} onClick={() => setCatFilter(c)} className={`px-3 py-2 rounded-xl text-xs font-bold transition-colors ${catFilter === c ? 'bg-emerald-600 text-white' : 'bg-zinc-950 border border-zinc-800 text-zinc-400 hover:bg-zinc-800'}`}>
+            <button key={c} onClick={() => setCatFilter(c)} className={`px-3 py-2 rounded-xl text-xs font-bold transition-colors ${catFilter === c ? 'bg-brand-600 text-white' : 'bg-zinc-950 border border-zinc-800 text-zinc-400 hover:bg-zinc-800'}`}>
               {c === 'ALL' ? 'Todos' : c}
             </button>
           ))}
@@ -184,23 +184,23 @@ export default function InventoryPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl relative p-6">
             <button onClick={closeForm} className="absolute top-4 right-4 p-2 hover:bg-zinc-800 rounded-xl text-zinc-400"><X className="w-5 h-5" /></button>
-            <h3 className="text-xl font-bold text-zinc-200 mb-1 flex items-center gap-2"><Package className="w-5 h-5 text-emerald-400" />{editing ? 'Editar Item' : 'Nuevo Item'}</h3>
+            <h3 className="text-xl font-bold text-zinc-200 mb-1 flex items-center gap-2"><Package className="w-5 h-5 text-brand-400" />{editing ? 'Editar Item' : 'Nuevo Item'}</h3>
             <p className="text-xs text-zinc-500 mb-6">{editing ? 'Actualiza la información.' : 'Agrega un repuesto o insumo al inventario.'}</p>
             {formError && <div className="mb-4 p-3 bg-red-950/30 border border-red-800/50 rounded-xl flex items-start gap-2 text-red-200 text-xs"><AlertCircle className="w-4 h-4 shrink-0 text-red-400 mt-0.5" /><span>{formError}</span></div>}
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Nombre <span className="text-red-400">*</span></label><input type="text" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} placeholder="Ej: Filtro de aceite" className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm" /></div>
-              <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Descripción</label><input type="text" value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} placeholder="Descripción opcional" className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm" /></div>
+              <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Nombre <span className="text-red-400">*</span></label><input type="text" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} placeholder="Ej: Filtro de aceite" className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm" /></div>
+              <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Descripción</label><input type="text" value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} placeholder="Descripción opcional" className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm" /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Categoría <span className="text-red-400">*</span></label><select value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })} className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm">{CATEGORIAS.map((c) => <option key={c} value={c}>{c}</option>)}</select></div>
-                <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Unidad</label><select value={form.unidad} onChange={(e) => setForm({ ...form, unidad: e.target.value })} className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm">{UNIDADES.map((u) => <option key={u} value={u}>{u}</option>)}</select></div>
+                <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Categoría <span className="text-red-400">*</span></label><select value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })} className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm">{CATEGORIAS.map((c) => <option key={c} value={c}>{c}</option>)}</select></div>
+                <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Unidad</label><select value={form.unidad} onChange={(e) => setForm({ ...form, unidad: e.target.value })} className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm">{UNIDADES.map((u) => <option key={u} value={u}>{u}</option>)}</select></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Stock</label><input type="number" min="0" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm font-mono" /></div>
-                <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Precio unitario ($)</label><input type="number" min="0" step="0.01" value={form.precioUnitario} onChange={(e) => setForm({ ...form, precioUnitario: e.target.value })} className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm font-mono" /></div>
+                <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Stock</label><input type="number" min="0" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm font-mono" /></div>
+                <div className="space-y-1.5"><label className="text-xs font-semibold text-zinc-300">Precio unitario ($)</label><input type="number" min="0" step="0.01" value={form.precioUnitario} onChange={(e) => setForm({ ...form, precioUnitario: e.target.value })} className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm font-mono" /></div>
               </div>
               <div className="pt-4 flex justify-end gap-3 border-t border-zinc-800">
                 <button type="button" onClick={closeForm} className="px-4 py-2.5 bg-zinc-950 border border-zinc-800 hover:bg-zinc-900 rounded-xl text-zinc-300 text-sm font-semibold">Cancelar</button>
-                <button type="submit" disabled={saving} className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-zinc-950 font-bold rounded-xl text-sm flex items-center gap-2 disabled:opacity-50">
+                <button type="submit" disabled={saving} className="px-5 py-2.5 bg-gradient-to-r from-brand-500 to-brand-600 text-white font-bold rounded-xl text-sm flex items-center gap-2 disabled:opacity-50">
                   {saving ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Guardando...</span></> : <><Save className="w-4 h-4" /><span>{editing ? 'Guardar' : 'Crear item'}</span></>}
                 </button>
               </div>

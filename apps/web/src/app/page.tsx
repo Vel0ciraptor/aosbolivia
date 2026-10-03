@@ -57,7 +57,7 @@ export default function Home() {
       icon: Wrench,
       title: "Talleres Cercanos",
       desc: "Conecta con talleres mecánicos verificados cerca de tu ubicación en tiempo real.",
-      color: "from-emerald-500 to-teal-500",
+      color: "from-brand-500 to-teal-500",
     },
     {
       icon: Truck,
@@ -69,7 +69,7 @@ export default function Home() {
       icon: Sparkles,
       title: "Asistente IA",
       desc: "Chatbot contextual que diagnostica, recomienda piezas y sugiere servicios automotrices.",
-      color: "from-indigo-500 to-purple-500",
+      color: "from-brand-500 to-purple-500",
     },
   ];
 
@@ -96,17 +96,14 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden font-sans">
-      <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-indigo-900/20 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute top-[20%] right:[-10%] w-[500px] h-[500px] bg-emerald-900/20 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-brand-900/20 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-[20%] right:[-10%] w-[500px] h-[500px] bg-brand-900/20 rounded-full blur-[140px] pointer-events-none" />
 
       <header className="fixed top-4 left-4 right-4 md:top-6 md:left-1/2 md:-translate-x-1/2 md:w-fit z-50 rounded-2xl md:rounded-full border border-zinc-800/60 backdrop-blur-xl bg-zinc-950/60 shadow-2xl transition-all duration-300">
         <div className="px-5 md:px-8 h-16 flex items-center justify-between md:gap-12">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 bg-gradient-to-tr from-indigo-500 to-emerald-400 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform">
-              <Car className="w-5 h-5 text-zinc-950 font-bold" strokeWidth={2.5} />
-            </div>
-            <span className="text-lg font-extrabold tracking-tight">
-              Repuesto<span className="text-emerald-400">IA</span>
+            <span className="flex items-center rounded-xl bg-[#09090b] px-2.5 py-1.5 group-hover:scale-105 transition-transform">
+              <img src="/logo/AosLogo.png" alt="AOSBolivia" className="h-7 w-auto" />
             </span>
           </Link>
 
@@ -132,7 +129,7 @@ export default function Home() {
             </Link>
             <Link
               href="/register"
-              className="px-4 py-2 text-sm font-bold bg-gradient-to-r from-indigo-500 to-emerald-500 text-zinc-950 rounded-full hover:from-indigo-400 hover:to-emerald-400 transition-all shadow-lg shadow-indigo-500/20"
+              className="px-4 py-2 text-sm font-bold bg-gradient-to-r from-brand-500 to-brand-500 text-white rounded-full hover:from-brand-400 hover:to-brand-400 transition-all shadow-lg shadow-brand-500/20"
             >
               Crear cuenta
             </Link>
@@ -172,7 +169,7 @@ export default function Home() {
               </Link>
               <Link
                 href="/register"
-                className="w-full text-center px-4 py-2.5 text-sm font-bold bg-gradient-to-r from-indigo-500 to-emerald-500 text-zinc-950 rounded-xl hover:from-indigo-400 hover:to-emerald-400 transition-all shadow-lg shadow-indigo-500/20"
+                className="w-full text-center px-4 py-2.5 text-sm font-bold bg-gradient-to-r from-brand-500 to-brand-500 text-white rounded-xl hover:from-brand-400 hover:to-brand-400 transition-all shadow-lg shadow-brand-500/20"
               >
                 Crear cuenta
               </Link>
@@ -183,7 +180,7 @@ export default function Home() {
 
       <main className="relative z-10 flex-1">
         <section className="max-w-7xl mx-auto px-6 pt-20 pb-24 md:pt-32 md:pb-32 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 mb-8 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 mb-8 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-300 text-xs font-semibold">
             <Zap className="w-3.5 h-3.5" />
             MVP en vivo · IA Mock integrada
           </div>
@@ -191,7 +188,7 @@ export default function Home() {
           <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight leading-[1.05] max-w-4xl mx-auto">
             Tu taller, repuestos y grúa
             <br />
-            <span className="bg-gradient-to-r from-indigo-400 via-emerald-400 to-indigo-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-brand-400 via-brand-400 to-brand-400 bg-clip-text text-transparent">
               en un solo lugar.
             </span>
           </h1>
@@ -204,7 +201,7 @@ export default function Home() {
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
               href="/register"
-              className="group px-7 py-3.5 bg-gradient-to-r from-indigo-500 to-emerald-500 text-zinc-950 font-bold rounded-2xl shadow-xl shadow-indigo-500/20 hover:shadow-indigo-500/40 transition-all flex items-center gap-2"
+              className="group px-7 py-3.5 bg-gradient-to-r from-brand-500 to-brand-500 text-white font-bold rounded-2xl shadow-xl shadow-brand-500/20 hover:shadow-brand-500/40 transition-all flex items-center gap-2"
             >
               Comenzar gratis
               <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
@@ -223,14 +220,14 @@ export default function Home() {
                 <div className="flex gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
                   <div className="w-2.5 h-2.5 rounded-full bg-amber-500/70" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/70" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-brand-500/70" />
                 </div>
                 <div className="flex-1 text-center text-xs text-zinc-500 font-mono">
                   asistente.repuestoia.com
                 </div>
               </div>
               <div className="flex items-start gap-3 text-left">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-emerald-400 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-500 to-brand-400 flex items-center justify-center shrink-0">
                   <Sparkles className="w-4 h-4 text-zinc-950" />
                 </div>
                 <div className="flex-1 space-y-2">
@@ -238,10 +235,10 @@ export default function Home() {
                   <p className="text-zinc-100">
                     Necesito una bomba de gasolina para mi Hilux 2019
                   </p>
-                  <p className="text-sm text-zinc-500 pt-2">RepuestoIA</p>
+                  <p className="text-sm text-zinc-500 pt-2">AOSBolivia</p>
                   <p className="text-zinc-300 text-sm">
-                    Detectado: <span className="text-emerald-400 font-semibold">Toyota Hilux 2019</span> ·{" "}
-                    <span className="text-indigo-400 font-semibold">Bomba de gasolina</span>. Encontré
+                    Detectado: <span className="text-brand-400 font-semibold">Toyota Hilux 2019</span> ·{" "}
+                    <span className="text-brand-400 font-semibold">Bomba de gasolina</span>. Encontré
                     3 proveedores con disponibilidad cerca de ti.
                   </p>
                 </div>
@@ -302,8 +299,8 @@ export default function Home() {
                   <div className="absolute top-5 right-5 text-6xl font-black text-zinc-800/60 select-none">
                     {s.n}
                   </div>
-                  <div className="w-11 h-11 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center mb-5">
-                    <Icon className="w-5 h-5 text-indigo-400" />
+                  <div className="w-11 h-11 rounded-xl bg-brand-500/10 border border-brand-500/30 flex items-center justify-center mb-5">
+                    <Icon className="w-5 h-5 text-brand-400" />
                   </div>
                   <h3 className="text-lg font-bold text-zinc-100 mb-2">{s.title}</h3>
                   <p className="text-sm text-zinc-400 leading-relaxed">{s.desc}</p>
@@ -314,11 +311,11 @@ export default function Home() {
         </section>
 
         <section id="demo" className="max-w-7xl mx-auto px-6 py-20">
-          <div className="relative overflow-hidden p-10 md:p-14 bg-gradient-to-br from-indigo-950/60 via-zinc-900/60 to-emerald-950/60 border border-zinc-800 rounded-3xl">
-            <div className="absolute -top-20 -right-20 w-72 h-72 bg-indigo-500/20 rounded-full blur-3xl" />
+          <div className="relative overflow-hidden p-10 md:p-14 bg-gradient-to-br from-brand-950/60 via-zinc-900/60 to-brand-950/60 border border-zinc-800 rounded-3xl">
+            <div className="absolute -top-20 -right-20 w-72 h-72 bg-brand-500/20 rounded-full blur-3xl" />
             <div className="relative grid md:grid-cols-2 gap-10 items-center">
               <div>
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold mb-5">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/30 text-brand-300 text-xs font-semibold mb-5">
                   <MessageSquare className="w-3.5 h-3.5" />
                   Demo en vivo
                 </div>
@@ -342,7 +339,7 @@ export default function Home() {
                     key={c.email}
                     className="flex items-center justify-between p-3 bg-zinc-950/60 border border-zinc-800 rounded-xl font-mono text-xs"
                   >
-                    <span className="text-indigo-400 font-semibold w-20 shrink-0">{c.role}</span>
+                    <span className="text-brand-400 font-semibold w-20 shrink-0">{c.role}</span>
                     <span className="text-zinc-300 flex-1 truncate">{c.email}</span>
                     <span className="text-zinc-500">{c.pwd}</span>
                   </div>
@@ -356,10 +353,10 @@ export default function Home() {
       <footer className="relative z-10 border-t border-zinc-900 mt-10">
         <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-zinc-500">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-gradient-to-tr from-indigo-500 to-emerald-400 rounded-lg flex items-center justify-center">
+            <div className="w-6 h-6 bg-gradient-to-tr from-brand-500 to-brand-400 rounded-lg flex items-center justify-center">
               <Car className="w-3.5 h-3.5 text-zinc-950" strokeWidth={2.5} />
             </div>
-            <span>RepuestoIA · MVP Fase 1</span>
+            <span>AOSBolivia · MVP Fase 1</span>
           </div>
           <div>Next.js 16 · NestJS 11 · Prisma · SQLite</div>
         </div>

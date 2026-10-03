@@ -122,7 +122,7 @@ export default function TowRequestsPage() {
   if (loading || loadingTow) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -270,7 +270,7 @@ export default function TowRequestsPage() {
                     <Truck className="w-3.5 h-3.5 text-zinc-500" />
                     <div>
                       <p className="text-[10px] text-zinc-500">Costo est.</p>
-                      <p className="font-bold text-emerald-400 font-mono">${r.costEstimate.toFixed(2)}</p>
+                      <p className="font-bold text-brand-400 font-mono">${r.costEstimate.toFixed(2)}</p>
                     </div>
                   </div>
                 </div>

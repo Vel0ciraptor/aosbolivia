@@ -48,7 +48,7 @@ export default function ClientDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -56,8 +56,8 @@ export default function ClientDashboard() {
   return (
     <div className="space-y-8">
       {/* Welcome Card */}
-      <div className="p-6 md:p-8 bg-gradient-to-r from-indigo-900/40 via-purple-900/20 to-zinc-900 border border-zinc-800 rounded-3xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="p-6 md:p-8 bg-gradient-to-r from-brand-900/40 via-purple-900/20 to-zinc-900 border border-zinc-800 rounded-3xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="max-w-xl space-y-4">
           <h2 className="text-2xl md:text-3xl font-extrabold text-zinc-100">
             ¿Qué necesita tu vehículo hoy?
@@ -68,7 +68,7 @@ export default function ClientDashboard() {
           <div className="pt-2">
             <Link
               href="/dashboard/client/new-request"
-              className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-500 to-emerald-500 hover:from-indigo-600 hover:to-emerald-600 text-zinc-950 font-bold rounded-2xl transition-all hover:shadow-lg hover:shadow-indigo-500/10 transform active:scale-95"
+              className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-brand-500 to-brand-500 hover:from-brand-600 hover:to-brand-600 text-white font-bold rounded-2xl transition-all hover:shadow-lg hover:shadow-brand-500/10 transform active:scale-95"
             >
               <span>Crear Solicitud con IA</span>
               <ArrowRight className="w-4 h-4" />
@@ -96,7 +96,7 @@ export default function ClientDashboard() {
               {requests.filter(r => r.estado === 'OPEN' || r.estado === 'IN_PROGRESS').length}
             </p>
           </div>
-          <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400">
+          <div className="w-12 h-12 bg-brand-500/10 rounded-xl flex items-center justify-center text-brand-400">
             <Activity className="w-6 h-6" />
           </div>
         </div>
@@ -119,12 +119,12 @@ export default function ClientDashboard() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-zinc-200 flex items-center gap-2">
-              <Car className="w-5 h-5 text-indigo-400" />
+              <Car className="w-5 h-5 text-brand-400" />
               <span>Mis Vehículos</span>
             </h3>
             <Link
               href="/dashboard/client/vehicles"
-              className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1"
+              className="text-xs text-brand-400 hover:text-brand-300 font-semibold flex items-center gap-1"
             >
               <span>Gestionar</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -137,7 +137,7 @@ export default function ClientDashboard() {
                 <p className="text-zinc-500 text-sm">No tienes vehículos registrados</p>
                 <Link
                   href="/dashboard/client/vehicles"
-                  className="mt-3 inline-flex items-center gap-1.5 text-xs text-indigo-400 font-bold hover:underline"
+                  className="mt-3 inline-flex items-center gap-1.5 text-xs text-brand-400 font-bold hover:underline"
                 >
                   <Plus className="w-3.5 h-3.5" /> Registrar vehículo
                 </Link>
@@ -164,12 +164,12 @@ export default function ClientDashboard() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-zinc-200 flex items-center gap-2">
-              <ClipboardList className="w-5 h-5 text-indigo-400" />
+              <ClipboardList className="w-5 h-5 text-brand-400" />
               <span>Solicitudes Recientes</span>
             </h3>
             <Link
               href="/dashboard/client/requests"
-              className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1"
+              className="text-xs text-brand-400 hover:text-brand-300 font-semibold flex items-center gap-1"
             >
               <span>Ver todas</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -182,7 +182,7 @@ export default function ClientDashboard() {
                 <p className="text-zinc-500 text-sm">No has realizado ninguna solicitud</p>
                 <Link
                   href="/dashboard/client/new-request"
-                  className="mt-3 inline-flex items-center gap-1.5 text-xs text-indigo-400 font-bold hover:underline"
+                  className="mt-3 inline-flex items-center gap-1.5 text-xs text-brand-400 font-bold hover:underline"
                 >
                   <Plus className="w-3.5 h-3.5" /> Crear nueva solicitud
                 </Link>
@@ -206,7 +206,7 @@ export default function ClientDashboard() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-xs text-zinc-500 flex items-center gap-1 bg-indigo-500/5 text-indigo-400 border border-indigo-500/10 px-2.5 py-1 rounded-xl">
+                    <span className="text-xs text-zinc-500 flex items-center gap-1 bg-brand-500/5 text-brand-400 border border-brand-500/10 px-2.5 py-1 rounded-xl">
                       <MessageSquare className="w-3.5 h-3.5" />
                       <strong>{r.quotes?.length || 0}</strong> cotizaciones
                     </span>

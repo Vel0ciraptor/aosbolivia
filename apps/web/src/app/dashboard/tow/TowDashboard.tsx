@@ -62,7 +62,7 @@ export default function TowDashboard() {
   if (loading || loadingTow) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -99,7 +99,7 @@ export default function TowDashboard() {
           </Link>
           <Link
             href="/dashboard/tow/requests"
-            className="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-emerald-500 text-zinc-950 font-bold text-sm rounded-xl hover:shadow-lg transition-all flex items-center gap-2"
+            className="px-4 py-2.5 bg-gradient-to-r from-brand-500 to-brand-500 text-white font-bold text-sm rounded-xl hover:shadow-lg transition-all flex items-center gap-2"
           >
             <ClipboardList className="w-4 h-4" />
             <span>Ver Solicitudes</span>
@@ -134,7 +134,7 @@ export default function TowDashboard() {
             <span className="text-zinc-500 text-[10px] md:text-xs font-semibold uppercase tracking-wider">Cobertura</span>
             <p className="text-2xl md:text-3xl font-extrabold text-zinc-100 font-mono">{myProfile.cobertura} km</p>
           </div>
-          <div className="w-10 h-10 md:w-12 md:h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400">
+          <div className="w-10 h-10 md:w-12 md:h-12 bg-brand-500/10 rounded-xl flex items-center justify-center text-brand-400">
             <Compass className="w-5 h-5 md:w-6 md:h-6" />
           </div>
         </div>
@@ -154,12 +154,12 @@ export default function TowDashboard() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-bold text-zinc-200 flex items-center gap-2">
-            <ClipboardList className="w-5 h-5 text-indigo-400" />
+            <ClipboardList className="w-5 h-5 text-brand-400" />
             <span>Solicitudes de Grúa Activas</span>
           </h3>
           <Link
             href="/dashboard/tow/requests"
-            className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1"
+            className="text-xs text-brand-400 hover:text-brand-300 font-semibold flex items-center gap-1"
           >
             <span>Ver todas</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -214,7 +214,7 @@ export default function TowDashboard() {
                       <Truck className="w-3.5 h-3.5 text-zinc-500" />
                       <div>
                         <p className="text-[10px] text-zinc-500">Costo est.</p>
-                        <p className="font-bold text-emerald-400 font-mono">${costEstimate.toFixed(2)}</p>
+                        <p className="font-bold text-brand-400 font-mono">${costEstimate.toFixed(2)}</p>
                       </div>
                     </div>
                   </div>

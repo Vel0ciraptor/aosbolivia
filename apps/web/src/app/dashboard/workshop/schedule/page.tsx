@@ -163,17 +163,17 @@ function WeeklyScheduleCard({
   return (
     <form
       onSubmit={submit}
-      className="p-6 bg-gradient-to-br from-emerald-950/30 to-zinc-900 border border-emerald-500/20 rounded-2xl space-y-4"
+      className="p-6 bg-gradient-to-br from-brand-950/30 to-zinc-900 border border-brand-500/20 rounded-2xl space-y-4"
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Repeat className="w-4 h-4 text-emerald-400" />
+          <Repeat className="w-4 h-4 text-brand-400" />
           <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">
             Horario habitual
           </h3>
         </div>
         {generadoHasta && (
-          <span className="text-[10px] font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-2 py-1 rounded-lg">
+          <span className="text-[10px] font-bold text-brand-300 bg-brand-500/10 border border-brand-500/30 px-2 py-1 rounded-lg">
             Agenda hasta {generadoHasta}
           </span>
         )}
@@ -199,7 +199,7 @@ function WeeklyScheduleCard({
                 }
                 className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition-colors ${
                   active
-                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                    ? 'bg-brand-500/15 border-brand-500/40 text-brand-300'
                     : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700'
                 }`}
               >
@@ -221,7 +221,7 @@ function WeeklyScheduleCard({
               value={r.inicio}
               onChange={(e) => setRango(i, 'inicio', e.target.value)}
               required
-              className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm font-mono"
+              className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm font-mono"
             />
             <span className="text-zinc-600 text-xs">–</span>
             <input
@@ -229,7 +229,7 @@ function WeeklyScheduleCard({
               value={r.fin}
               onChange={(e) => setRango(i, 'fin', e.target.value)}
               required
-              className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm font-mono"
+              className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm font-mono"
             />
             <button
               type="button"
@@ -246,7 +246,7 @@ function WeeklyScheduleCard({
           <button
             type="button"
             onClick={addRango}
-            className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+            className="text-[11px] font-bold text-brand-400 hover:text-brand-300 flex items-center gap-1"
           >
             <Plus className="w-3 h-3" /> Agregar otro horario (ej. tarde)
           </button>
@@ -261,7 +261,7 @@ function WeeklyScheduleCard({
           <select
             value={slotMinutes}
             onChange={(e) => setSlotMinutes(Number(e.target.value))}
-            className="w-full px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+            className="w-full px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
           >
             <option value={15}>15 minutos</option>
             <option value={30}>30 minutos</option>
@@ -279,7 +279,7 @@ function WeeklyScheduleCard({
             onChange={(e) => setHasta(e.target.value)}
             min={todayPlus(1)}
             required
-            className="w-full px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+            className="w-full px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
           />
         </div>
       </div>
@@ -299,7 +299,7 @@ function WeeklyScheduleCard({
                 Math.min(20, Math.max(1, parseInt(e.target.value) || 1)),
               )
             }
-            className="w-24 px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm font-mono"
+            className="w-24 px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm font-mono"
           />
           <p className="text-[10px] text-zinc-600">
             Cuántos vehículos puedes atender en el mismo horario (un slot
@@ -311,7 +311,7 @@ function WeeklyScheduleCard({
       <button
         type="submit"
         disabled={saving}
-        className="w-full px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-zinc-950 font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+        className="w-full px-4 py-2.5 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
       >
         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Repeat className="w-4 h-4" />}
         Guardar horario y generar agenda
@@ -466,7 +466,7 @@ export default function WorkshopSchedulePage() {
   if (loading || loadingWorkshop) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -485,7 +485,7 @@ export default function WorkshopSchedulePage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-zinc-100 flex items-center gap-2">
-          <CalendarDays className="w-6 h-6 text-emerald-400" />
+          <CalendarDays className="w-6 h-6 text-brand-400" />
           <span>Agenda de Citas</span>
         </h2>
         <p className="text-sm text-zinc-400">
@@ -531,7 +531,7 @@ export default function WorkshopSchedulePage() {
                 onChange={(e) => setFecha(e.target.value)}
                 min={todayPlus(0)}
                 required
-                className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+                className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
               />
             </div>
 
@@ -545,7 +545,7 @@ export default function WorkshopSchedulePage() {
                   value={horaInicio}
                   onChange={(e) => setHoraInicio(e.target.value)}
                   required
-                  className="w-full px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+                  className="w-full px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
                 />
               </div>
               <div className="space-y-1.5">
@@ -555,7 +555,7 @@ export default function WorkshopSchedulePage() {
                   value={horaFin}
                   onChange={(e) => setHoraFin(e.target.value)}
                   required
-                  className="w-full px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+                  className="w-full px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
                 />
               </div>
             </div>
@@ -565,7 +565,7 @@ export default function WorkshopSchedulePage() {
               <select
                 value={slotMinutes}
                 onChange={(e) => setSlotMinutes(Number(e.target.value))}
-                className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+                className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
               >
                 <option value={15}>15 minutos</option>
                 <option value={30}>30 minutos</option>
@@ -610,7 +610,7 @@ export default function WorkshopSchedulePage() {
                   value={sourceFecha}
                   onChange={(e) => setSourceFecha(e.target.value)}
                   required
-                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
                 >
                   <option value="">Selecciona un día con bloques...</option>
                   {Array.from(blocksByDay.keys()).sort().map((key) => {
@@ -634,7 +634,7 @@ export default function WorkshopSchedulePage() {
                     value={fromDate}
                     onChange={(e) => setFromDate(e.target.value)}
                     required
-                    className="w-full px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+                    className="w-full px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -644,7 +644,7 @@ export default function WorkshopSchedulePage() {
                     value={toDate}
                     onChange={(e) => setToDate(e.target.value)}
                     required
-                    className="w-full px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+                    className="w-full px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
                   />
                 </div>
               </div>
@@ -665,7 +665,7 @@ export default function WorkshopSchedulePage() {
                         }
                         className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition-colors ${
                           active
-                            ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                            ? 'bg-brand-500/15 border-brand-500/40 text-brand-300'
                             : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700'
                         }`}
                       >
@@ -682,7 +682,7 @@ export default function WorkshopSchedulePage() {
               <button
                 type="submit"
                 disabled={copying}
-                className="w-full px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full px-4 py-2.5 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {copying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
                 Copiar al rango
@@ -713,7 +713,7 @@ export default function WorkshopSchedulePage() {
                 <div key={key} className="p-5 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-3">
                   <div className="flex items-center justify-between pb-2 border-b border-zinc-800/60">
                     <h3 className="text-sm font-bold text-zinc-200 capitalize flex items-center gap-2">
-                      <CalendarDays className="w-4 h-4 text-emerald-400" />
+                      <CalendarDays className="w-4 h-4 text-brand-400" />
                       {DAY_NAMES[d.getUTCDay()]} {d.getUTCDate()} de{' '}
                       {d.toLocaleDateString('es-BO', { month: 'long', timeZone: 'America/La_Paz' })}
                     </h3>
@@ -727,10 +727,10 @@ export default function WorkshopSchedulePage() {
                       {dayAppts.map((a) => (
                         <div
                           key={a.id}
-                          className="p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl flex items-center justify-between gap-3"
+                          className="p-3 bg-brand-500/5 border border-brand-500/20 rounded-xl flex items-center justify-between gap-3"
                         >
                           <div className="flex items-center gap-3 min-w-0">
-                            <span className="text-xs font-mono font-bold text-emerald-300 shrink-0">
+                            <span className="text-xs font-mono font-bold text-brand-300 shrink-0">
                               {new Date(a.startAt).toLocaleTimeString('es-BO', {
                                 timeZone: 'America/La_Paz',
                                 hour: '2-digit',

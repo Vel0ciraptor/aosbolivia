@@ -75,7 +75,7 @@ interface UserDetail {
 const ROLE_META: Record<string, { label: string; color: string; bg: string; icon: any }> = {
   CLIENT: { label: 'Cliente', color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20', icon: Users },
   PROVIDER: { label: 'Proveedor', color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20', icon: Store },
-  WORKSHOP: { label: 'Taller', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20', icon: Wrench },
+  WORKSHOP: { label: 'Taller', color: 'text-brand-400', bg: 'bg-brand-500/10 border-brand-500/20', icon: Wrench },
   TOW_SERVICE: { label: 'Grúa', color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20', icon: Truck },
   ADMIN: { label: 'Admin', color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', icon: Shield },
 };
@@ -155,7 +155,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -239,12 +239,12 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
           {user.vehicles && user.vehicles.length > 0 && (
             <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-3">
               <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider flex items-center gap-2">
-                <Car className="w-4 h-4 text-indigo-400" /> Vehículos ({user.vehicles.length})
+                <Car className="w-4 h-4 text-brand-400" /> Vehículos ({user.vehicles.length})
               </h3>
               <div className="space-y-2">
                 {user.vehicles.map((v) => (
                   <div key={v.id} className="p-3 bg-zinc-950 border border-zinc-800 rounded-xl flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-zinc-900 flex items-center justify-center text-indigo-400">
+                    <div className="w-8 h-8 rounded-lg bg-zinc-900 flex items-center justify-center text-brand-400">
                       <Car className="w-4 h-4" />
                     </div>
                     <div>
@@ -267,7 +267,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                   <div key={r.id} className="p-3 bg-zinc-950 border border-zinc-800 rounded-xl">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-bold text-zinc-200 flex-1 min-w-0 truncate">{r.titulo}</p>
-                      <span className="text-[9px] px-2 py-0.5 rounded-full border font-bold uppercase bg-indigo-500/10 border-indigo-500/20 text-indigo-400">{r.categoria}</span>
+                      <span className="text-[9px] px-2 py-0.5 rounded-full border font-bold uppercase bg-brand-500/10 border-brand-500/20 text-brand-400">{r.categoria}</span>
                       <span className="text-[9px] px-2 py-0.5 rounded-full border font-bold uppercase bg-zinc-500/10 border-zinc-500/20 text-zinc-400">{r.estado}</span>
                     </div>
                     <p className="text-[10px] text-zinc-500 mt-1">
@@ -296,8 +296,8 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
           )}
 
           {user.workshop && (
-            <div className="p-6 bg-zinc-900 border border-emerald-500/20 rounded-2xl space-y-3">
-              <h3 className="text-sm font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+            <div className="p-6 bg-zinc-900 border border-brand-500/20 rounded-2xl space-y-3">
+              <h3 className="text-sm font-bold text-brand-400 uppercase tracking-wider flex items-center gap-2">
                 <Wrench className="w-4 h-4" /> Taller
               </h3>
               <div className="grid grid-cols-2 gap-3 text-xs">
@@ -310,7 +310,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
               {user.workshop.services.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 pt-2">
                   {user.workshop.services.map((s) => (
-                    <span key={s.id} className="text-[10px] px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 rounded-full font-semibold">
+                    <span key={s.id} className="text-[10px] px-2 py-1 bg-brand-500/10 border border-brand-500/20 text-brand-300 rounded-full font-semibold">
                       {s.nombre}
                     </span>
                   ))}

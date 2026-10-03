@@ -1614,7 +1614,7 @@ export class WorkshopsService {
         }
 
         <div style="border-top:2px solid #e5e7eb;padding-top:16px;margin-top:24px;text-align:center;">
-          <p style="font-size:11px;color:#9ca3af;margin:0;">Documento generado por RepuestoIA — ${new Date().toLocaleString('es-VE')}</p>
+          <p style="font-size:11px;color:#9ca3af;margin:0;">Documento generado por AOSBolivia — ${new Date().toLocaleString('es-VE')}</p>
         </div>
       </div>
     </body>

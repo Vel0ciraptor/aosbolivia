@@ -22,8 +22,8 @@ interface RequestRow {
 }
 
 const CATEGORY_META: Record<string, { label: string; color: string; bg: string; icon: any }> = {
-  REPUESTO: { label: 'Repuesto', color: 'text-indigo-400', bg: 'bg-indigo-500/10 border-indigo-500/20', icon: Package },
-  TALLER: { label: 'Taller', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20', icon: Wrench },
+  REPUESTO: { label: 'Repuesto', color: 'text-brand-400', bg: 'bg-brand-500/10 border-brand-500/20', icon: Package },
+  TALLER: { label: 'Taller', color: 'text-brand-400', bg: 'bg-brand-500/10 border-brand-500/20', icon: Wrench },
   GRUA: { label: 'Grúa', color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20', icon: Truck },
   CONSULTA: { label: 'Consulta', color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20', icon: MessageSquare },
 };

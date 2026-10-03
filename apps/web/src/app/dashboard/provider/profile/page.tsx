@@ -75,7 +75,7 @@ export default function ProviderProfilePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -109,7 +109,7 @@ export default function ProviderProfilePage() {
         </Link>
         <div>
           <h2 className="text-2xl font-bold text-zinc-100 flex items-center gap-2">
-            <Store className="w-6 h-6 text-indigo-400" />
+            <Store className="w-6 h-6 text-brand-400" />
             <span>Perfil del Negocio</span>
           </h2>
           <p className="text-sm text-zinc-400">Esta información la verán los clientes cuando cotices sus solicitudes.</p>
@@ -135,7 +135,7 @@ export default function ProviderProfilePage() {
 
       <form onSubmit={handleSubmit} className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-5">
         <div className="flex items-center gap-4 pb-5 border-b border-zinc-800">
-          <div className="w-14 h-14 rounded-2xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-indigo-400">
+          <div className="w-14 h-14 rounded-2xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-brand-400">
             <Building2 className="w-7 h-7" />
           </div>
           <div>
@@ -153,7 +153,7 @@ export default function ProviderProfilePage() {
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
             placeholder="AutoPartes Caracas C.A."
-            className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-100 text-sm"
+            className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
             required
           />
         </div>
@@ -168,7 +168,7 @@ export default function ProviderProfilePage() {
               value={telefono}
               onChange={(e) => setTelefono(e.target.value)}
               placeholder="+58 212 5551234"
-              className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-100 text-sm"
+              className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
             />
           </div>
           <div className="space-y-1.5">
@@ -180,7 +180,7 @@ export default function ProviderProfilePage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="ventas@empresa.com"
-              className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-100 text-sm"
+              className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
             />
           </div>
         </div>
@@ -194,7 +194,7 @@ export default function ProviderProfilePage() {
             value={direccion}
             onChange={(e) => setDireccion(e.target.value)}
             placeholder="Av. Libertador, Caracas"
-            className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-100 text-sm"
+            className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
           />
         </div>
 
@@ -205,8 +205,8 @@ export default function ProviderProfilePage() {
           onLongitudChange={setLongitud}
         />
 
-        <div className="p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-xl">
-          <p className="text-[11px] text-indigo-300">
+        <div className="p-3 bg-brand-500/5 border border-brand-500/10 rounded-xl">
+          <p className="text-[11px] text-brand-300">
             💡 Las coordenadas se usan para mostrar tu negocio en búsquedas por cercanía a los clientes.
           </p>
         </div>
@@ -221,7 +221,7 @@ export default function ProviderProfilePage() {
           <button
             type="submit"
             disabled={saving}
-            className="px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-emerald-500 hover:from-indigo-600 hover:to-emerald-600 text-zinc-950 font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50"
+            className="px-5 py-2.5 bg-gradient-to-r from-brand-500 to-brand-500 hover:from-brand-600 hover:to-brand-600 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50"
           >
             {saving ? (
               <>

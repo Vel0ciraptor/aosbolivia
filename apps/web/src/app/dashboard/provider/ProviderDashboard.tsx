@@ -80,7 +80,7 @@ export default function ProviderDashboard() {
   if (loading || loadingProvider) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -91,7 +91,7 @@ export default function ProviderDashboard() {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-zinc-100 flex items-center gap-2">
-            <Building2 className="w-6 h-6 text-indigo-400" />
+            <Building2 className="w-6 h-6 text-brand-400" />
             <span>{provider?.nombre || 'Mi Negocio'}</span>
           </h2>
           <p className="text-sm text-zinc-400">Gestiona tu catálogo de repuestos y responde a cotizaciones de clientes.</p>
@@ -106,7 +106,7 @@ export default function ProviderDashboard() {
           </Link>
           <Link
             href="/dashboard/provider/requests"
-            className="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-emerald-500 text-zinc-950 font-bold text-sm rounded-xl hover:shadow-lg transition-all flex items-center gap-2"
+            className="px-4 py-2.5 bg-gradient-to-r from-brand-500 to-brand-500 text-white font-bold text-sm rounded-xl hover:shadow-lg transition-all flex items-center gap-2"
           >
             <ClipboardList className="w-4 h-4" />
             <span>Ver Solicitudes</span>
@@ -139,9 +139,9 @@ export default function ProviderDashboard() {
         <div className="p-5 md:p-6 bg-zinc-900 border border-zinc-800 rounded-2xl flex items-center justify-between">
           <div className="space-y-1">
             <span className="text-zinc-500 text-[10px] md:text-xs font-semibold uppercase tracking-wider">Aceptadas</span>
-            <p className="text-2xl md:text-3xl font-extrabold text-emerald-400">{quotesCount.accepted}</p>
+            <p className="text-2xl md:text-3xl font-extrabold text-brand-400">{quotesCount.accepted}</p>
           </div>
-          <div className="w-10 h-10 md:w-12 md:h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400">
+          <div className="w-10 h-10 md:w-12 md:h-12 bg-brand-500/10 rounded-xl flex items-center justify-center text-brand-400">
             <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6" />
           </div>
         </div>
@@ -163,12 +163,12 @@ export default function ProviderDashboard() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-zinc-200 flex items-center gap-2">
-              <ClipboardList className="w-5 h-5 text-indigo-400" />
+              <ClipboardList className="w-5 h-5 text-brand-400" />
               <span>Solicitudes de Repuestos</span>
             </h3>
             <Link
               href="/dashboard/provider/requests"
-              className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1"
+              className="text-xs text-brand-400 hover:text-brand-300 font-semibold flex items-center gap-1"
             >
               <span>Ver todas</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -190,14 +190,14 @@ export default function ProviderDashboard() {
                   className="p-4 bg-zinc-900 border border-zinc-800 hover:border-zinc-700/80 rounded-2xl flex items-center justify-between transition-colors block group"
                 >
                   <div className="min-w-0 flex-1 pr-4">
-                    <h4 className="font-bold text-zinc-200 text-sm truncate group-hover:text-indigo-300 transition-colors">{r.titulo}</h4>
+                    <h4 className="font-bold text-zinc-200 text-sm truncate group-hover:text-brand-300 transition-colors">{r.titulo}</h4>
                     <p className="text-xs text-zinc-500 truncate mt-0.5">{r.descripcion}</p>
                     <div className="flex flex-wrap items-center gap-2 mt-2">
                       <span className="text-[10px] text-zinc-400 bg-zinc-800 px-2 py-0.5 rounded-full font-semibold">
                         {r.user.name}
                       </span>
                       {r.vehicle && (
-                        <span className="text-[10px] text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full font-semibold">
+                        <span className="text-[10px] text-brand-300 bg-brand-500/10 border border-brand-500/20 px-2 py-0.5 rounded-full font-semibold">
                           {r.vehicle.marca} {r.vehicle.modelo} {r.vehicle.anio}
                         </span>
                       )}
@@ -207,10 +207,10 @@ export default function ProviderDashboard() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-xs text-indigo-400 bg-indigo-500/5 px-2 py-1 rounded-lg border border-indigo-500/10 font-semibold">
+                    <span className="text-xs text-brand-400 bg-brand-500/5 px-2 py-1 rounded-lg border border-brand-500/10 font-semibold">
                       {r._count?.quotes || 0} cotiz.
                     </span>
-                    <ArrowRight className="w-4 h-4 text-zinc-500 group-hover:text-indigo-400 transition-colors" />
+                    <ArrowRight className="w-4 h-4 text-zinc-500 group-hover:text-brand-400 transition-colors" />
                   </div>
                 </Link>
               ))
@@ -222,12 +222,12 @@ export default function ProviderDashboard() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-zinc-200 flex items-center gap-2">
-              <Package className="w-5 h-5 text-indigo-400" />
+              <Package className="w-5 h-5 text-brand-400" />
               <span>Mi Catálogo</span>
             </h3>
             <Link
               href="/dashboard/provider/catalog"
-              className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1"
+              className="text-xs text-brand-400 hover:text-brand-300 font-semibold flex items-center gap-1"
             >
               <span>Gestionar</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -241,7 +241,7 @@ export default function ProviderDashboard() {
                 <p className="text-zinc-500 text-sm">Tu catálogo está vacío</p>
                 <Link
                   href="/dashboard/provider/catalog/new"
-                  className="mt-3 inline-flex items-center gap-1 text-xs text-indigo-400 font-bold hover:underline"
+                  className="mt-3 inline-flex items-center gap-1 text-xs text-brand-400 font-bold hover:underline"
                 >
                   <Plus className="w-3.5 h-3.5" /> Agregar primer repuesto
                 </Link>
@@ -255,7 +255,7 @@ export default function ProviderDashboard() {
                       {p.marca} {p.modelo} · Stock: <strong className="text-zinc-400">{p.stock}</strong>
                     </p>
                   </div>
-                  <span className="text-base font-extrabold text-emerald-400 font-mono">
+                  <span className="text-base font-extrabold text-brand-400 font-mono">
                     ${parseFloat(p.precio).toFixed(2)}
                   </span>
                 </div>

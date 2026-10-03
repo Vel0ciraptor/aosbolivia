@@ -144,7 +144,7 @@ export default function WorkshopServicesPage() {
   if (loading || loadingWorkshop) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -164,7 +164,7 @@ export default function WorkshopServicesPage() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-zinc-100 flex items-center gap-2">
-            <Wrench className="w-6 h-6 text-emerald-400" />
+            <Wrench className="w-6 h-6 text-brand-400" />
             <span>Mis Servicios</span>
           </h2>
           <p className="text-sm text-zinc-400">Gestiona los servicios mecánicos que ofrece tu taller.</p>
@@ -178,7 +178,7 @@ export default function WorkshopServicesPage() {
           </Link>
           <button
             onClick={openCreate}
-            className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-zinc-950 font-bold text-sm rounded-xl hover:shadow-lg transition-all flex items-center gap-2"
+            className="px-4 py-2.5 bg-gradient-to-r from-brand-500 to-brand-600 text-white font-bold text-sm rounded-xl hover:shadow-lg transition-all flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             <span>Agregar Servicio</span>
@@ -193,7 +193,7 @@ export default function WorkshopServicesPage() {
         </div>
         <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl">
           <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Filtrados</p>
-          <p className="text-2xl font-extrabold text-emerald-400 mt-1">{filtered.length}</p>
+          <p className="text-2xl font-extrabold text-brand-400 mt-1">{filtered.length}</p>
         </div>
       </div>
 
@@ -204,7 +204,7 @@ export default function WorkshopServicesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por nombre o descripción..."
-            className="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 transition-colors text-sm"
+            className="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors text-sm"
           />
         </div>
         <button
@@ -251,7 +251,7 @@ export default function WorkshopServicesPage() {
                 className="p-5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-2xl flex flex-col gap-3 transition-all"
               >
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-emerald-400 shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-brand-400 shrink-0">
                     <Wrench className="w-5 h-5" />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -264,7 +264,7 @@ export default function WorkshopServicesPage() {
                 <div className="flex items-end justify-between pt-3 border-t border-zinc-800/60">
                   <div>
                     <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Precio ref.</p>
-                    <p className="text-xl font-extrabold text-emerald-400 font-mono">
+                    <p className="text-xl font-extrabold text-brand-400 font-mono">
                       {precioNum != null ? `$${precioNum.toFixed(2)}` : 'N/A'}
                     </p>
                   </div>
@@ -300,7 +300,7 @@ export default function WorkshopServicesPage() {
             </button>
 
             <h3 className="text-xl font-bold text-zinc-200 mb-1 flex items-center gap-2">
-              <Wrench className="w-5 h-5 text-emerald-400" />
+              <Wrench className="w-5 h-5 text-brand-400" />
               {editingService ? 'Editar Servicio' : 'Nuevo Servicio'}
             </h3>
             <p className="text-xs text-zinc-500 mb-6">
@@ -324,7 +324,7 @@ export default function WorkshopServicesPage() {
                   value={form.nombre}
                   onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                   placeholder="Ej: Cambio de aceite y filtro"
-                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
                 />
               </div>
 
@@ -335,7 +335,7 @@ export default function WorkshopServicesPage() {
                   onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
                   rows={3}
                   placeholder="Detalle del servicio, qué incluye, garantía..."
-                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm resize-none"
+                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm resize-none"
                 />
               </div>
 
@@ -350,7 +350,7 @@ export default function WorkshopServicesPage() {
                   value={form.precioReferencial}
                   onChange={(e) => setForm({ ...form, precioReferencial: e.target.value })}
                   placeholder="120.00"
-                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm font-mono"
+                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm font-mono"
                 />
                 <p className="text-[11px] text-zinc-500">Precio base que verá el cliente. Puede variar según diagnóstico.</p>
               </div>
@@ -366,7 +366,7 @@ export default function WorkshopServicesPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-zinc-950 font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50"
+                  className="px-5 py-2.5 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50"
                 >
                   {saving ? (
                     <>

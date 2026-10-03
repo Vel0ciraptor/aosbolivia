@@ -18,7 +18,7 @@ export default function DashboardHome() {
   if (!user) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -38,7 +38,7 @@ export default function DashboardHome() {
       return (
         <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl">
           <h2 className="text-xl font-bold text-zinc-100 mb-2">Panel Administrativo</h2>
-          <p className="text-sm text-zinc-400">Bienvenido al sistema administrativo central de RepuestoIA. Selecciona una sección de la barra lateral.</p>
+          <p className="text-sm text-zinc-400">Bienvenido al sistema administrativo central de AOSBolivia. Selecciona una sección de la barra lateral.</p>
         </div>
       );
   }

@@ -74,8 +74,8 @@ interface RequestDetail {
 }
 
 const CATEGORY_META: Record<string, { label: string; icon: any; color: string; bg: string }> = {
-  REPUESTO: { label: 'Repuesto', icon: Tag, color: 'text-indigo-400', bg: 'bg-indigo-500/10 border-indigo-500/20' },
-  TALLER: { label: 'Servicio de Taller', icon: Wrench, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+  REPUESTO: { label: 'Repuesto', icon: Tag, color: 'text-brand-400', bg: 'bg-brand-500/10 border-brand-500/20' },
+  TALLER: { label: 'Servicio de Taller', icon: Wrench, color: 'text-brand-400', bg: 'bg-brand-500/10 border-brand-500/20' },
   GRUA: { label: 'Servicio de Grúa', icon: Truck, color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20' },
   CONSULTA: { label: 'Consulta General', icon: MessageCircle, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
 };
@@ -155,10 +155,10 @@ function CitaPicker({
     <div className="p-3 bg-zinc-950/60 border border-zinc-800/60 rounded-xl mb-3">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-1.5 min-w-0">
-          <Calendar className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+          <Calendar className="w-3.5 h-3.5 text-brand-400 shrink-0" />
           <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Cita de ingreso</p>
           {value && (
-            <span className="text-[11px] font-bold text-emerald-300 truncate">
+            <span className="text-[11px] font-bold text-brand-300 truncate">
               {label(value)}
             </span>
           )}
@@ -166,7 +166,7 @@ function CitaPicker({
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 shrink-0"
+          className="text-[11px] font-bold text-brand-400 hover:text-brand-300 shrink-0"
         >
           {open ? 'Ocultar' : 'Escoger otra cita'}
         </button>
@@ -187,7 +187,7 @@ function CitaPicker({
         <div className="mt-2">
           {loading ? (
             <div className="flex items-center gap-2 text-[11px] text-zinc-500 py-2">
-              <span className="w-3.5 h-3.5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+              <span className="w-3.5 h-3.5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
               Cargando citas disponibles...
             </div>
           ) : slots.length === 0 ? (
@@ -200,7 +200,7 @@ function CitaPicker({
               <select
                 value={value ?? ''}
                 onChange={(e) => onChange(e.target.value || null)}
-                className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-200 text-xs font-semibold"
+                className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-200 text-xs font-semibold"
               >
                 {!propuesta && !fechaDeseada && <option value="">Sin cita por ahora</option>}
                 {propuesta && <option value={propuesta}>Propuesta: {label(propuesta)}</option>}
@@ -283,7 +283,7 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -382,7 +382,7 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
         <div className="lg:col-span-2 space-y-6">
           <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-4">
             <div className="flex items-center gap-2 pb-3 border-b border-zinc-800/60">
-              <FileText className="w-4 h-4 text-indigo-400" />
+              <FileText className="w-4 h-4 text-brand-400" />
               <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">Descripción</h3>
             </div>
             <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
@@ -402,7 +402,7 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
               </span>
             </div>
             {request.fechaCita && (
-              <div className="flex items-center gap-2 text-[11px] text-emerald-300 bg-emerald-500/5 border border-emerald-500/20 rounded-xl px-3 py-2">
+              <div className="flex items-center gap-2 text-[11px] text-brand-300 bg-brand-500/5 border border-brand-500/20 rounded-xl px-3 py-2">
                 <Calendar className="w-3.5 h-3.5 shrink-0" />
                 <span>
                   Fecha deseada de ingreso:{' '}
@@ -413,9 +413,9 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
           </div>
 
           {request.aiParsed && (
-            <div className="p-6 bg-gradient-to-br from-indigo-950/30 to-zinc-900 border border-indigo-500/20 rounded-2xl space-y-4">
-              <div className="flex items-center gap-2 pb-3 border-b border-indigo-500/20">
-                <Sparkles className="w-4 h-4 text-indigo-400" />
+            <div className="p-6 bg-gradient-to-br from-brand-950/30 to-zinc-900 border border-brand-500/20 rounded-2xl space-y-4">
+              <div className="flex items-center gap-2 pb-3 border-b border-brand-500/20">
+                <Sparkles className="w-4 h-4 text-brand-400" />
                 <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">Análisis IA</h3>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -464,7 +464,7 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
           <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-zinc-800/60">
               <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-indigo-400" />
+                <MessageSquare className="w-4 h-4 text-brand-400" />
                 <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">
                   Cotizaciones ({sortedQuotes.length})
                 </h3>
@@ -496,13 +496,13 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
                       key={q.id}
                       className={`p-4 border rounded-2xl transition-all ${
                         isBestPrice
-                          ? 'bg-emerald-950/10 border-emerald-500/30'
+                          ? 'bg-brand-950/10 border-brand-500/30'
                           : 'bg-zinc-950/40 border-zinc-800/60'
                       }`}
                     >
                       <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-indigo-400">
+                          <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-brand-400">
                             <Building2 className="w-5 h-5" />
                           </div>
                           <div>
@@ -512,13 +512,13 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
                               </h4>
                               <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider border ${
                                 q.workshop
-                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                  : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                                  ? 'bg-brand-500/10 text-brand-400 border-brand-500/20'
+                                  : 'bg-brand-500/10 text-brand-400 border-brand-500/20'
                               }`}>
                                 {q.workshop ? 'Taller' : 'Repuestos'}
                               </span>
                               {isBestPrice && (
-                                <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-emerald-500/30">
+                                <span className="text-[9px] bg-brand-500/20 text-brand-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-brand-500/30">
                                   Mejor precio
                                 </span>
                               )}
@@ -567,8 +567,8 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
                       </div>
 
                       {q.fechaPropuesta && (
-                        <div className="flex items-center gap-1.5 text-[11px] text-emerald-300 mb-3">
-                          <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+                        <div className="flex items-center gap-1.5 text-[11px] text-brand-300 mb-3">
+                          <Calendar className="w-3.5 h-3.5 text-brand-400" />
                           <span>
                             📅 Cita propuesta:{' '}
                             <strong>{fmtFecha(q.fechaPropuesta)}</strong>
@@ -603,7 +603,7 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
                               )
                             }
                             disabled={updatingQuoteId === q.id}
-                            className="flex-1 px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+                            className="flex-1 px-3 py-2 bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-brand-300 text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
                           >
                             {updatingQuoteId === q.id ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -636,7 +636,7 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
           {request.messages && request.messages.length > 0 && (
             <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-4">
               <div className="flex items-center gap-2 pb-3 border-b border-zinc-800/60">
-                <Send className="w-4 h-4 text-indigo-400" />
+                <Send className="w-4 h-4 text-brand-400" />
                 <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">
                   Mensajes ({request.messages.length})
                 </h3>
@@ -647,13 +647,13 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
                     key={m.id}
                     className={`p-3 rounded-xl border ${
                       m.isAI
-                        ? 'bg-indigo-950/20 border-indigo-500/20'
+                        ? 'bg-brand-950/20 border-brand-500/20'
                         : 'bg-zinc-950/40 border-zinc-800/60'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
-                        {m.isAI && <Sparkles className="w-3 h-3 text-indigo-400" />}
+                        {m.isAI && <Sparkles className="w-3 h-3 text-brand-400" />}
                         {m.sender?.name || (m.isAI ? 'Asistente IA' : 'Usuario')}
                       </span>
                       <span className="text-[10px] text-zinc-500">
@@ -672,11 +672,11 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
           {request.vehicle && (
             <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-3">
               <div className="flex items-center gap-2 pb-3 border-b border-zinc-800/60">
-                <Car className="w-4 h-4 text-indigo-400" />
+                <Car className="w-4 h-4 text-brand-400" />
                 <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">Vehículo</h3>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-indigo-400">
+                <div className="w-12 h-12 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-brand-400">
                   <Car className="w-6 h-6" />
                 </div>
                 <div>
@@ -709,7 +709,7 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
 
           <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-3">
             <div className="flex items-center gap-2 pb-3 border-b border-zinc-800/60">
-              <Hash className="w-4 h-4 text-indigo-400" />
+              <Hash className="w-4 h-4 text-brand-400" />
               <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">Resumen</h3>
             </div>
             <div className="space-y-2 text-[11px]">
@@ -723,7 +723,7 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
               </div>
               <div className="flex items-center justify-between p-2 bg-zinc-950/60 rounded-lg">
                 <span className="text-zinc-500">Aceptadas</span>
-                <span className="text-emerald-400 font-bold">
+                <span className="text-brand-400 font-bold">
                   {request.quotes?.filter((q) => q.estado === 'ACCEPTED').length || 0}
                 </span>
               </div>

@@ -27,8 +27,8 @@ const STATUS_META: Record<string, { label: string; color: string; bg: string; ic
 };
 
 const CATEGORY_META: Record<string, { label: string; color: string; bg: string }> = {
-  REPUESTO: { label: 'Repuesto', color: 'text-indigo-400', bg: 'bg-indigo-500/10 border-indigo-500/20' },
-  TALLER: { label: 'Taller', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+  REPUESTO: { label: 'Repuesto', color: 'text-brand-400', bg: 'bg-brand-500/10 border-brand-500/20' },
+  TALLER: { label: 'Taller', color: 'text-brand-400', bg: 'bg-brand-500/10 border-brand-500/20' },
   GRUA: { label: 'Grúa', color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20' },
   CONSULTA: { label: 'Consulta', color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
 };
@@ -124,7 +124,7 @@ export default function AdminQuotesPage() {
         </div>
         <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl">
           <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">Aceptadas</p>
-          <p className="text-2xl font-extrabold text-emerald-400 mt-1">{stats.accepted}</p>
+          <p className="text-2xl font-extrabold text-brand-400 mt-1">{stats.accepted}</p>
         </div>
         <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl">
           <p className="text-[10px] text-red-400 font-bold uppercase tracking-wider">Rechazadas</p>
@@ -139,7 +139,7 @@ export default function AdminQuotesPage() {
         </div>
         <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl">
           <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">Valor aceptado</p>
-          <p className="text-xl font-extrabold text-emerald-400 font-mono mt-1">${stats.acceptedValue.toFixed(2)}</p>
+          <p className="text-xl font-extrabold text-brand-400 font-mono mt-1">${stats.acceptedValue.toFixed(2)}</p>
         </div>
       </div>
 
@@ -190,7 +190,7 @@ export default function AdminQuotesPage() {
               <div key={q.id} className="p-4 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-2xl flex items-center gap-4 transition-colors">
                 <div className="text-right shrink-0 hidden sm:block">
                   <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Precio</p>
-                  <p className="text-xl font-extrabold text-emerald-400 font-mono">${precioNum.toFixed(2)}</p>
+                  <p className="text-xl font-extrabold text-brand-400 font-mono">${precioNum.toFixed(2)}</p>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">

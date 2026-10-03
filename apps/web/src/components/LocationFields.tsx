@@ -64,7 +64,7 @@ export default function LocationFields({
             type="button"
             onClick={handleUseMyLocation}
             disabled={geoLoading}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-brand-300 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
           >
             {geoLoading ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -77,7 +77,7 @@ export default function LocationFields({
             href={mapsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 rounded-lg text-xs font-semibold transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-brand-300 rounded-lg text-xs font-semibold transition-colors"
           >
             <ExternalLink className="w-3.5 h-3.5" />
             Ver en Google Maps
@@ -98,7 +98,7 @@ export default function LocationFields({
             value={latitud}
             onChange={(e) => onLatitudChange(e.target.value)}
             placeholder="10.480600"
-            className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm font-mono"
+            className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm font-mono"
             required
           />
         </div>
@@ -112,15 +112,15 @@ export default function LocationFields({
             value={longitud}
             onChange={(e) => onLongitudChange(e.target.value)}
             placeholder="-66.903600"
-            className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm font-mono"
+            className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm font-mono"
             required
           />
         </div>
       </div>
 
       <p className="text-[11px] text-zinc-500">
-        Usa <span className="text-indigo-300">Mi ubicación</span> para llenarlas automáticamente, o ábrelos en{' '}
-        <span className="text-emerald-300">Google Maps</span> para ajustar el punto exacto y copiar las coordenadas.
+        Usa <span className="text-brand-300">Mi ubicación</span> para llenarlas automáticamente, o ábrelos en{' '}
+        <span className="text-brand-300">Google Maps</span> para ajustar el punto exacto y copiar las coordenadas.
       </p>
     </div>
   );

@@ -132,7 +132,7 @@ export default function WorkshopRequestsPage() {
   if (loading || loadingWorkshop) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -151,7 +151,7 @@ export default function WorkshopRequestsPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-zinc-100 flex items-center gap-2">
-          <ClipboardList className="w-6 h-6 text-emerald-400" />
+          <ClipboardList className="w-6 h-6 text-brand-400" />
           <span>Solicitudes de Taller</span>
         </h2>
         <p className="text-sm text-zinc-400">
@@ -179,7 +179,7 @@ export default function WorkshopRequestsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por título, descripción, cliente, vehículo..."
-            className="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 transition-colors text-sm"
+            className="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors text-sm"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -190,7 +190,7 @@ export default function WorkshopRequestsPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-200 text-xs font-semibold"
+            className="px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-200 text-xs font-semibold"
           >
             <option value="ALL">Todos</option>
             <option value="OPEN">Abierta</option>
@@ -237,7 +237,7 @@ export default function WorkshopRequestsPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0 space-y-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 border-emerald-500/20 text-emerald-400">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider bg-brand-500/10 border-brand-500/20 text-brand-400">
                         <Wrench className="w-3 h-3" /> TALLER
                       </span>
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${statusMeta.bg} ${statusMeta.color}`}>
@@ -251,14 +251,14 @@ export default function WorkshopRequestsPage() {
                         </span>
                       )}
                       {myQuoteStatus && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 border-emerald-500/20 text-emerald-400">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider bg-brand-500/10 border-brand-500/20 text-brand-400">
                           <CheckCircle2 className="w-3 h-3" />
                           Cotizado: {myQuoteStatus === 'ACCEPTED' ? 'Aceptada' : myQuoteStatus === 'REJECTED' ? 'Rechazada' : 'Pendiente'}
                         </span>
                       )}
                     </div>
                     <div>
-                      <h3 className="text-base font-bold text-zinc-100 group-hover:text-emerald-300 transition-colors">
+                      <h3 className="text-base font-bold text-zinc-100 group-hover:text-brand-300 transition-colors">
                         {r.titulo}
                       </h3>
                       <p className="text-xs text-zinc-500 mt-1 line-clamp-2">{r.descripcion}</p>
@@ -284,7 +284,7 @@ export default function WorkshopRequestsPage() {
                       </span>
                     </div>
                   </div>
-                  <div className="shrink-0 p-2 text-zinc-500 group-hover:text-emerald-400 transition-colors">
+                  <div className="shrink-0 p-2 text-zinc-500 group-hover:text-brand-400 transition-colors">
                     <ArrowRight className="w-5 h-5" />
                   </div>
                 </div>
@@ -306,7 +306,7 @@ export default function WorkshopRequestsPage() {
                     <button
                       onClick={(e) => handleAccept(e, r.id)}
                       disabled={actingId === r.id}
-                      className="px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-zinc-950 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 disabled:opacity-50"
+                      className="px-3 py-1.5 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 disabled:opacity-50"
                     >
                       {actingId === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                       Aceptar

@@ -39,7 +39,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-zinc-100 font-sans">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-10 h-10 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
           <span className="text-zinc-500 text-sm">Cargando aplicación...</span>
         </div>
       </div>
@@ -162,8 +162,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     switch (role) {
       case 'ADMIN': return { text: 'Admin', color: 'bg-red-500/10 text-red-400 border-red-500/20' };
       case 'PROVIDER': return { text: 'Proveedor', color: 'bg-amber-500/10 text-amber-400 border-amber-500/20' };
-      case 'WORKSHOP': return { text: 'Taller', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' };
-      case 'WORKSHOP_USER': return { text: user?.workshopUserRole === 'MECANICO' ? 'Mecánico' : 'Taller', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' };
+      case 'WORKSHOP': return { text: 'Taller', color: 'bg-brand-500/10 text-brand-400 border-brand-500/20' };
+      case 'WORKSHOP_USER': return { text: user?.workshopUserRole === 'MECANICO' ? 'Mecánico' : 'Taller', color: 'bg-brand-500/10 text-brand-400 border-brand-500/20' };
       case 'TOW_SERVICE': return { text: 'Grúa', color: 'bg-rose-500/10 text-rose-400 border-rose-500/20' };
       default: return { text: 'Cliente', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20' };
     }
@@ -179,12 +179,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div>
           {/* Logo */}
           <div className="p-6 border-b border-zinc-900 flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-tr from-indigo-500 to-emerald-400 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/10 shrink-0">
-              <Car className="w-4 h-4 text-zinc-950 font-bold" />
-            </div>
-            <span className="font-extrabold text-lg bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">
-              RepuestoIA
-            </span>
+            <img src="/logo/AosLogo.png" alt="AOSBolivia" className="h-8 w-auto shrink-0" />
           </div>
 
           {/* Nav Items */}
@@ -198,7 +193,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   href={item.href}
                   className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all ${
                     isActive 
-                      ? 'bg-zinc-900 border border-zinc-800 text-indigo-400' 
+                      ? 'bg-zinc-900 border border-zinc-800 text-brand-400' 
                       : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/40'
                   }`}
                 >
@@ -227,7 +222,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {isWorkshopUser && (
             <button
               onClick={openChangePwd}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-emerald-400 text-sm font-semibold rounded-2xl transition-all border border-zinc-800"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-brand-400 text-sm font-semibold rounded-2xl transition-all border border-zinc-800"
             >
               <KeyRound className="w-4 h-4" />
               <span>Cambiar contraseña</span>
@@ -276,7 +271,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                pathname.includes('/tow/requests') ? 'Solicitudes' :
                pathname.includes('vehicles') ? 'Mis Vehículos' :
                pathname.includes('new-request') ? 'Nueva Solicitud' :
-               pathname.includes('requests') ? 'Solicitudes' : 'RepuestoIA'}
+               pathname.includes('requests') ? 'Solicitudes' : 'AOSBolivia'}
             </h1>
           </div>
 
@@ -297,12 +292,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div>
                 <div className="flex items-center justify-between mb-8">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-gradient-to-tr from-indigo-500 to-emerald-400 rounded-xl flex items-center justify-center">
-                      <Car className="w-4 h-4 text-zinc-950 font-bold" />
-                    </div>
-                    <span className="font-extrabold text-lg text-zinc-100">
-                      RepuestoIA
-                    </span>
+                    <img src="/logo/AosLogo.png" alt="AOSBolivia" className="h-7 w-auto" />
                   </div>
                   <button
                     onClick={() => setMobileMenuOpen(false)}
@@ -323,7 +313,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         onClick={() => setMobileMenuOpen(false)}
                         className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all ${
                           isActive 
-                            ? 'bg-zinc-900 border border-zinc-800 text-indigo-400' 
+                            ? 'bg-zinc-900 border border-zinc-800 text-brand-400' 
                             : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/40'
                         }`}
                       >
@@ -354,7 +344,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       setMobileMenuOpen(false);
                       openChangePwd();
                     }}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-emerald-400 text-sm font-semibold rounded-2xl transition-all border border-zinc-800"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-brand-400 text-sm font-semibold rounded-2xl transition-all border border-zinc-800"
                   >
                     <KeyRound className="w-4 h-4" />
                     <span>Cambiar contraseña</span>
@@ -386,7 +376,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <form onSubmit={handleChangePwd} className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-zinc-100 flex items-center gap-2">
-                <KeyRound className="w-5 h-5 text-emerald-400" />
+                <KeyRound className="w-5 h-5 text-brand-400" />
                 Cambiar contraseña
               </h3>
               <button type="button" onClick={() => setShowChangePwd(false)} className="p-2 hover:bg-zinc-800 rounded-xl text-zinc-400 transition-colors">
@@ -414,7 +404,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   placeholder="Tu contraseña actual"
                   required
                   minLength={6}
-                  className="w-full px-4 pr-11 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+                  className="w-full px-4 pr-11 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
                 />
                 <button type="button" onClick={() => setPwdShow((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors" aria-label={pwdShow ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
                   {pwdShow ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -432,7 +422,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   placeholder="Mínimo 6 caracteres"
                   required
                   minLength={6}
-                  className="w-full px-4 pr-11 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+                  className="w-full px-4 pr-11 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
                 />
                 <button type="button" onClick={() => setPwdShow((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors" aria-label={pwdShow ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
                   {pwdShow ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -444,7 +434,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <button type="button" onClick={() => setShowChangePwd(false)} className="px-4 py-2.5 bg-zinc-950 border border-zinc-800 hover:bg-zinc-900 rounded-xl text-zinc-300 text-sm font-semibold transition-colors">
                 Cancelar
               </button>
-              <button type="submit" disabled={pwdLoading} className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-zinc-950 font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50">
+              <button type="submit" disabled={pwdLoading} className="px-5 py-2.5 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50">
                 {pwdLoading ? <><KeyRound className="w-4 h-4 animate-spin" /><span>Guardando...</span></> : <>Guardar</>}
               </button>
             </div>

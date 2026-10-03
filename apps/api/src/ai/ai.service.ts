@@ -67,7 +67,7 @@ export class AiService {
 
     // Saludo inicial
     if (messages.length === 1) {
-      return `¡Hola! Soy el asistente de RepuestoIA 🚗\n\nPuedo ayudarte a:\n• Encontrar **repuestos** para tu vehículo\n• Ubicar **talleres** cercanos\n• Solicitar **grúas** de emergencia\n• Resolver **dudas** sobre tu vehículo\n\n¿Qué necesitas hoy?`;
+      return `¡Hola! Soy el asistente de AOSBolivia 🚗\n\nPuedo ayudarte a:\n• Encontrar **repuestos** para tu vehículo\n• Ubicar **talleres** cercanos\n• Solicitar **grúas** de emergencia\n• Resolver **dudas** sobre tu vehículo\n\n¿Qué necesitas hoy?`;
     }
 
     // Palabras clave para repuestos

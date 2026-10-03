@@ -189,7 +189,7 @@ export default function NotificationCenter({
         className="p-2 hover:bg-zinc-900 rounded-xl text-zinc-400 relative"
         aria-label="Notificaciones"
       >
-        <Bell className={`w-5 h-5 ${unread > 0 ? 'text-emerald-400 animate-pulse' : ''}`} />
+        <Bell className={`w-5 h-5 ${unread > 0 ? 'text-brand-400 animate-pulse' : ''}`} />
         {unread > 0 && (
           <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
             {unread > 99 ? '99+' : unread}
@@ -207,7 +207,7 @@ export default function NotificationCenter({
                 {unread > 0 && (
                   <button
                     onClick={markAllRead}
-                    className="flex items-center gap-1 text-[11px] font-semibold text-emerald-400 hover:text-emerald-300"
+                    className="flex items-center gap-1 text-[11px] font-semibold text-brand-400 hover:text-brand-300"
                   >
                     <CheckCheck className="w-3.5 h-3.5" />
                     Marcar todas
@@ -232,7 +232,7 @@ export default function NotificationCenter({
                     }`}
                   >
                     <div className="flex items-start gap-2">
-                      {!n.leida && <span className="mt-1.5 w-2 h-2 rounded-full bg-emerald-400 shrink-0" />}
+                      {!n.leida && <span className="mt-1.5 w-2 h-2 rounded-full bg-brand-400 shrink-0" />}
                       <div className={n.leida ? 'w-full' : 'flex-1 min-w-0'}>
                         <p className="text-xs font-bold text-zinc-200">{n.titulo}</p>
                         <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">{n.mensaje}</p>
@@ -263,11 +263,11 @@ export default function NotificationCenter({
             setToast(null);
             openPanel();
           }}
-          className="fixed top-20 right-4 z-50 w-80 max-w-[90vw] bg-zinc-900 border border-emerald-600/60 rounded-2xl shadow-2xl shadow-emerald-500/10 p-4 cursor-pointer animate-in slide-in-from-right duration-300"
+          className="fixed top-20 right-4 z-50 w-80 max-w-[90vw] bg-zinc-900 border border-brand-600/60 rounded-2xl shadow-2xl shadow-brand-500/10 p-4 cursor-pointer animate-in slide-in-from-right duration-300"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-xs font-extrabold text-emerald-400 flex items-center gap-1.5">
+              <p className="text-xs font-extrabold text-brand-400 flex items-center gap-1.5">
                 <Bell className="w-3.5 h-3.5 animate-pulse" />
                 {toast.titulo}
               </p>

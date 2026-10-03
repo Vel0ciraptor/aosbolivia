@@ -145,7 +145,7 @@ export default function ProviderRequestDetailPage({ params }: { params: Promise<
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -184,7 +184,7 @@ export default function ProviderRequestDetailPage({ params }: { params: Promise<
         </Link>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2 mb-1">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider bg-indigo-500/10 border-indigo-500/20 text-indigo-400">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider bg-brand-500/10 border-brand-500/20 text-brand-400">
               <Tag className="w-3 h-3" /> REPUESTO
             </span>
             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${statusMeta.bg} ${statusMeta.color}`}>
@@ -193,7 +193,7 @@ export default function ProviderRequestDetailPage({ params }: { params: Promise<
             </span>
             {myQuote && (
               <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${
-                myQuote.estado === 'ACCEPTED' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
+                myQuote.estado === 'ACCEPTED' ? 'bg-brand-500/10 border-brand-500/20 text-brand-400' :
                 myQuote.estado === 'REJECTED' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
                 'bg-amber-500/10 border-amber-500/20 text-amber-400'
               }`}>
@@ -229,7 +229,7 @@ export default function ProviderRequestDetailPage({ params }: { params: Promise<
         <div className="lg:col-span-2 space-y-6">
           <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-4">
             <div className="flex items-center gap-2 pb-3 border-b border-zinc-800/60">
-              <FileText className="w-4 h-4 text-indigo-400" />
+              <FileText className="w-4 h-4 text-brand-400" />
               <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">Descripción del Cliente</h3>
             </div>
             <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
@@ -247,9 +247,9 @@ export default function ProviderRequestDetailPage({ params }: { params: Promise<
           </div>
 
           {request.aiParsed && (
-            <div className="p-6 bg-gradient-to-br from-indigo-950/30 to-zinc-900 border border-indigo-500/20 rounded-2xl space-y-4">
-              <div className="flex items-center gap-2 pb-3 border-b border-indigo-500/20">
-                <Sparkles className="w-4 h-4 text-indigo-400" />
+            <div className="p-6 bg-gradient-to-br from-brand-950/30 to-zinc-900 border border-brand-500/20 rounded-2xl space-y-4">
+              <div className="flex items-center gap-2 pb-3 border-b border-brand-500/20">
+                <Sparkles className="w-4 h-4 text-brand-400" />
                 <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">Datos Detectados</h3>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -272,8 +272,8 @@ export default function ProviderRequestDetailPage({ params }: { params: Promise<
                   </div>
                 )}
                 {request.aiParsed.pieza && (
-                  <div className="p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-xl">
-                    <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider">Pieza</p>
+                  <div className="p-3 bg-brand-500/10 border border-brand-500/30 rounded-xl">
+                    <p className="text-[10px] text-brand-400 font-bold uppercase tracking-wider">Pieza</p>
                     <p className="text-sm text-zinc-100 font-bold mt-0.5 capitalize">{request.aiParsed.pieza}</p>
                   </div>
                 )}
@@ -284,11 +284,11 @@ export default function ProviderRequestDetailPage({ params }: { params: Promise<
           {request.vehicle && (
             <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-3">
               <div className="flex items-center gap-2 pb-3 border-b border-zinc-800/60">
-                <Car className="w-4 h-4 text-indigo-400" />
+                <Car className="w-4 h-4 text-brand-400" />
                 <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">Vehículo del Cliente</h3>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-indigo-400">
+                <div className="w-12 h-12 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-brand-400">
                   <Car className="w-6 h-6" />
                 </div>
                 <div>
@@ -319,7 +319,7 @@ export default function ProviderRequestDetailPage({ params }: { params: Promise<
             <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-3">
               <div className="flex items-center justify-between pb-3 border-b border-zinc-800/60">
                 <div className="flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-indigo-400" />
+                  <MessageSquare className="w-4 h-4 text-brand-400" />
                   <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">
                     Competencia ({request.quotes.length})
                   </h3>
@@ -339,7 +339,7 @@ export default function ProviderRequestDetailPage({ params }: { params: Promise<
                       key={q.id}
                       className={`p-3 rounded-xl border flex items-center justify-between gap-3 ${
                         isMine
-                          ? 'bg-indigo-500/10 border-indigo-500/30'
+                          ? 'bg-brand-500/10 border-brand-500/30'
                           : 'bg-zinc-950/40 border-zinc-800/60'
                       }`}
                     >
@@ -368,7 +368,7 @@ export default function ProviderRequestDetailPage({ params }: { params: Promise<
         <div className="space-y-4">
           <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-3">
             <div className="flex items-center gap-2 pb-3 border-b border-zinc-800/60">
-              <UserIcon className="w-4 h-4 text-indigo-400" />
+              <UserIcon className="w-4 h-4 text-brand-400" />
               <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">Cliente</h3>
             </div>
             <div className="flex items-center gap-3">
@@ -391,9 +391,9 @@ export default function ProviderRequestDetailPage({ params }: { params: Promise<
           </div>
 
           {canQuote ? (
-            <form onSubmit={handleSubmitQuote} className="p-6 bg-gradient-to-br from-emerald-950/30 to-zinc-900 border border-emerald-500/20 rounded-2xl space-y-4">
+            <form onSubmit={handleSubmitQuote} className="p-6 bg-gradient-to-br from-brand-950/30 to-zinc-900 border border-brand-500/20 rounded-2xl space-y-4">
               <div className="flex items-center gap-2">
-                <Send className="w-4 h-4 text-emerald-400" />
+                <Send className="w-4 h-4 text-brand-400" />
                 <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">Enviar Cotización</h3>
               </div>
 
@@ -408,7 +408,7 @@ export default function ProviderRequestDetailPage({ params }: { params: Promise<
                   value={precio}
                   onChange={(e) => setPrecio(e.target.value)}
                   placeholder="85.00"
-                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 transition-colors text-sm font-mono"
+                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors text-sm font-mono"
                   required
                 />
               </div>
@@ -422,7 +422,7 @@ export default function ProviderRequestDetailPage({ params }: { params: Promise<
                   value={tiempoEntrega}
                   onChange={(e) => setTiempoEntrega(e.target.value)}
                   placeholder="Ej: 2-3 días hábiles"
-                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 transition-colors text-sm"
+                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors text-sm"
                 />
               </div>
 
@@ -433,14 +433,14 @@ export default function ProviderRequestDetailPage({ params }: { params: Promise<
                   onChange={(e) => setComentario(e.target.value)}
                   rows={3}
                   placeholder="Repuesto original, garantía de 6 meses, envío gratis..."
-                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 transition-colors text-sm resize-none"
+                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors text-sm resize-none"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-zinc-950 font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full px-4 py-2.5 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {submitting ? (
                   <>
@@ -481,7 +481,7 @@ export default function ProviderRequestDetailPage({ params }: { params: Promise<
                 <div className="flex items-center justify-between p-2 bg-zinc-950/60 rounded-lg">
                   <span className="text-zinc-500">Estado</span>
                   <span className={`font-bold ${
-                    myQuote.estado === 'ACCEPTED' ? 'text-emerald-400' :
+                    myQuote.estado === 'ACCEPTED' ? 'text-brand-400' :
                     myQuote.estado === 'REJECTED' ? 'text-red-400' : 'text-amber-400'
                   }`}>
                     {myQuote.estado === 'ACCEPTED' ? 'Aceptada' : myQuote.estado === 'REJECTED' ? 'Rechazada' : 'Pendiente'}

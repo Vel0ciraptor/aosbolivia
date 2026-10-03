@@ -103,7 +103,7 @@ export default function VehiclesPage() {
         </div>
         <button
           onClick={handleOpenModal}
-          className="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-emerald-500 text-zinc-950 font-bold rounded-xl flex items-center gap-2 hover:shadow-lg hover:shadow-indigo-500/10 transition-all transform active:scale-95 text-sm"
+          className="px-4 py-2.5 bg-gradient-to-r from-brand-500 to-brand-500 text-white font-bold rounded-xl flex items-center gap-2 hover:shadow-lg hover:shadow-brand-500/10 transition-all transform active:scale-95 text-sm"
         >
           <Plus className="w-4 h-4" />
           <span>Agregar Vehículo</span>
@@ -112,7 +112,7 @@ export default function VehiclesPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : vehicles.length === 0 ? (
         <div className="p-12 bg-zinc-900/30 border border-zinc-800/80 border-dashed rounded-3xl text-center">
@@ -140,7 +140,7 @@ export default function VehiclesPage() {
               <div className="space-y-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500/10 group-hover:text-indigo-400 transition-colors">
+                    <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-brand-400 group-hover:bg-brand-500/10 group-hover:text-brand-400 transition-colors">
                       <Car className="w-5 h-5" />
                     </div>
                     <div>
@@ -208,7 +208,7 @@ export default function VehiclesPage() {
                     placeholder="Toyota"
                     value={marca}
                     onChange={(e) => setMarca(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-100 transition-colors text-sm"
+                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors text-sm"
                   />
                 </div>
                 <div className="space-y-1">
@@ -218,7 +218,7 @@ export default function VehiclesPage() {
                     placeholder="Hilux"
                     value={modelo}
                     onChange={(e) => setModelo(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-100 transition-colors text-sm"
+                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors text-sm"
                   />
                 </div>
                 <div className="space-y-1">
@@ -228,7 +228,7 @@ export default function VehiclesPage() {
                     placeholder="2019"
                     value={anio}
                     onChange={(e) => setAnio(Number(e.target.value))}
-                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-100 transition-colors text-sm"
+                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors text-sm"
                   />
                 </div>
                 <div className="space-y-1">
@@ -238,7 +238,7 @@ export default function VehiclesPage() {
                     placeholder="2.8 TDI"
                     value={motor}
                     onChange={(e) => setMotor(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-100 transition-colors text-sm"
+                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors text-sm"
                   />
                 </div>
                 <div className="space-y-1">
@@ -246,7 +246,7 @@ export default function VehiclesPage() {
                   <select
                     value={combustible}
                     onChange={(e) => setCombustible(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-100 transition-colors text-sm"
+                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors text-sm"
                   >
                     <option value="Gasolina">Gasolina</option>
                     <option value="Diesel">Diesel</option>
@@ -261,7 +261,7 @@ export default function VehiclesPage() {
                     placeholder="ABC-123"
                     value={placa}
                     onChange={(e) => setPlaca(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-100 transition-colors text-sm"
+                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors text-sm"
                   />
                 </div>
                 <div className="col-span-2 space-y-1">
@@ -271,7 +271,7 @@ export default function VehiclesPage() {
                     placeholder="17 dígitos..."
                     value={vin}
                     onChange={(e) => setVin(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-100 transition-colors text-sm"
+                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors text-sm"
                   />
                 </div>
               </div>
@@ -286,7 +286,7 @@ export default function VehiclesPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-emerald-500 hover:from-indigo-600 hover:to-emerald-600 text-zinc-950 font-bold rounded-xl text-sm transition-all"
+                  className="px-5 py-2.5 bg-gradient-to-r from-brand-500 to-brand-500 hover:from-brand-600 hover:to-brand-600 text-white font-bold rounded-xl text-sm transition-all"
                 >
                   Guardar Vehículo
                 </button>

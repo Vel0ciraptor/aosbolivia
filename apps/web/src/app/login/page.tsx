@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '../../store/useAuthStore';
-import { KeyRound, Mail, AlertCircle, ArrowRight, Car, Eye, EyeOff } from 'lucide-react';
+import { KeyRound, Mail, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -44,20 +44,15 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-950 text-zinc-100 relative overflow-hidden font-sans">
       {/* Background Gradients */}
-      <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-indigo-900/20 rounded-full blur-[120px]" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-emerald-900/20 rounded-full blur-[120px]" />
+      <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-brand-900/20 rounded-full blur-[120px]" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-brand-900/20 rounded-full blur-[120px]" />
 
       <div className="w-full max-w-md p-8 bg-zinc-900/50 backdrop-blur-xl border border-zinc-800 rounded-3xl shadow-2xl relative z-10 mx-4">
         
         {/* Brand */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 bg-gradient-to-tr from-indigo-500 to-emerald-400 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 mb-3">
-            <Car className="w-6 h-6 text-zinc-950 font-bold" />
-          </div>
-          <h2 className="text-3xl font-extrabold bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
-            RepuestoIA
-          </h2>
-          <p className="text-sm text-zinc-500 mt-1">Plataforma Integral Automotriz</p>
+          <img src="/logo/AosLogo.png" alt="AOSBolivia" className="h-14 w-auto mb-3" />
+          <p className="text-sm text-zinc-500 mt-1">Repuestos Autotrices con IA</p>
         </div>
 
         {/* Errors */}
@@ -79,7 +74,7 @@ export default function LoginPage() {
                 placeholder="correo@ejemplo.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-2xl focus:outline-none focus:border-indigo-500 text-zinc-100 transition-colors placeholder:text-zinc-600"
+                className="w-full pl-12 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-2xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors placeholder:text-zinc-600"
               />
             </div>
           </div>
@@ -88,7 +83,7 @@ export default function LoginPage() {
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <label className="text-sm font-medium text-zinc-300 block">Contraseña</label>
-              <Link href="/forgot-password" className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold transition-colors">
+              <Link href="/forgot-password" className="text-xs text-brand-400 hover:text-brand-300 font-semibold transition-colors">
                 ¿Olvidaste tu contraseña?
               </Link>
             </div>
@@ -99,7 +94,7 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-12 pr-12 py-3 bg-zinc-950 border border-zinc-800 rounded-2xl focus:outline-none focus:border-indigo-500 text-zinc-100 transition-colors placeholder:text-zinc-600"
+                className="w-full pl-12 pr-12 py-3 bg-zinc-950 border border-zinc-800 rounded-2xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors placeholder:text-zinc-600"
               />
               <button
                 type="button"
@@ -116,10 +111,10 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-4 bg-gradient-to-r from-indigo-500 to-emerald-500 hover:from-indigo-600 hover:to-emerald-600 text-zinc-950 font-bold rounded-2xl shadow-lg transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full py-4 bg-gradient-to-r from-brand-500 to-brand-500 hover:from-brand-600 hover:to-brand-600 text-white font-bold rounded-2xl shadow-lg transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {isLoading ? (
-              <div className="w-5 h-5 border-2 border-zinc-950 border-t-transparent rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
               <>
                 Ingresar <ArrowRight className="w-4 h-4" />
@@ -131,7 +126,7 @@ export default function LoginPage() {
         {/* Footer */}
         <div className="mt-8 text-center text-sm text-zinc-500">
           ¿No tienes una cuenta?{' '}
-          <Link href="/register" className="text-emerald-400 hover:text-emerald-300 font-semibold transition-colors">
+          <Link href="/register" className="text-brand-400 hover:text-brand-300 font-semibold transition-colors">
             Regístrate aquí
           </Link>
         </div>

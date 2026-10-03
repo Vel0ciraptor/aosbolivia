@@ -252,8 +252,8 @@ export default function TowProfilePage() {
           onLongitudChange={setLongitud}
         />
 
-        <div className="p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-xl">
-          <p className="text-[11px] text-indigo-300">
+        <div className="p-3 bg-brand-500/5 border border-brand-500/10 rounded-xl">
+          <p className="text-[11px] text-brand-300">
             💡 Las coordenadas son tu base de operaciones. Se usan para calcular distancias y
             filtrar solicitudes dentro de tu radio de cobertura.
           </p>

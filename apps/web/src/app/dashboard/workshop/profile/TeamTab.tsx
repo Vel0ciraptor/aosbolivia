@@ -33,7 +33,7 @@ const ROLE_CONFIG: Record<string, { label: string; color: string; icon: any; des
   },
   MECANICO: {
     label: 'Mecánico',
-    color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    color: 'bg-brand-500/10 text-brand-400 border-brand-500/20',
     icon: Wrench,
     description: 'Ver trabajos, Usar piezas, Subir fotos',
   },
@@ -185,7 +185,7 @@ export default function TeamTab({ workshopName }: TeamTabProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -195,14 +195,14 @@ export default function TeamTab({ workshopName }: TeamTabProps) {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-bold text-zinc-100 flex items-center gap-2">
-            <Users className="w-5 h-5 text-emerald-400" />
+            <Users className="w-5 h-5 text-brand-400" />
             Equipo del Taller
           </h3>
           <p className="text-sm text-zinc-400 mt-1">Gestiona los accesos de tu equipo</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-zinc-950 font-bold rounded-xl text-sm transition-all flex items-center gap-2"
+          className="px-4 py-2.5 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
           Nuevo Acceso
@@ -298,10 +298,10 @@ export default function TeamTab({ workshopName }: TeamTabProps) {
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold ${
                           user.status === 'ACTIVE'
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            ? 'bg-brand-500/10 text-brand-400 border border-brand-500/20'
                             : 'bg-zinc-500/10 text-zinc-400 border border-zinc-500/20'
                         }`}>
-                          <div className={`w-1.5 h-1.5 rounded-full ${user.status === 'ACTIVE' ? 'bg-emerald-400' : 'bg-zinc-500'}`} />
+                          <div className={`w-1.5 h-1.5 rounded-full ${user.status === 'ACTIVE' ? 'bg-brand-400' : 'bg-zinc-500'}`} />
                           {user.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
                         </span>
                       </td>
@@ -320,7 +320,7 @@ export default function TeamTab({ workshopName }: TeamTabProps) {
                           </button>
                           <button
                             onClick={() => setShowResetModal(user)}
-                            className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-emerald-400 transition-colors"
+                            className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-brand-400 transition-colors"
                             title="Cambiar contraseña"
                           >
                             <KeyRound className="w-4 h-4" />
@@ -430,7 +430,7 @@ function CreateUserModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Juan Pérez"
-              className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+              className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
               required
             />
           </div>
@@ -443,7 +443,7 @@ function CreateUserModal({
                 value={emailPrefix}
                 onChange={(e) => setEmailPrefix(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
                 placeholder="juan"
-                className="flex-1 px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-l-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm font-mono"
+                className="flex-1 px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-l-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm font-mono"
                 required
               />
               <span className="px-3 py-2.5 bg-zinc-950 border border-l-0 border-zinc-800 rounded-r-xl text-zinc-500 text-sm font-mono">
@@ -459,7 +459,7 @@ function CreateUserModal({
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+58 412 1234567"
-              className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+              className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
             />
           </div>
 
@@ -468,7 +468,7 @@ function CreateUserModal({
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+              className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
               required
             >
               <option value="">Seleccionar rol</option>
@@ -479,8 +479,8 @@ function CreateUserModal({
           </div>
 
           {role && (
-            <div className="p-3 bg-emerald-500/5 border border-emerald-500/10 rounded-xl">
-              <p className="text-[11px] text-emerald-300">
+            <div className="p-3 bg-brand-500/5 border border-brand-500/10 rounded-xl">
+              <p className="text-[11px] text-brand-300">
                 💡 Se generará una contraseña automática que verás al crear el usuario.
               </p>
             </div>
@@ -497,7 +497,7 @@ function CreateUserModal({
             <button
               type="submit"
               disabled={loading || !name || !emailPrefix || !role}
-              className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-zinc-950 font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50"
+              className="px-5 py-2.5 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50"
             >
               {loading ? (
                 <>
@@ -556,7 +556,7 @@ function EditUserModal({
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+              className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
               required
             />
           </div>
@@ -578,7 +578,7 @@ function EditUserModal({
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+58 412 1234567"
-              className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+              className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
             />
           </div>
 
@@ -587,7 +587,7 @@ function EditUserModal({
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+              className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
               required
             >
               {Object.entries(ROLE_CONFIG).map(([key, config]) => (
@@ -607,7 +607,7 @@ function EditUserModal({
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-zinc-950 font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50"
+              className="px-5 py-2.5 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50"
             >
               {loading ? (
                 <>
@@ -649,8 +649,8 @@ function CredentialsModal({
           </button>
         </div>
 
-        <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-xl space-y-3">
-          <p className="text-sm text-emerald-300 font-semibold">Guarda estas credenciales, no se volverán a mostrar:</p>
+        <div className="p-4 bg-brand-500/5 border border-brand-500/20 rounded-xl space-y-3">
+          <p className="text-sm text-brand-300 font-semibold">Guarda estas credenciales, no se volverán a mostrar:</p>
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <span className="text-xs text-zinc-400 w-16">Nombre:</span>
@@ -686,7 +686,7 @@ function CredentialsModal({
 
         <button
           onClick={onClose}
-          className="w-full px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-zinc-950 font-bold rounded-xl text-sm transition-all"
+          className="w-full px-4 py-2.5 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-bold rounded-xl text-sm transition-all"
         >
           Entendido
         </button>
@@ -720,7 +720,7 @@ function ResetPasswordModal({
       <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-5">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-bold text-zinc-100 flex items-center gap-2">
-            <KeyRound className="w-5 h-5 text-emerald-400" />
+            <KeyRound className="w-5 h-5 text-brand-400" />
             Cambiar contraseña
           </h3>
           <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400">
@@ -743,7 +743,7 @@ function ResetPasswordModal({
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Mínimo 6 caracteres"
                 minLength={6}
-                className="w-full px-4 pr-11 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+                className="w-full px-4 pr-11 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
               />
               <button
                 type="button"
@@ -770,7 +770,7 @@ function ResetPasswordModal({
             <button
               type="submit"
               disabled={loading || (!!password && password.length < 6)}
-              className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-zinc-950 font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50"
+              className="px-5 py-2.5 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50"
             >
               {loading ? (
                 <>

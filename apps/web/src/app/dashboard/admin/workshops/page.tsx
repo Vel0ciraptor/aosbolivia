@@ -83,7 +83,7 @@ export default function AdminWorkshopsPage() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-zinc-100 flex items-center gap-2">
-            <Wrench className="w-6 h-6 text-emerald-400" />
+            <Wrench className="w-6 h-6 text-brand-400" />
             <span>Gestión de Talleres</span>
           </h2>
           <p className="text-sm text-zinc-400">Administra los talleres mecánicos de la plataforma.</p>
@@ -103,7 +103,7 @@ export default function AdminWorkshopsPage() {
         </div>
         <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl">
           <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">Activos</p>
-          <p className="text-2xl font-extrabold text-emerald-400 mt-1">{stats.active}</p>
+          <p className="text-2xl font-extrabold text-brand-400 mt-1">{stats.active}</p>
         </div>
       </div>
 
@@ -114,7 +114,7 @@ export default function AdminWorkshopsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por nombre, descripción, dirección..."
-            className="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+            className="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
           />
         </div>
         <select
@@ -131,7 +131,7 @@ export default function AdminWorkshopsPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
         <div className="p-12 bg-zinc-900/30 border border-zinc-800/80 border-dashed rounded-3xl text-center">
@@ -149,7 +149,7 @@ export default function AdminWorkshopsPage() {
             return (
               <div key={w.id} className="p-5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-2xl flex flex-col gap-3 transition-colors">
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-400 shrink-0">
                     <Wrench className="w-5 h-5" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -182,7 +182,7 @@ export default function AdminWorkshopsPage() {
                     className={`flex-1 px-3 py-1.5 text-[10px] font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 disabled:opacity-30 ${
                       w.estado === 'ACTIVE'
                         ? 'bg-zinc-950 hover:bg-red-950/30 border border-zinc-800 hover:border-red-900/30 text-zinc-400 hover:text-red-400'
-                        : 'bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300'
+                        : 'bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-brand-300'
                     }`}
                   >
                     {w.estado === 'ACTIVE' ? 'Suspender' : 'Activar'}

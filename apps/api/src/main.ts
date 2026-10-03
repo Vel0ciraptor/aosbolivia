@@ -38,7 +38,7 @@ async function bootstrap() {
 
   // Swagger / OpenAPI
   const config = new DocumentBuilder()
-    .setTitle('RepuestoIA API')
+    .setTitle('AOSBolivia API')
     .setDescription('Plataforma Integral de Servicios Automotrices')
     .setVersion('1.0')
     .addBearerAuth()
@@ -48,7 +48,7 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3004;
   await app.listen(port);
-  console.log(`🚀 RepuestoIA API running on http://localhost:${port}`);
+  console.log(`🚀 AOSBolivia API running on http://localhost:${port}`);
   console.log(`📚 Swagger docs: http://localhost:${port}/api/docs`);
 }
 

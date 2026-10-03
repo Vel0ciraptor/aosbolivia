@@ -185,7 +185,7 @@ export default function CatalogPage() {
   if (loading || loadingProvider) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -208,7 +208,7 @@ export default function CatalogPage() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-zinc-100 flex items-center gap-2">
-            <Package className="w-6 h-6 text-indigo-400" />
+            <Package className="w-6 h-6 text-brand-400" />
             <span>Mi Catálogo</span>
           </h2>
           <p className="text-sm text-zinc-400">Gestiona los repuestos que ofreces a los clientes.</p>
@@ -222,7 +222,7 @@ export default function CatalogPage() {
           </Link>
           <button
             onClick={openCreate}
-            className="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-emerald-500 text-zinc-950 font-bold text-sm rounded-xl hover:shadow-lg transition-all flex items-center gap-2"
+            className="px-4 py-2.5 bg-gradient-to-r from-brand-500 to-brand-500 text-white font-bold text-sm rounded-xl hover:shadow-lg transition-all flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             <span>Agregar Repuesto</span>
@@ -241,7 +241,7 @@ export default function CatalogPage() {
         </div>
         <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl col-span-2 md:col-span-1">
           <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Valor Inventario</p>
-          <p className="text-2xl font-extrabold text-emerald-400 mt-1">${totalValue.toFixed(2)}</p>
+          <p className="text-2xl font-extrabold text-brand-400 mt-1">${totalValue.toFixed(2)}</p>
         </div>
       </div>
 
@@ -252,7 +252,7 @@ export default function CatalogPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por nombre, marca o modelo..."
-            className="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-100 transition-colors text-sm"
+            className="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors text-sm"
           />
         </div>
         <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer select-none px-3">
@@ -260,7 +260,7 @@ export default function CatalogPage() {
             type="checkbox"
             checked={showInactive}
             onChange={(e) => setShowInactive(e.target.checked)}
-            className="w-4 h-4 rounded border-zinc-700 bg-zinc-950 text-indigo-500 focus:ring-indigo-500"
+            className="w-4 h-4 rounded border-zinc-700 bg-zinc-950 text-brand-500 focus:ring-brand-500"
           />
           Mostrar inactivos
         </label>
@@ -311,7 +311,7 @@ export default function CatalogPage() {
                   </span>
                 )}
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-indigo-400 shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-brand-400 shrink-0">
                     <Package className="w-5 h-5" />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -328,7 +328,7 @@ export default function CatalogPage() {
                 <div className="flex items-end justify-between pt-3 border-t border-zinc-800/60">
                   <div>
                     <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Precio</p>
-                    <p className="text-xl font-extrabold text-emerald-400 font-mono">${precioNum.toFixed(2)}</p>
+                    <p className="text-xl font-extrabold text-brand-400 font-mono">${precioNum.toFixed(2)}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Stock</p>
@@ -341,7 +341,7 @@ export default function CatalogPage() {
                   {isInactive ? (
                     <button
                       onClick={() => handleReactivate(p)}
-                      className="flex-1 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold rounded-lg transition-colors"
+                      className="flex-1 px-3 py-1.5 bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-brand-300 text-xs font-bold rounded-lg transition-colors"
                     >
                       Reactivar
                     </button>
@@ -379,7 +379,7 @@ export default function CatalogPage() {
             </button>
 
             <h3 className="text-xl font-bold text-zinc-200 mb-1 flex items-center gap-2">
-              <Package className="w-5 h-5 text-indigo-400" />
+              <Package className="w-5 h-5 text-brand-400" />
               {editingPart ? 'Editar Repuesto' : 'Nuevo Repuesto'}
             </h3>
             <p className="text-xs text-zinc-500 mb-6">
@@ -403,7 +403,7 @@ export default function CatalogPage() {
                   value={form.nombre}
                   onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                   placeholder="Ej: Bomba de Gasolina Toyota Hilux"
-                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-100 text-sm"
+                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
                 />
               </div>
 
@@ -414,7 +414,7 @@ export default function CatalogPage() {
                   onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
                   rows={2}
                   placeholder="Características, marca OEM, garantía..."
-                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-100 text-sm resize-none"
+                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm resize-none"
                 />
               </div>
 
@@ -428,7 +428,7 @@ export default function CatalogPage() {
                     value={form.marca}
                     onChange={(e) => setForm({ ...form, marca: e.target.value })}
                     placeholder="Toyota"
-                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-100 text-sm"
+                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -438,7 +438,7 @@ export default function CatalogPage() {
                     value={form.modelo}
                     onChange={(e) => setForm({ ...form, modelo: e.target.value })}
                     placeholder="Hilux"
-                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-100 text-sm"
+                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -447,7 +447,7 @@ export default function CatalogPage() {
                     type="number"
                     value={form.anioDesde}
                     onChange={(e) => setForm({ ...form, anioDesde: Number(e.target.value) })}
-                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-100 text-sm"
+                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -456,7 +456,7 @@ export default function CatalogPage() {
                     type="number"
                     value={form.anioHasta}
                     onChange={(e) => setForm({ ...form, anioHasta: Number(e.target.value) })}
-                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-100 text-sm"
+                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
                   />
                 </div>
               </div>
@@ -473,7 +473,7 @@ export default function CatalogPage() {
                     value={form.precio}
                     onChange={(e) => setForm({ ...form, precio: e.target.value })}
                     placeholder="85.00"
-                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-100 text-sm font-mono"
+                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm font-mono"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -485,7 +485,7 @@ export default function CatalogPage() {
                     min="0"
                     value={form.stock}
                     onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })}
-                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-100 text-sm font-mono"
+                    className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm font-mono"
                   />
                 </div>
               </div>
@@ -501,7 +501,7 @@ export default function CatalogPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-emerald-500 hover:from-indigo-600 hover:to-emerald-600 text-zinc-950 font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50"
+                  className="px-5 py-2.5 bg-gradient-to-r from-brand-500 to-brand-500 hover:from-brand-600 hover:to-brand-600 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50"
                 >
                   {saving ? (
                     <>

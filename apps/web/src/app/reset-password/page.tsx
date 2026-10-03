@@ -47,12 +47,12 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-950 text-zinc-100 relative overflow-hidden font-sans">
-      <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-indigo-900/20 rounded-full blur-[120px]" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-emerald-900/20 rounded-full blur-[120px]" />
+      <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-brand-900/20 rounded-full blur-[120px]" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-brand-900/20 rounded-full blur-[120px]" />
 
       <div className="w-full max-w-md p-8 bg-zinc-900/50 backdrop-blur-xl border border-zinc-800 rounded-3xl shadow-2xl relative z-10 mx-4">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 bg-gradient-to-tr from-indigo-500 to-emerald-400 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 mb-3">
+          <div className="w-12 h-12 bg-gradient-to-tr from-brand-500 to-brand-400 rounded-2xl flex items-center justify-center shadow-lg shadow-brand-500/20 mb-3">
             <Car className="w-6 h-6 text-zinc-950 font-bold" />
           </div>
           <h2 className="text-2xl font-extrabold bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
@@ -84,7 +84,7 @@ export default function ResetPasswordPage() {
           </div>
         ) : done ? (
           <div className="space-y-6 text-center">
-            <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-center mx-auto">
+            <div className="w-16 h-16 bg-brand-500/10 border border-brand-500/30 rounded-2xl flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-8 h-8 text-emerald-400" />
             </div>
             <p className="text-sm text-zinc-300 leading-relaxed">
@@ -92,7 +92,7 @@ export default function ResetPasswordPage() {
             </p>
             <Link
               href="/login"
-              className="inline-flex items-center gap-2 py-3 px-6 bg-gradient-to-r from-indigo-500 to-emerald-500 hover:from-indigo-600 hover:to-emerald-600 text-zinc-950 font-bold rounded-2xl transition-all"
+              className="inline-flex items-center gap-2 py-3 px-6 bg-gradient-to-r from-brand-500 to-brand-500 hover:from-brand-600 hover:to-brand-600 text-white font-bold rounded-2xl transition-all"
             >
               Iniciar sesión <ArrowRight className="w-4 h-4" />
             </Link>
@@ -108,7 +108,7 @@ export default function ResetPasswordPage() {
                   placeholder="Mínimo 6 caracteres"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-12 pr-12 py-3 bg-zinc-950 border border-zinc-800 rounded-2xl focus:outline-none focus:border-indigo-500 text-zinc-100 transition-colors placeholder:text-zinc-600"
+                  className="w-full pl-12 pr-12 py-3 bg-zinc-950 border border-zinc-800 rounded-2xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors placeholder:text-zinc-600"
                   autoFocus
                 />
                 <button
@@ -131,7 +131,7 @@ export default function ResetPasswordPage() {
                   placeholder="Repite la contraseña"
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
-                  className="w-full pl-12 pr-12 py-3 bg-zinc-950 border border-zinc-800 rounded-2xl focus:outline-none focus:border-indigo-500 text-zinc-100 transition-colors placeholder:text-zinc-600"
+                  className="w-full pl-12 pr-12 py-3 bg-zinc-950 border border-zinc-800 rounded-2xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors placeholder:text-zinc-600"
                 />
                 <button
                   type="button"
@@ -147,10 +147,10 @@ export default function ResetPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 bg-gradient-to-r from-indigo-500 to-emerald-500 hover:from-indigo-600 hover:to-emerald-600 text-zinc-950 font-bold rounded-2xl shadow-lg transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-4 bg-gradient-to-r from-brand-500 to-brand-500 hover:from-brand-600 hover:to-brand-600 text-white font-bold rounded-2xl shadow-lg transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {loading ? (
-                <div className="w-5 h-5 border-2 border-zinc-950 border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
                 <>
                   Guardar contraseña <ArrowRight className="w-4 h-4" />

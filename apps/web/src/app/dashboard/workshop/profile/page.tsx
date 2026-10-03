@@ -174,7 +174,7 @@ export default function WorkshopProfilePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -208,7 +208,7 @@ export default function WorkshopProfilePage() {
         </Link>
         <div>
           <h2 className="text-2xl font-bold text-zinc-100 flex items-center gap-2">
-            <Wrench className="w-6 h-6 text-emerald-400" />
+            <Wrench className="w-6 h-6 text-brand-400" />
             <span>Perfil del Taller</span>
           </h2>
           <p className="text-sm text-zinc-400">Gestiona la información de tu taller y tu equipo</p>
@@ -268,13 +268,13 @@ export default function WorkshopProfilePage() {
                   className="w-14 h-14 rounded-2xl border border-zinc-800 object-cover bg-zinc-950"
                 />
               ) : (
-                <div className="w-14 h-14 rounded-2xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-emerald-400">
+                <div className="w-14 h-14 rounded-2xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-brand-400">
                   <Building2 className="w-7 h-7" />
                 </div>
               )}
               {logoUploading && (
                 <div className="absolute inset-0 bg-zinc-950/70 rounded-2xl flex items-center justify-center">
-                  <Loader2 className="w-5 h-5 text-emerald-400 animate-spin" />
+                  <Loader2 className="w-5 h-5 text-brand-400 animate-spin" />
                 </div>
               )}
             </div>
@@ -323,7 +323,7 @@ export default function WorkshopProfilePage() {
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
               placeholder="Taller Mecánico Los Hermanos"
-              className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+              className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
               required
             />
           </div>
@@ -335,7 +335,7 @@ export default function WorkshopProfilePage() {
               onChange={(e) => setDescripcion(e.target.value)}
               rows={3}
               placeholder="Especialidad del taller, años de experiencia..."
-              className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm resize-none"
+              className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm resize-none"
             />
           </div>
 
@@ -349,7 +349,7 @@ export default function WorkshopProfilePage() {
                 value={telefono}
                 onChange={(e) => setTelefono(e.target.value)}
                 placeholder="+58 212 5551234"
-                className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+                className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
                 required
               />
             </div>
@@ -364,7 +364,7 @@ export default function WorkshopProfilePage() {
               value={direccion}
               onChange={(e) => setDireccion(e.target.value)}
               placeholder="Av. Principal, Edif. Taller, Local 5"
-              className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+              className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
             />
           </div>
 
@@ -375,8 +375,8 @@ export default function WorkshopProfilePage() {
             onLongitudChange={setLongitud}
           />
 
-          <div className="p-3 bg-emerald-500/5 border border-emerald-500/10 rounded-xl">
-            <p className="text-[11px] text-emerald-300">
+          <div className="p-3 bg-brand-500/5 border border-brand-500/10 rounded-xl">
+            <p className="text-[11px] text-brand-300">
               💡 Las coordenadas son la ubicación de tu taller. Se usan para mostrar tu negocio a clientes cercanos.
             </p>
           </div>
@@ -391,7 +391,7 @@ export default function WorkshopProfilePage() {
             <button
               type="submit"
               disabled={saving}
-              className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-zinc-950 font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50"
+              className="px-5 py-2.5 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50"
             >
               {saving ? (
                 <>

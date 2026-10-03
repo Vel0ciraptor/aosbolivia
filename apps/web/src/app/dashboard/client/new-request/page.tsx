@@ -78,8 +78,8 @@ interface AIParsed {
 }
 
 const CATEGORY_META: Record<string, { label: string; icon: any; color: string; bg: string }> = {
-  REPUESTO: { label: 'Repuesto', icon: Tag, color: 'text-indigo-400', bg: 'bg-indigo-500/10 border-indigo-500/20' },
-  TALLER: { label: 'Servicio de Taller', icon: Wrench, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+  REPUESTO: { label: 'Repuesto', icon: Tag, color: 'text-brand-400', bg: 'bg-brand-500/10 border-brand-500/20' },
+  TALLER: { label: 'Servicio de Taller', icon: Wrench, color: 'text-brand-400', bg: 'bg-brand-500/10 border-brand-500/20' },
   GRUA: { label: 'Servicio de Grúa', icon: Truck, color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20' },
   CONSULTA: { label: 'Consulta General', icon: MessageCircle, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
 };
@@ -264,7 +264,7 @@ export default function NewRequestPage() {
         </Link>
         <div>
           <h2 className="text-2xl font-bold text-zinc-100 flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-indigo-400" />
+            <Sparkles className="w-6 h-6 text-brand-400" />
             <span>Nueva Solicitud con IA</span>
           </h2>
           <p className="text-sm text-zinc-400">
@@ -286,7 +286,7 @@ export default function NewRequestPage() {
                   onChange={(e) => setDescripcion(e.target.value)}
                   rows={6}
                   placeholder="Ej: Necesito cambiar las pastillas de freno de mi Ford Explorer 2021, hace un chillido al frenar..."
-                  className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-100 transition-colors text-sm resize-none"
+                  className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors text-sm resize-none"
                   disabled={submitting}
                 />
                 <div className="flex items-center justify-between text-[11px] text-zinc-500">
@@ -339,7 +339,7 @@ export default function NewRequestPage() {
                     No tienes vehículos registrados.{' '}
                     <Link
                       href="/dashboard/client/vehicles"
-                      className="text-indigo-400 hover:underline font-semibold"
+                      className="text-brand-400 hover:underline font-semibold"
                     >
                       Registrar vehículo
                     </Link>
@@ -351,7 +351,7 @@ export default function NewRequestPage() {
                       onClick={() => setVehicleId('')}
                       className={`p-3 rounded-xl border text-left transition-all ${
                         vehicleId === ''
-                          ? 'bg-indigo-500/10 border-indigo-500/40 text-indigo-300'
+                          ? 'bg-brand-500/10 border-brand-500/40 text-brand-300'
                           : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700'
                       }`}
                     >
@@ -365,12 +365,12 @@ export default function NewRequestPage() {
                         onClick={() => setVehicleId(v.id)}
                         className={`p-3 rounded-xl border text-left transition-all flex items-center gap-3 ${
                           vehicleId === v.id
-                            ? 'bg-indigo-500/10 border-indigo-500/40 text-indigo-300'
+                            ? 'bg-brand-500/10 border-brand-500/40 text-brand-300'
                             : 'bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-zinc-700'
                         }`}
                       >
                         <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                          vehicleId === v.id ? 'bg-indigo-500/20' : 'bg-zinc-900'
+                          vehicleId === v.id ? 'bg-brand-500/20' : 'bg-zinc-900'
                         }`}>
                           <Car className="w-4 h-4" />
                         </div>
@@ -407,12 +407,12 @@ export default function NewRequestPage() {
                       onClick={() => selectWorkshop('')}
                       className={`p-3 rounded-xl border text-left transition-all ${
                         workshopId === ''
-                          ? 'bg-indigo-500/10 border-indigo-500/40 text-indigo-300'
+                          ? 'bg-brand-500/10 border-brand-500/40 text-brand-300'
                           : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700'
                       }`}
                     >
                       <div className="flex items-center gap-2 mb-1">
-                        <Globe className={`w-4 h-4 ${workshopId === '' ? 'text-indigo-400' : 'text-zinc-500'}`} />
+                        <Globe className={`w-4 h-4 ${workshopId === '' ? 'text-brand-400' : 'text-zinc-500'}`} />
                         <span className="text-xs font-bold">Cualquier taller</span>
                       </div>
                       <p className="text-[10px] text-zinc-500">
@@ -426,12 +426,12 @@ export default function NewRequestPage() {
                         onClick={() => selectWorkshop(w.id)}
                         className={`p-3 rounded-xl border text-left transition-all ${
                           workshopId === w.id
-                            ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300'
+                            ? 'bg-brand-500/10 border-brand-500/40 text-brand-300'
                             : 'bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-zinc-700'
                         }`}
                       >
                         <div className="flex items-center gap-2 mb-1">
-                          <Wrench className={`w-4 h-4 shrink-0 ${workshopId === w.id ? 'text-emerald-400' : 'text-zinc-500'}`} />
+                          <Wrench className={`w-4 h-4 shrink-0 ${workshopId === w.id ? 'text-brand-400' : 'text-zinc-500'}`} />
                           <span className="text-xs font-bold truncate">{w.nombre}</span>
                           {workshopId === w.id && (
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 ml-auto" />
@@ -504,8 +504,8 @@ export default function NewRequestPage() {
                                     onClick={() => setSlotISO(s.startAt)}
                                     className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-bold transition-all ${
                                       slotISO === s.startAt
-                                        ? 'bg-emerald-500 border-emerald-400 text-zinc-950'
-                                        : 'bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-emerald-600 hover:text-emerald-300'
+                                        ? 'bg-brand-500 border-brand-400 text-white'
+                                        : 'bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-brand-600 hover:text-brand-300'
                                     }`}
                                   >
                                     {fmtHora(s.startAt)}
@@ -520,7 +520,7 @@ export default function NewRequestPage() {
                         {slots.length} citas libres en los próximos 30 días
                       </p>
                       {slotISO && (
-                        <p className="text-[11px] text-emerald-300">
+                        <p className="text-[11px] text-brand-300">
                           Cita elegida: <strong>{fmtFechaHora(slotISO)}</strong>
                         </p>
                       )}
@@ -545,11 +545,11 @@ export default function NewRequestPage() {
                     onChange={(e) => setFechaCita(e.target.value)}
                     min={new Date().toISOString().slice(0, 16)}
                     disabled={submitting}
-                    className="w-full pl-10 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-100 transition-colors text-sm"
+                    className="w-full pl-10 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors text-sm"
                   />
                 </div>
                 {fechaCita && (
-                  <p className="text-[11px] text-emerald-300">
+                  <p className="text-[11px] text-brand-300">
                     Fecha deseada:{' '}
                     <strong>
                       {new Date(fechaCita).toLocaleString('es-BO', {
@@ -582,7 +582,7 @@ export default function NewRequestPage() {
                 <button
                   type="submit"
                   disabled={submitting || !descripcion.trim()}
-                  className="px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-emerald-500 hover:from-indigo-600 hover:to-emerald-600 text-zinc-950 font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-5 py-2.5 bg-gradient-to-r from-brand-500 to-brand-500 hover:from-brand-600 hover:to-brand-600 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitting ? (
                     <>
@@ -620,9 +620,9 @@ export default function NewRequestPage() {
         </div>
 
         <div className="space-y-4">
-          <div className="p-6 bg-gradient-to-br from-indigo-950/40 to-zinc-900 border border-indigo-500/20 rounded-2xl space-y-4 sticky top-6">
+          <div className="p-6 bg-gradient-to-br from-brand-950/40 to-zinc-900 border border-brand-500/20 rounded-2xl space-y-4 sticky top-6">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-indigo-400" />
+              <Sparkles className="w-5 h-5 text-brand-400" />
               <h3 className="text-sm font-bold text-zinc-200">Análisis con IA</h3>
             </div>
 
@@ -638,7 +638,7 @@ export default function NewRequestPage() {
               </div>
             ) : parsing ? (
               <div className="flex items-center gap-2 text-zinc-400 text-xs py-8 justify-center">
-                <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
+                <Loader2 className="w-4 h-4 animate-spin text-brand-400" />
                 <span>Analizando con IA...</span>
               </div>
             ) : parsed && meta && MetaIcon ? (

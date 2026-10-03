@@ -105,7 +105,7 @@ export default function AdminProvidersPage() {
         </div>
         <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl">
           <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">Activos</p>
-          <p className="text-2xl font-extrabold text-emerald-400 mt-1">{stats.active}</p>
+          <p className="text-2xl font-extrabold text-brand-400 mt-1">{stats.active}</p>
         </div>
       </div>
 
@@ -167,7 +167,7 @@ export default function AdminProvidersPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-800/60">
                   <div className="flex items-center gap-2 text-[11px] text-zinc-400">
-                    <Package className="w-3 h-3 text-indigo-400" /> {p._count.parts} repuestos
+                    <Package className="w-3 h-3 text-brand-400" /> {p._count.parts} repuestos
                   </div>
                   <div className="flex items-center gap-2 text-[11px] text-zinc-400">
                     <MessageSquareCode className="w-3 h-3 text-purple-400" /> {p._count.quotes} cotizaciones
@@ -186,7 +186,7 @@ export default function AdminProvidersPage() {
                     className={`flex-1 px-3 py-1.5 text-[10px] font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 disabled:opacity-30 ${
                       p.estado === 'ACTIVE'
                         ? 'bg-zinc-950 hover:bg-red-950/30 border border-zinc-800 hover:border-red-900/30 text-zinc-400 hover:text-red-400'
-                        : 'bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300'
+                        : 'bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-brand-300'
                     }`}
                   >
                     {p.estado === 'ACTIVE' ? 'Suspender' : 'Activar'}

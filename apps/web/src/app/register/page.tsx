@@ -67,7 +67,7 @@ export default function RegisterPage() {
       title: 'Cliente',
       desc: 'Quiero buscar repuestos y contratar talleres/grúas.',
       icon: Car,
-      color: 'from-blue-500 to-indigo-500',
+      color: 'from-blue-500 to-brand-500',
     },
     {
       id: 'PROVIDER' as const,
@@ -81,7 +81,7 @@ export default function RegisterPage() {
       title: 'Taller Mecánico',
       desc: 'Ofrezco servicios de reparación y mantenimiento.',
       icon: Wrench,
-      color: 'from-emerald-500 to-teal-500',
+      color: 'from-brand-500 to-teal-500',
     },
     {
       id: 'TOW_SERVICE' as const,
@@ -95,30 +95,28 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-950 text-zinc-100 relative overflow-hidden py-12 px-4 font-sans">
       {/* Background Gradients */}
-      <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-emerald-900/20 rounded-full blur-[120px]" />
-      <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-indigo-900/20 rounded-full blur-[120px]" />
+      <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-brand-900/20 rounded-full blur-[120px]" />
+      <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-brand-900/20 rounded-full blur-[120px]" />
 
       <div className="w-full max-w-2xl p-8 bg-zinc-900/50 backdrop-blur-xl border border-zinc-800 rounded-3xl shadow-2xl relative z-10">
         
         {/* Brand */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 bg-gradient-to-tr from-indigo-500 to-emerald-400 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 mb-3">
-            <Car className="w-6 h-6 text-zinc-950 font-bold" />
-          </div>
+          <img src="/logo/AosLogo.png" alt="AOSBolivia" className="h-14 w-auto mb-3" />
           <h2 className="text-3xl font-extrabold bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
             {isSuccess ? '¡Revisa tu correo!' : 'Crea tu Cuenta'}
           </h2>
           <p className="text-sm text-zinc-500 mt-1">
             {isSuccess 
               ? 'Te hemos enviado un enlace para verificar tu cuenta' 
-              : 'Únete a la red de servicios automotrices RepuestoIA'}
+              : 'Únete a la red de servicios automotrices AOSBolivia'}
           </p>
         </div>
 
         {isSuccess ? (
           <div className="text-center space-y-6">
-            <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <Mail className="w-8 h-8 text-emerald-400" />
+            <div className="w-16 h-16 bg-brand-500/10 border border-brand-500/30 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <Mail className="w-8 h-8 text-brand-400" />
             </div>
             <p className="text-zinc-300">
               Hemos enviado un correo a <span className="font-bold text-white">{email}</span>. 
@@ -157,7 +155,7 @@ export default function RegisterPage() {
                     onClick={() => setRole(r.id)}
                     className={`p-4 rounded-2xl border text-left flex items-start gap-4 transition-all duration-200 ${
                       isSelected 
-                        ? 'bg-zinc-800/80 border-indigo-500 shadow-md shadow-indigo-500/5 scale-[1.01]' 
+                        ? 'bg-zinc-800/80 border-brand-500 shadow-md shadow-brand-500/5 scale-[1.01]' 
                         : 'bg-zinc-950/40 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/30'
                     }`}
                   >
@@ -188,7 +186,7 @@ export default function RegisterPage() {
                   placeholder="Juan Pérez"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-2xl focus:outline-none focus:border-indigo-500 text-zinc-100 transition-colors placeholder:text-zinc-600"
+                  className="w-full pl-12 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-2xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors placeholder:text-zinc-600"
                 />
               </div>
             </div>
@@ -203,7 +201,7 @@ export default function RegisterPage() {
                   placeholder="juan@ejemplo.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-2xl focus:outline-none focus:border-indigo-500 text-zinc-100 transition-colors placeholder:text-zinc-600"
+                  className="w-full pl-12 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-2xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors placeholder:text-zinc-600"
                 />
               </div>
             </div>
@@ -218,7 +216,7 @@ export default function RegisterPage() {
                   placeholder="+58 412 1234567"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-2xl focus:outline-none focus:border-indigo-500 text-zinc-100 transition-colors placeholder:text-zinc-600"
+                  className="w-full pl-12 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-2xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors placeholder:text-zinc-600"
                 />
               </div>
             </div>
@@ -233,7 +231,7 @@ export default function RegisterPage() {
                   placeholder="Mínimo 6 caracteres"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-12 pr-12 py-3 bg-zinc-950 border border-zinc-800 rounded-2xl focus:outline-none focus:border-indigo-500 text-zinc-100 transition-colors placeholder:text-zinc-600"
+                  className="w-full pl-12 pr-12 py-3 bg-zinc-950 border border-zinc-800 rounded-2xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors placeholder:text-zinc-600"
                 />
                 <button
                   type="button"
@@ -251,10 +249,10 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-4 bg-gradient-to-r from-indigo-500 to-emerald-500 hover:from-indigo-600 hover:to-emerald-600 text-zinc-950 font-bold rounded-2xl shadow-lg transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 mt-4"
+            className="w-full py-4 bg-gradient-to-r from-brand-500 to-brand-500 hover:from-brand-600 hover:to-brand-600 text-white font-bold rounded-2xl shadow-lg transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 mt-4"
           >
             {isLoading ? (
-              <div className="w-5 h-5 border-2 border-zinc-950 border-t-transparent rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
               <>
                 Registrarse <ArrowRight className="w-4 h-4" />
@@ -266,7 +264,7 @@ export default function RegisterPage() {
             {/* Footer */}
             <div className="mt-8 text-center text-sm text-zinc-500">
               ¿Ya tienes una cuenta?{' '}
-              <Link href="/login" className="text-emerald-400 hover:text-emerald-300 font-semibold transition-colors">
+              <Link href="/login" className="text-brand-400 hover:text-brand-300 font-semibold transition-colors">
                 Inicia sesión aquí
               </Link>
             </div>

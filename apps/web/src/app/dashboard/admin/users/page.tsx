@@ -29,7 +29,7 @@ interface UserRow {
 const ROLE_META: Record<string, { label: string; color: string; bg: string; icon: any }> = {
   CLIENT: { label: 'Cliente', color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20', icon: Users },
   PROVIDER: { label: 'Proveedor', color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20', icon: Store },
-  WORKSHOP: { label: 'Taller', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20', icon: Wrench },
+  WORKSHOP: { label: 'Taller', color: 'text-brand-400', bg: 'bg-brand-500/10 border-brand-500/20', icon: Wrench },
   TOW_SERVICE: { label: 'Grúa', color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20', icon: Truck },
   ADMIN: { label: 'Admin', color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', icon: Shield },
 };
@@ -107,7 +107,7 @@ export default function AdminUsersPage() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-zinc-100 flex items-center gap-2">
-            <Users className="w-6 h-6 text-indigo-400" />
+            <Users className="w-6 h-6 text-brand-400" />
             <span>Gestión de Usuarios</span>
           </h2>
           <p className="text-sm text-zinc-400">Administra todos los usuarios del sistema.</p>
@@ -127,7 +127,7 @@ export default function AdminUsersPage() {
         </div>
         <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl">
           <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">Activos</p>
-          <p className="text-2xl font-extrabold text-emerald-400 mt-1">{stats.active}</p>
+          <p className="text-2xl font-extrabold text-brand-400 mt-1">{stats.active}</p>
         </div>
         <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl">
           <p className="text-[10px] text-red-400 font-bold uppercase tracking-wider">Bloqueados</p>
@@ -142,7 +142,7 @@ export default function AdminUsersPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por nombre, email, teléfono..."
-            className="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-100 text-sm"
+            className="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
           />
         </div>
         <select
@@ -171,7 +171,7 @@ export default function AdminUsersPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : users.length === 0 ? (
         <div className="p-12 bg-zinc-900/30 border border-zinc-800/80 border-dashed rounded-3xl text-center">
@@ -212,7 +212,7 @@ export default function AdminUsersPage() {
                     <span>{u._count.requests} solicitudes</span>
                     {u._count.vehicles > 0 && <span>{u._count.vehicles} vehículos</span>}
                     {u._count.provider > 0 && <span className="text-amber-400">proveedor</span>}
-                    {u._count.workshop > 0 && <span className="text-emerald-400">taller</span>}
+                    {u._count.workshop > 0 && <span className="text-brand-400">taller</span>}
                     {u._count.towService > 0 && <span className="text-rose-400">grúa</span>}
                     <span>· {new Date(u.createdAt).toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                   </div>

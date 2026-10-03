@@ -63,7 +63,7 @@ export default function WorkshopDashboard() {
   if (loading || loadingWorkshop) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -73,7 +73,7 @@ export default function WorkshopDashboard() {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-zinc-100 flex items-center gap-2">
-            <Building2 className="w-6 h-6 text-emerald-400" />
+            <Building2 className="w-6 h-6 text-brand-400" />
             <span>{workshop?.nombre || 'Mi Taller'}</span>
           </h2>
           <p className="text-sm text-zinc-400">Administra tus servicios mecánicos y responde a solicitudes de clientes.</p>
@@ -95,7 +95,7 @@ export default function WorkshopDashboard() {
           </Link>
           <Link
             href="/dashboard/workshop/requests"
-            className="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-emerald-500 text-zinc-950 font-bold text-sm rounded-xl hover:shadow-lg transition-all flex items-center gap-2"
+            className="px-4 py-2.5 bg-gradient-to-r from-brand-500 to-brand-500 text-white font-bold text-sm rounded-xl hover:shadow-lg transition-all flex items-center gap-2"
           >
             <ClipboardList className="w-4 h-4" />
             <span>Ver Solicitudes</span>
@@ -129,7 +129,7 @@ export default function WorkshopDashboard() {
             <span className="text-zinc-500 text-[10px] md:text-xs font-semibold uppercase tracking-wider">Estado</span>
             <p className="text-2xl md:text-3xl font-extrabold text-emerald-400">{workshop?.estado === 'ACTIVE' ? 'Activo' : 'Inactivo'}</p>
           </div>
-          <div className="w-10 h-10 md:w-12 md:h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400">
+          <div className="w-10 h-10 md:w-12 md:h-12 bg-brand-500/10 rounded-xl flex items-center justify-center text-brand-400">
             <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6" />
           </div>
         </div>
@@ -139,12 +139,12 @@ export default function WorkshopDashboard() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-zinc-200 flex items-center gap-2">
-              <ClipboardList className="w-5 h-5 text-emerald-400" />
+              <ClipboardList className="w-5 h-5 text-brand-400" />
               <span>Solicitudes de Taller</span>
             </h3>
             <Link
               href="/dashboard/workshop/requests"
-              className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1"
+              className="text-xs text-brand-400 hover:text-brand-300 font-semibold flex items-center gap-1"
             >
               <span>Ver todas</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -166,14 +166,14 @@ export default function WorkshopDashboard() {
                   className="p-4 bg-zinc-900 border border-zinc-800 hover:border-zinc-700/80 rounded-2xl flex items-center justify-between transition-colors block group"
                 >
                   <div className="min-w-0 flex-1 pr-4">
-                    <h4 className="font-bold text-zinc-200 text-sm truncate group-hover:text-emerald-300 transition-colors">{r.titulo}</h4>
+                    <h4 className="font-bold text-zinc-200 text-sm truncate group-hover:text-brand-300 transition-colors">{r.titulo}</h4>
                     <p className="text-xs text-zinc-500 truncate mt-0.5">{r.descripcion}</p>
                     <div className="flex flex-wrap items-center gap-2 mt-2">
                       <span className="text-[10px] text-zinc-400 bg-zinc-800 px-2 py-0.5 rounded-full font-semibold">
                         {r.user.name}
                       </span>
                       {r.vehicle && (
-                        <span className="text-[10px] text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-semibold">
+                        <span className="text-[10px] text-brand-300 bg-brand-500/10 border border-brand-500/20 px-2 py-0.5 rounded-full font-semibold">
                           {r.vehicle.marca} {r.vehicle.modelo} {r.vehicle.anio}
                         </span>
                       )}
@@ -182,7 +182,7 @@ export default function WorkshopDashboard() {
                       </span>
                     </div>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-zinc-500 group-hover:text-emerald-400 transition-colors" />
+                  <ArrowRight className="w-4 h-4 text-zinc-500 group-hover:text-brand-400 transition-colors" />
                 </Link>
               ))
             )}
@@ -192,12 +192,12 @@ export default function WorkshopDashboard() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-zinc-200 flex items-center gap-2">
-              <Package className="w-5 h-5 text-emerald-400" />
+              <Package className="w-5 h-5 text-brand-400" />
               <span>Mis Servicios</span>
             </h3>
             <Link
               href="/dashboard/workshop/services"
-              className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1"
+              className="text-xs text-brand-400 hover:text-brand-300 font-semibold flex items-center gap-1"
             >
               <span>Gestionar</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -211,7 +211,7 @@ export default function WorkshopDashboard() {
                 <p className="text-zinc-500 text-sm">No has agregado servicios a tu taller</p>
                 <Link
                   href="/dashboard/workshop/services"
-                  className="mt-3 inline-flex items-center gap-1 text-xs text-emerald-400 font-bold hover:underline"
+                  className="mt-3 inline-flex items-center gap-1 text-xs text-brand-400 font-bold hover:underline"
                 >
                   <Plus className="w-3.5 h-3.5" /> Agregar primer servicio
                 </Link>
@@ -223,7 +223,7 @@ export default function WorkshopDashboard() {
                     <h4 className="font-bold text-zinc-200 text-sm">{s.nombre}</h4>
                     <p className="text-xs text-zinc-500 mt-0.5 truncate">{s.descripcion || 'Sin descripción'}</p>
                   </div>
-                  <span className="text-base font-extrabold text-emerald-400 font-mono ml-3">
+                  <span className="text-base font-extrabold text-brand-400 font-mono ml-3">
                     {s.precioReferencial != null ? `$${Number(s.precioReferencial).toFixed(2)}` : 'N/A'}
                   </span>
                 </div>

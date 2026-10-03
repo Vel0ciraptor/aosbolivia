@@ -92,7 +92,7 @@ export default function ProviderRequestsPage() {
   if (loading || loadingProvider) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -111,7 +111,7 @@ export default function ProviderRequestsPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-zinc-100 flex items-center gap-2">
-          <ClipboardList className="w-6 h-6 text-indigo-400" />
+          <ClipboardList className="w-6 h-6 text-brand-400" />
           <span>Solicitudes de Repuestos</span>
         </h2>
         <p className="text-sm text-zinc-400">
@@ -126,7 +126,7 @@ export default function ProviderRequestsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por título, pieza, cliente, vehículo..."
-            className="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-100 transition-colors text-sm"
+            className="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 transition-colors text-sm"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -137,7 +137,7 @@ export default function ProviderRequestsPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-200 text-xs font-semibold"
+            className="px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-200 text-xs font-semibold"
           >
             <option value="ALL">Todos</option>
             <option value="OPEN">Abierta</option>
@@ -182,7 +182,7 @@ export default function ProviderRequestsPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0 space-y-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider bg-indigo-500/10 border-indigo-500/20 text-indigo-400">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider bg-brand-500/10 border-brand-500/20 text-brand-400">
                         <Tag className="w-3 h-3" /> REPUESTO
                       </span>
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${statusMeta.bg} ${statusMeta.color}`}>
@@ -190,14 +190,14 @@ export default function ProviderRequestsPage() {
                         {statusMeta.label}
                       </span>
                       {myQuoteStatus && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 border-emerald-500/20 text-emerald-400">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider bg-brand-500/10 border-brand-500/20 text-brand-400">
                           <CheckCircle2 className="w-3 h-3" />
                           Cotizado: {myQuoteStatus === 'ACCEPTED' ? 'Aceptada' : myQuoteStatus === 'REJECTED' ? 'Rechazada' : 'Pendiente'}
                         </span>
                       )}
                     </div>
                     <div>
-                      <h3 className="text-base font-bold text-zinc-100 group-hover:text-indigo-300 transition-colors">
+                      <h3 className="text-base font-bold text-zinc-100 group-hover:text-brand-300 transition-colors">
                         {r.titulo}
                       </h3>
                       <p className="text-xs text-zinc-500 mt-1 line-clamp-2">{r.descripcion}</p>
@@ -214,7 +214,7 @@ export default function ProviderRequestsPage() {
                         </span>
                       )}
                       {r.aiParsed?.pieza && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-500/5 border border-indigo-500/10 rounded-lg text-indigo-300 font-semibold">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-500/5 border border-brand-500/10 rounded-lg text-brand-300 font-semibold">
                           {r.aiParsed.pieza}
                         </span>
                       )}
@@ -228,7 +228,7 @@ export default function ProviderRequestsPage() {
                       </span>
                     </div>
                   </div>
-                  <div className="shrink-0 p-2 text-zinc-500 group-hover:text-indigo-400 transition-colors">
+                  <div className="shrink-0 p-2 text-zinc-500 group-hover:text-brand-400 transition-colors">
                     <ArrowRight className="w-5 h-5" />
                   </div>
                 </div>

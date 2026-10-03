@@ -96,7 +96,7 @@ export default function WorkshopMyQuotesPage() {
   if (loading || loadingWorkshop) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -115,7 +115,7 @@ export default function WorkshopMyQuotesPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-zinc-100 flex items-center gap-2">
-          <Send className="w-6 h-6 text-emerald-400" />
+          <Send className="w-6 h-6 text-brand-400" />
           <span>Mis Cotizaciones</span>
         </h2>
         <p className="text-sm text-zinc-400">
@@ -134,7 +134,7 @@ export default function WorkshopMyQuotesPage() {
         </div>
         <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl">
           <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">Aceptadas</p>
-          <p className="text-2xl font-extrabold text-emerald-400 mt-1">{stats.accepted}</p>
+          <p className="text-2xl font-extrabold text-brand-400 mt-1">{stats.accepted}</p>
         </div>
         <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl">
           <p className="text-[10px] text-red-400 font-bold uppercase tracking-wider">Rechazadas</p>
@@ -149,7 +149,7 @@ export default function WorkshopMyQuotesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por solicitud, cliente, vehículo..."
-            className="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+            className="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -160,7 +160,7 @@ export default function WorkshopMyQuotesPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-200 text-xs font-semibold"
+            className="px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-200 text-xs font-semibold"
           >
             <option value="ALL">Todos</option>
             <option value="PENDING">Pendiente</option>
@@ -218,7 +218,7 @@ export default function WorkshopMyQuotesPage() {
                       </span>
                     </div>
                     <div>
-                      <h3 className="text-base font-bold text-zinc-100 group-hover:text-emerald-300 transition-colors flex items-center gap-2">
+                      <h3 className="text-base font-bold text-zinc-100 group-hover:text-brand-300 transition-colors flex items-center gap-2">
                         <FileText className="w-4 h-4 text-zinc-500" />
                         {q.request.titulo}
                       </h3>
@@ -253,8 +253,8 @@ export default function WorkshopMyQuotesPage() {
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Mi precio</p>
-                    <p className="text-2xl font-extrabold text-emerald-400 font-mono">${precioNum.toFixed(2)}</p>
-                    <ArrowRight className="w-4 h-4 text-zinc-500 group-hover:text-emerald-400 transition-colors ml-auto mt-1" />
+                    <p className="text-2xl font-extrabold text-brand-400 font-mono">${precioNum.toFixed(2)}</p>
+                    <ArrowRight className="w-4 h-4 text-zinc-500 group-hover:text-brand-400 transition-colors ml-auto mt-1" />
                   </div>
                 </div>
               </Link>

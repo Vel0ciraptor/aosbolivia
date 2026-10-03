@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RepuestoIA — Plataforma Integral de Servicios Automotrices",
+  title: "AOSBolivia — Plataforma Integral de Servicios Automotrices",
   description:
     "Marketplace que conecta clientes con repuestos, talleres mecánicos, grúas y asistencia por IA.",
 };

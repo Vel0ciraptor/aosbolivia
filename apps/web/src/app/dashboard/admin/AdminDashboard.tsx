@@ -36,7 +36,7 @@ interface AdminStats {
 const ROLE_META: Record<string, { label: string; color: string; bg: string; icon: any }> = {
   CLIENT: { label: 'Cliente', color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20', icon: Users },
   PROVIDER: { label: 'Proveedor', color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20', icon: Store },
-  WORKSHOP: { label: 'Taller', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20', icon: Wrench },
+  WORKSHOP: { label: 'Taller', color: 'text-brand-400', bg: 'bg-brand-500/10 border-brand-500/20', icon: Wrench },
   TOW_SERVICE: { label: 'Grúa', color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20', icon: Truck },
   ADMIN: { label: 'Admin', color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', icon: Shield },
 };
@@ -117,7 +117,7 @@ export default function AdminDashboard() {
             <span className="text-zinc-500 text-[10px] md:text-xs font-semibold uppercase tracking-wider">Usuarios</span>
             <p className="text-2xl md:text-3xl font-extrabold text-zinc-100">{stats.users.total}</p>
           </div>
-          <div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400">
+          <div className="w-10 h-10 md:w-12 md:h-12 bg-brand-500/10 rounded-xl flex items-center justify-center text-brand-400">
             <Users className="w-5 h-5 md:w-6 md:h-6" />
           </div>
         </div>
@@ -129,7 +129,7 @@ export default function AdminDashboard() {
               {stats.users.providers + stats.users.workshops + stats.users.tows}
             </p>
           </div>
-          <div className="w-10 h-10 md:w-12 md:h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400">
+          <div className="w-10 h-10 md:w-12 md:h-12 bg-brand-500/10 rounded-xl flex items-center justify-center text-brand-400">
             <Store className="w-5 h-5 md:w-6 md:h-6" />
           </div>
         </div>
@@ -166,7 +166,7 @@ export default function AdminDashboard() {
         </div>
         <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl">
           <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Talleres</p>
-          <p className="text-2xl font-extrabold text-emerald-400 mt-1">{stats.users.workshops}</p>
+          <p className="text-2xl font-extrabold text-brand-400 mt-1">{stats.users.workshops}</p>
         </div>
         <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl">
           <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Grúas</p>
@@ -184,9 +184,9 @@ export default function AdminDashboard() {
           </div>
           <div className="space-y-2">
             {[
-              { name: 'Gestionar Usuarios', href: '/dashboard/admin/users', icon: Users, desc: `${stats.users.total} usuarios registrados`, color: 'text-indigo-400' },
+              { name: 'Gestionar Usuarios', href: '/dashboard/admin/users', icon: Users, desc: `${stats.users.total} usuarios registrados`, color: 'text-brand-400' },
               { name: 'Proveedores', href: '/dashboard/admin/providers', icon: Store, desc: `${stats.users.providers} negocios de repuestos`, color: 'text-amber-400' },
-              { name: 'Talleres', href: '/dashboard/admin/workshops', icon: Wrench, desc: `${stats.users.workshops} talleres mecánicos`, color: 'text-emerald-400' },
+              { name: 'Talleres', href: '/dashboard/admin/workshops', icon: Wrench, desc: `${stats.users.workshops} talleres mecánicos`, color: 'text-brand-400' },
               { name: 'Servicios de Grúa', href: '/dashboard/admin/tows', icon: Truck, desc: `${stats.users.tows} servicios de grúa`, color: 'text-rose-400' },
               { name: 'Todas las Solicitudes', href: '/dashboard/admin/requests', icon: ClipboardList, desc: `${stats.requests.open} abiertas de ${stats.requests.total}`, color: 'text-amber-400' },
               { name: 'Todas las Cotizaciones', href: '/dashboard/admin/quotes', icon: MessageSquareCode, desc: `${stats.quotes.accepted} aceptadas de ${stats.quotes.total}`, color: 'text-purple-400' },
@@ -268,11 +268,11 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-2 gap-3 pt-2">
             <div className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl">
               <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Repuestos activos</p>
-              <p className="text-xl font-extrabold text-indigo-400 mt-1">{stats.catalog.activeParts}</p>
+              <p className="text-xl font-extrabold text-brand-400 mt-1">{stats.catalog.activeParts}</p>
             </div>
             <div className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl">
               <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Vehículos</p>
-              <p className="text-xl font-extrabold text-emerald-400 mt-1">{stats.catalog.vehicles}</p>
+              <p className="text-xl font-extrabold text-brand-400 mt-1">{stats.catalog.vehicles}</p>
             </div>
           </div>
         </div>

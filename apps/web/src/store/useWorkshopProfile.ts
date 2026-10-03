@@ -11,6 +11,14 @@ export interface WorkshopService {
   createdAt: string;
 }
 
+export interface WeeklyPattern {
+  dias?: number[];
+  rangos?: { inicio: string; fin: string }[];
+  slotMinutes?: number;
+  horizonteDias?: number;
+  generadoHasta?: string;
+}
+
 export interface WorkshopProfile {
   id: string;
   userId: string;
@@ -22,7 +30,8 @@ export interface WorkshopProfile {
   longitud: number;
   estado: string;
   imageUrl?: string;
-  horario?: Record<string, string> | null;
+  horario?: WeeklyPattern | null;
+  capacidadSlot?: number;
   services: WorkshopService[];
 }
 

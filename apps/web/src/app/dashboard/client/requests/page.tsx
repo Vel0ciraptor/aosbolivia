@@ -45,6 +45,7 @@ const CATEGORY_META: Record<string, { label: string; icon: any; color: string; b
 const STATUS_META: Record<string, { label: string; icon: any; color: string; bg: string }> = {
   OPEN: { label: 'Abierta', icon: Clock, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' },
   IN_PROGRESS: { label: 'En progreso', icon: Inbox, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+  REJECTED: { label: 'Rechazada', icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20' },
   CLOSED: { label: 'Cerrada', icon: CheckCircle2, color: 'text-zinc-400', bg: 'bg-zinc-500/10 border-zinc-500/20' },
   CANCELLED: { label: 'Cancelada', icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20' },
 };
@@ -174,6 +175,7 @@ export default function RequestsPage() {
             <option value="ALL">Todos los estados</option>
             <option value="OPEN">Abierta</option>
             <option value="IN_PROGRESS">En progreso</option>
+            <option value="REJECTED">Rechazada</option>
             <option value="CLOSED">Cerrada</option>
             <option value="CANCELLED">Cancelada</option>
           </select>

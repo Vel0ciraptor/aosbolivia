@@ -185,6 +185,7 @@ model Workshop {
   latitud     Float
   longitud    Float
   horario     Json?
+  capacidadSlot Int          @default(1) // vehículos que puede atender en el mismo slot
   estado      String         @default("ACTIVE")
   imageUrl    String?
   createdAt   DateTime       @default(now())

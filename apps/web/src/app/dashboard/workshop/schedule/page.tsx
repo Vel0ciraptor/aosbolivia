@@ -6,8 +6,9 @@ import { api } from '../../../../lib/api';
 import { useWorkshopProfile } from '../../../../store/useWorkshopProfile';
 import {
   CalendarDays, Plus, Copy, Trash2, Clock, AlertCircle,
-  User as UserIcon, Car, Inbox, CheckCircle2, X, Loader2,
+  User as UserIcon, Car, Inbox, CheckCircle2, X, Loader2, Repeat,
 } from 'lucide-react';
+import type { WeeklyPattern } from '../../../../store/useWorkshopProfile';
 
 interface Block {
   id: string;
@@ -53,6 +54,275 @@ function todayPlus(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
+}
+
+type Notify = (type: 'success' | 'error', text: string) => void;
+
+// Horario habitual: se define una vez (días + rangos) y la agenda
+// se genera sola hacia el futuro. Se monta solo cuando el perfil ya cargó,
+// por eso lee el patrón guardado directo en los valores iniciales del estado.
+function WeeklyScheduleCard({
+  horario,
+  capacidadInicial,
+  notify,
+  onSaved,
+}: {
+  horario?: WeeklyPattern | null;
+  capacidadInicial?: number;
+  notify: Notify;
+  onSaved: () => Promise<void>;
+}) {
+  const [dias, setDias] = useState<number[]>(
+    horario?.dias?.length ? [...horario.dias] : [1, 2, 3, 4, 5],
+  );
+  const [rangos, setRangos] = useState<{ inicio: string; fin: string }[]>(
+    horario?.rangos?.length
+      ? horario.rangos.map((r) => ({ ...r }))
+      : [{ inicio: '08:00', fin: '12:00' }],
+  );
+  const [slotMinutes, setSlotMinutes] = useState(horario?.slotMinutes ?? 30);
+  const [capacidadSlot, setCapacidadSlot] = useState(
+    capacidadInicial && capacidadInicial > 0 ? capacidadInicial : 1,
+  );
+  const [hasta, setHasta] = useState(todayPlus(horario?.horizonteDias ?? 90));
+  const [generadoHasta, setGeneradoHasta] = useState<string | undefined>(
+    horario?.generadoHasta,
+  );
+  const [saving, setSaving] = useState(false);
+
+  const setRango = (i: number, field: 'inicio' | 'fin', value: string) =>
+    setRangos((rs) => rs.map((r, idx) => (idx === i ? { ...r, [field]: value } : r)));
+
+  const addRango = () =>
+    setRangos((rs) =>
+      rs.length >= 4 ? rs : [...rs, { inicio: '14:00', fin: '18:00' }],
+    );
+
+  const removeRango = (i: number) =>
+    setRangos((rs) => (rs.length <= 1 ? rs : rs.filter((_, idx) => idx !== i)));
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!dias.length) {
+      notify('error', 'Elige al menos un día de la semana');
+      return;
+    }
+    const ordenados = [...rangos].sort((a, b) => a.inicio.localeCompare(b.inicio));
+    for (const r of ordenados) {
+      if (!r.inicio || !r.fin || r.inicio >= r.fin) {
+        notify('error', 'Cada horario debe terminar después de su hora de inicio');
+        return;
+      }
+    }
+    for (let i = 1; i < ordenados.length; i++) {
+      if (ordenados[i].inicio < ordenados[i - 1].fin) {
+        notify('error', 'Los horarios no pueden solaparse');
+        return;
+      }
+    }
+    const hoyKey = dateKey(new Date());
+    const horizonteDias = Math.min(
+      365,
+      Math.max(
+        1,
+        Math.round(
+          (new Date(`${hasta}T12:00:00Z`).getTime() -
+            new Date(`${hoyKey}T12:00:00Z`).getTime()) /
+            86400000,
+        ),
+      ),
+    );
+
+    setSaving(true);
+    try {
+      const res = await api.post('/workshops/me/availability/weekly', {
+        dias,
+        rangos: ordenados,
+        slotMinutes,
+        horizonteDias,
+        capacidadSlot,
+      });
+      const created: number = res.data?.created ?? 0;
+      const hastaGen: string = res.data?.hasta ?? '';
+      setGeneradoHasta(hastaGen);
+      notify(
+        'success',
+        created === 0
+          ? 'Horario guardado; la agenda ya estaba generada hasta esa fecha'
+          : `Horario guardado: se ${created === 1 ? 'creó 1 bloque' : `crearon ${created} bloques`} (agenda hasta el ${hastaGen})`,
+      );
+      await onSaved();
+    } catch (err: unknown) {
+      const data = (err as { response?: { data?: { message?: string } } })?.response?.data;
+      notify('error', data?.message || 'No se pudo guardar el horario');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form
+      onSubmit={submit}
+      className="p-6 bg-gradient-to-br from-emerald-950/30 to-zinc-900 border border-emerald-500/20 rounded-2xl space-y-4"
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Repeat className="w-4 h-4 text-emerald-400" />
+          <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">
+            Horario habitual
+          </h3>
+        </div>
+        {generadoHasta && (
+          <span className="text-[10px] font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-2 py-1 rounded-lg">
+            Agenda hasta {generadoHasta}
+          </span>
+        )}
+      </div>
+
+      <p className="text-[11px] text-zinc-500 -mt-1">
+        Define tu horario una vez: se repite cada semana y la agenda se genera sola.
+      </p>
+
+      <div className="space-y-1.5">
+        <label className="text-xs font-semibold text-zinc-300">Días que atiendes</label>
+        <div className="flex flex-wrap gap-1.5">
+          {DAY_NAMES.map((name, idx) => {
+            const active = dias.includes(idx);
+            return (
+              <button
+                key={name}
+                type="button"
+                onClick={() =>
+                  setDias((d) =>
+                    d.includes(idx) ? d.filter((x) => x !== idx) : [...d, idx].sort(),
+                  )
+                }
+                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition-colors ${
+                  active
+                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                    : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700'
+                }`}
+              >
+                {name}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-xs font-semibold text-zinc-300">
+          Horarios del día
+        </label>
+        {rangos.map((r, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <input
+              type="time"
+              value={r.inicio}
+              onChange={(e) => setRango(i, 'inicio', e.target.value)}
+              required
+              className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm font-mono"
+            />
+            <span className="text-zinc-600 text-xs">–</span>
+            <input
+              type="time"
+              value={r.fin}
+              onChange={(e) => setRango(i, 'fin', e.target.value)}
+              required
+              className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm font-mono"
+            />
+            <button
+              type="button"
+              onClick={() => removeRango(i)}
+              disabled={rangos.length <= 1}
+              className="p-2 text-zinc-600 hover:text-red-400 disabled:opacity-30 transition-colors"
+              aria-label="Quitar horario"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ))}
+        {rangos.length < 4 && (
+          <button
+            type="button"
+            onClick={addRango}
+            className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+          >
+            <Plus className="w-3 h-3" /> Agregar otro horario (ej. tarde)
+          </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-zinc-300">
+            Duración de cada cita
+          </label>
+          <select
+            value={slotMinutes}
+            onChange={(e) => setSlotMinutes(Number(e.target.value))}
+            className="w-full px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+          >
+            <option value={15}>15 minutos</option>
+            <option value={30}>30 minutos</option>
+            <option value={45}>45 minutos</option>
+            <option value={60}>1 hora</option>
+            <option value={90}>1 hora 30 min</option>
+            <option value={120}>2 horas</option>
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-zinc-300">Generar hasta</label>
+          <input
+            type="date"
+            value={hasta}
+            onChange={(e) => setHasta(e.target.value)}
+            min={todayPlus(1)}
+            required
+            className="w-full px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-xs font-semibold text-zinc-300">
+          Vehículos por slot
+        </label>
+        <div className="flex items-center gap-3">
+          <input
+            type="number"
+            min={1}
+            max={20}
+            value={capacidadSlot}
+            onChange={(e) =>
+              setCapacidadSlot(
+                Math.min(20, Math.max(1, parseInt(e.target.value) || 1)),
+              )
+            }
+            className="w-24 px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm font-mono"
+          />
+          <p className="text-[10px] text-zinc-600">
+            Cuántos vehículos puedes atender en el mismo horario (un slot
+            desaparece para los clientes cuando se llena).
+          </p>
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        disabled={saving}
+        className="w-full px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-zinc-950 font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+      >
+        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Repeat className="w-4 h-4" />}
+        Guardar horario y generar agenda
+      </button>
+
+      <p className="text-[10px] text-zinc-600">
+        Los bloques ya generados no se duplican y los que borres manualmente se respetan.
+        Al acercarse la fecha se genera agenda nueva automáticamente.
+      </p>
+    </form>
+  );
 }
 
 export default function WorkshopSchedulePage() {
@@ -219,7 +489,8 @@ export default function WorkshopSchedulePage() {
           <span>Agenda de Citas</span>
         </h2>
         <p className="text-sm text-zinc-400">
-          Define los horarios en que recibes vehículos. Los clientes escogerán entre tus citas libres.
+          Define tu horario habitual (días y rangos) y la agenda se genera sola. Los clientes
+          escogerán entre tus citas libres.
         </p>
       </div>
 
@@ -239,10 +510,17 @@ export default function WorkshopSchedulePage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Formularios */}
         <div className="space-y-4">
-          <form onSubmit={handleCreate} className="p-6 bg-gradient-to-br from-emerald-950/30 to-zinc-900 border border-emerald-500/20 rounded-2xl space-y-4">
+          <WeeklyScheduleCard
+            horario={workshop.horario}
+            capacidadInicial={workshop.capacidadSlot}
+            notify={notify}
+            onSaved={load}
+          />
+
+          <form onSubmit={handleCreate} className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-4">
             <div className="flex items-center gap-2">
-              <Plus className="w-4 h-4 text-emerald-400" />
-              <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">Nuevo bloque</h3>
+              <Plus className="w-4 h-4 text-zinc-400" />
+              <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">Bloque puntual (un solo día)</h3>
             </div>
 
             <div className="space-y-1.5">
@@ -301,7 +579,7 @@ export default function WorkshopSchedulePage() {
             <button
               type="submit"
               disabled={saving}
-              className="w-full px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-zinc-950 font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full px-4 py-2.5 bg-gradient-to-r from-zinc-700 to-zinc-600 hover:from-zinc-600 hover:to-zinc-500 text-zinc-100 font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
               Crear bloque
@@ -422,8 +700,8 @@ export default function WorkshopSchedulePage() {
               </div>
               <h3 className="font-bold text-zinc-300 text-base">Tu agenda está vacía</h3>
               <p className="text-zinc-500 text-sm mt-1 max-w-sm mx-auto">
-                Crea tu primer bloque de horario y cópialo a los días o meses que quieras para que
-                los clientes puedan escoger sus citas.
+                Define tu horario habitual (días y rangos) en la tarjeta de la izquierda: la agenda
+                se generará sola y los clientes podrán escoger sus citas.
               </p>
             </div>
           ) : (

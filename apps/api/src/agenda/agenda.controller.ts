@@ -14,6 +14,7 @@ import {
   AgendaService,
   CreateAvailabilityDto,
   CopyAvailabilityDto,
+  ApplyWeeklyDto,
 } from './agenda.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -42,10 +43,18 @@ export class AgendaController {
 
   @Post('me/availability/copy')
   @ApiOperation({
-    summary: 'Copiar los bloques de un día modelo a un rango de fechas',
+    summary: 'Copiar los bloques de un d��a modelo a un rango de fechas',
   })
   copyBlocks(@Req() req: any, @Body() dto: CopyAvailabilityDto) {
     return this.agendaService.copyBlocks(req.user.workshopId, dto);
+  }
+
+  @Post('me/availability/weekly')
+  @ApiOperation({
+    summary: 'Guardar el horario habitual (días + rangos) y generar la agenda',
+  })
+  applyWeekly(@Req() req: any, @Body() dto: ApplyWeeklyDto) {
+    return this.agendaService.applyWeeklyPattern(req.user.workshopId, dto);
   }
 
   @Delete('me/availability/:id')

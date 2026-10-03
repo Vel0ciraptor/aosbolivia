@@ -57,4 +57,18 @@ export class RequestsController {
   ) {
     return this.requestsService.updateStatus(id, body.estado, req.user);
   }
+
+  @Post(':id/accept')
+  @ApiOperation({
+    summary: 'Aceptar solicitud dirigida (entra al CRM como ingresado)',
+  })
+  accept(@Param('id') id: string, @Req() req: any) {
+    return this.requestsService.accept(id, req.user);
+  }
+
+  @Post(':id/reject')
+  @ApiOperation({ summary: 'Rechazar solicitud dirigida y liberar la cita' })
+  reject(@Param('id') id: string, @Req() req: any) {
+    return this.requestsService.reject(id, req.user);
+  }
 }

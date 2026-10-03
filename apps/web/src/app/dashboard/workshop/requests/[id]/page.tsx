@@ -55,6 +55,8 @@ interface RequestDetail {
   descripcion: string;
   createdAt: string;
   fechaCita?: string | null;
+  workshopId?: string | null;
+  workshop?: WorkshopLite | null;
   aiParsed?: {
     categoria?: string;
     marca?: string;
@@ -73,6 +75,7 @@ interface RequestDetail {
 const STATUS_META: Record<string, { label: string; icon: any; color: string; bg: string }> = {
   OPEN: { label: 'Abierta', icon: Clock, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' },
   IN_PROGRESS: { label: 'En progreso', icon: Inbox, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+  REJECTED: { label: 'Rechazada', icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20' },
   CLOSED: { label: 'Cerrada', icon: CheckCircle2, color: 'text-zinc-400', bg: 'bg-zinc-500/10 border-zinc-500/20' },
   CANCELLED: { label: 'Cancelada', icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20' },
 };
@@ -112,7 +115,54 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
   }, [id, fetchRequest]);
 
   const myQuote = request?.quotes?.find((q) => q.workshop?.id === workshop?.id) || null;
-  const canQuote = (request?.estado === 'OPEN' || request?.estado === 'IN_PROGRESS') && !myQuote;
+  // Solicitud dirigida a este taller: se acepta/rechaza (no se cotiza)
+  const esDirigidaAMi = !!workshop && !!request?.workshopId && request.workshopId === workshop.id;
+  const canAccept = esDirigidaAMi && request?.estado === 'OPEN';
+  const canQuote =
+    !esDirigidaAMi &&
+    (request?.estado === 'OPEN' || request?.estado === 'IN_PROGRESS') &&
+    !myQuote;
+  const [acting, setActing] = useState(false);
+
+  const handleAccept = async () => {
+    setSubmitMessage(null);
+    try {
+      setActing(true);
+      await api.post(`/requests/${id}/accept`);
+      setSubmitMessage({
+        type: 'success',
+        text: 'Solicitud aceptada: el vehículo entró al CRM como ingresado. Ahora registra el kilometraje en el CRM.',
+      });
+      await fetchRequest();
+    } catch (err: unknown) {
+      const data = (err as { response?: { data?: { message?: string } } })?.response?.data;
+      setSubmitMessage({
+        type: 'error',
+        text: data?.message || 'No se pudo aceptar la solicitud.',
+      });
+    } finally {
+      setActing(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!confirm('¿Rechazar la solicitud? La cita reservada se liberá.')) return;
+    setSubmitMessage(null);
+    try {
+      setActing(true);
+      await api.post(`/requests/${id}/reject`);
+      setSubmitMessage({ type: 'success', text: 'Solicitud rechazada. La cita quedó libre.' });
+      await fetchRequest();
+    } catch (err: unknown) {
+      const data = (err as { response?: { data?: { message?: string } } })?.response?.data;
+      setSubmitMessage({
+        type: 'error',
+        text: data?.message || 'No se pudo rechazar la solicitud.',
+      });
+    } finally {
+      setActing(false);
+    }
+  };
 
   useEffect(() => {
     if (!canQuote || !workshop) return;
@@ -440,6 +490,60 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
             )}
           </div>
 
+          {esDirigidaAMi && (
+            <div className="p-6 bg-gradient-to-br from-amber-950/30 to-zinc-900 border border-amber-500/25 rounded-2xl space-y-4">
+              <div className="flex items-center gap-2 pb-3 border-b border-amber-500/20">
+                <Building2 className="w-4 h-4 text-amber-300" />
+                <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">
+                  Elegido por el cliente
+                </h3>
+              </div>
+              <p className="text-[11px] text-zinc-400">
+                El cliente te eligió como taller de confianza
+                {request.fechaCita ? ' y reservó una cita:' : '.'}
+              </p>
+              {request.fechaCita && (
+                <div className="flex items-center gap-2 text-[11px] text-emerald-300 bg-emerald-500/5 border border-emerald-500/20 rounded-xl px-3 py-2">
+                  <Calendar className="w-3.5 h-3.5 shrink-0" />
+                  <span><strong>{fmtSlot(request.fechaCita)}</strong></span>
+                </div>
+              )}
+              {canAccept ? (
+                <>
+                  <p className="text-[11px] text-zinc-500">
+                    Al aceptar, el vehículo entra al CRM como ingresado y deberás
+                    registrar su kilometraje.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleAccept}
+                      disabled={acting}
+                      className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-zinc-950 font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {acting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                      Aceptar
+                    </button>
+                    <button
+                      onClick={handleReject}
+                      disabled={acting}
+                      className="px-4 py-2.5 bg-zinc-950 hover:bg-red-950/40 border border-zinc-800 hover:border-red-800 text-red-400 font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      Rechazar
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center gap-2 text-[11px] font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2">
+                  <Clock className="w-3.5 h-3.5 shrink-0" />
+                  {request.estado === 'IN_PROGRESS'
+                    ? 'Aceptada: el vehículo ya está en el CRM.'
+                    : `Estado: ${statusMeta.label}`}
+                </div>
+              )}
+            </div>
+          )}
+
           {canQuote ? (
             <form onSubmit={handleSubmitQuote} className="p-6 bg-gradient-to-br from-emerald-950/30 to-zinc-900 border border-emerald-500/20 rounded-2xl space-y-4">
               <div className="flex items-center gap-2">
@@ -592,7 +696,7 @@ export default function WorkshopRequestDetailPage({ params }: { params: Promise<
                 </div>
               )}
             </div>
-          ) : (
+          ) : esDirigidaAMi ? null : (
             <div className="p-6 bg-zinc-900/30 border border-zinc-800 border-dashed rounded-2xl text-center">
               <XCircle className="w-8 h-8 mx-auto text-zinc-600 mb-2" />
               <p className="text-sm text-zinc-400">Esta solicitud no acepta cotizaciones</p>

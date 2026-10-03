@@ -83,6 +83,7 @@ const CATEGORY_META: Record<string, { label: string; icon: any; color: string; b
 const STATUS_META: Record<string, { label: string; icon: any; color: string; bg: string }> = {
   OPEN: { label: 'Abierta', icon: Clock, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' },
   IN_PROGRESS: { label: 'En progreso', icon: Inbox, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+  REJECTED: { label: 'Rechazada', icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20' },
   CLOSED: { label: 'Cerrada', icon: CheckCircle2, color: 'text-zinc-400', bg: 'bg-zinc-500/10 border-zinc-500/20' },
   CANCELLED: { label: 'Cancelada', icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20' },
 };
@@ -337,9 +338,22 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
               {statusMeta.label}
             </span>
             {request.workshop && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 border-amber-500/30 text-amber-300">
+              <span
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${
+                  request.estado === 'OPEN'
+                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                    : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                }`}
+                title={
+                  request.estado === 'OPEN'
+                    ? 'El taller aún no acepta esta solicitud'
+                    : 'Solo este taller puede ver tu solicitud'
+                }
+              >
                 <Building2 className="w-3 h-3" />
-                Solo lo ve: {request.workshop.nombre}
+                {request.estado === 'OPEN'
+                  ? `Esperando que ${request.workshop.nombre} acepte`
+                  : `Solo lo ve: ${request.workshop.nombre}`}
               </span>
             )}
           </div>

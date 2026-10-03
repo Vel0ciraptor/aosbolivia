@@ -351,7 +351,11 @@ export class WorkshopsService {
     return job;
   }
 
-  async createJobFromRequest(workshopId: string, requestId: string) {
+  async createJobFromRequest(
+    workshopId: string,
+    requestId: string,
+    fechaCita?: Date,
+  ) {
     const request = await this.prisma.request.findUnique({
       where: { id: requestId },
       include: { vehicle: true, user: true },
@@ -381,6 +385,7 @@ export class WorkshopsService {
         clienteNombre: request.user.name,
         clienteTelefono: request.user.phone,
         estado: 'INGRESANDO',
+        fechaCita: fechaCita ?? request.fechaCita ?? null,
       },
     });
 
@@ -469,6 +474,18 @@ export class WorkshopsService {
 
     if (!passwordValid) {
       throw new ForbiddenException('Contraseña incorrecta');
+    }
+
+    // Del ingreso al check inicial: primero hay que registrar el kilometraje
+    // (el taller no conoce ese dato; lo aporta al recibir el vehículo).
+    if (
+      job.estado === 'INGRESANDO' &&
+      dto.estado === 'CHECK_INICIAL' &&
+      !job.kilometraje
+    ) {
+      throw new BadRequestException(
+        'Primero ingresa el kilometraje del vehículo',
+      );
     }
 
     const data: any = { estado: dto.estado };
@@ -1478,6 +1495,8 @@ export class WorkshopsService {
             <p style="font-size:18px;font-weight:700;margin:0;">${job.marca} ${job.modelo} ${job.anio}</p>
             ${job.placa ? `<p style="font-size:14px;color:#6b7280;margin:4px 0 0 0;">Placa: ${job.placa}</p>` : ''}
             ${job.kilometraje ? `<p style="font-size:14px;color:#6b7280;margin:4px 0 0 0;">Kilometraje: ${job.kilometraje.toLocaleString()} km</p>` : ''}
+            ${job.fechaCita ? `<p style="font-size:14px;color:#6b7280;margin:4px 0 0 0;">Cita: ${new Date(job.fechaCita).toLocaleString('es-BO', { timeZone: 'America/La_Paz', day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}</p>` : ''}
+            <p style="font-size:13px;color:#9ca3af;margin:8px 0 0 0;border-top:1px solid #e5e7eb;padding-top:6px;">Agenda del taller: ${job.workshop.capacidadSlot ?? 1} veh&iacute;culo(s) por slot</p>
           </div>
           <div style="padding:16px;background:#f9fafb;border-radius:12px;border:1px solid #e5e7eb;">
             <h3 style="font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;margin:0 0 8px 0;">Cliente</h3>

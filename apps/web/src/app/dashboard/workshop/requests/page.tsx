@@ -7,7 +7,7 @@ import { useWorkshopProfile } from '../../../../store/useWorkshopProfile';
 import {
   ClipboardList, Search, Filter, ArrowRight, Tag, Car,
   Calendar, MessageSquare, Clock, CheckCircle2, XCircle, Inbox,
-  Wrench, AlertCircle,
+  Wrench, AlertCircle, Loader2,
 } from 'lucide-react';
 
 interface Vehicle {
@@ -35,6 +35,7 @@ interface RequestItem {
 const STATUS_META: Record<string, { label: string; icon: any; color: string; bg: string }> = {
   OPEN: { label: 'Abierta', icon: Clock, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' },
   IN_PROGRESS: { label: 'En progreso', icon: Inbox, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+  REJECTED: { label: 'Rechazada', icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20' },
   CLOSED: { label: 'Cerrada', icon: CheckCircle2, color: 'text-zinc-400', bg: 'bg-zinc-500/10 border-zinc-500/20' },
   CANCELLED: { label: 'Cancelada', icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20' },
 };
@@ -46,6 +47,43 @@ export default function WorkshopRequestsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [actingId, setActingId] = useState<string | null>(null);
+  const [actionMsg, setActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const handleAccept = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActionMsg(null);
+    try {
+      setActingId(id);
+      await api.post(`/requests/${id}/accept`);
+      setAllRequests((prev) => prev.map((r) => (r.id === id ? { ...r, estado: 'IN_PROGRESS' } : r)));
+      setActionMsg({ type: 'success', text: 'Solicitud aceptada: entró al CRM como ingresado. Registra el kilometraje en el CRM.' });
+    } catch (err: unknown) {
+      const data = (err as { response?: { data?: { message?: string } } })?.response?.data;
+      setActionMsg({ type: 'error', text: data?.message || 'No se pudo aceptar la solicitud.' });
+    } finally {
+      setActingId(null);
+    }
+  };
+
+  const handleReject = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm('¿Rechazar la solicitud? La cita reservada se liberará.')) return;
+    setActionMsg(null);
+    try {
+      setActingId(id);
+      await api.post(`/requests/${id}/reject`);
+      setAllRequests((prev) => prev.map((r) => (r.id === id ? { ...r, estado: 'REJECTED' } : r)));
+      setActionMsg({ type: 'success', text: 'Solicitud rechazada. La cita quedó libre.' });
+    } catch (err: unknown) {
+      const data = (err as { response?: { data?: { message?: string } } })?.response?.data;
+      setActionMsg({ type: 'error', text: data?.message || 'No se pudo rechazar la solicitud.' });
+    } finally {
+      setActingId(null);
+    }
+  };
 
   useEffect(() => {
     if (loadingWorkshop) return;
@@ -121,6 +159,19 @@ export default function WorkshopRequestsPage() {
         </p>
       </div>
 
+      {actionMsg && (
+        <div
+          className={`p-3 rounded-xl flex items-center gap-2 text-sm ${
+            actionMsg.type === 'success'
+              ? 'bg-emerald-950/30 border border-emerald-800/50 text-emerald-200'
+              : 'bg-red-950/30 border border-red-800/50 text-red-200'
+          }`}
+        >
+          {actionMsg.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+          <span>{actionMsg.text}</span>
+        </div>
+      )}
+
       <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl flex flex-col md:flex-row gap-3">
         <div className="flex-1 relative">
           <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -144,6 +195,7 @@ export default function WorkshopRequestsPage() {
             <option value="ALL">Todos</option>
             <option value="OPEN">Abierta</option>
             <option value="IN_PROGRESS">En progreso</option>
+            <option value="REJECTED">Rechazada</option>
             <option value="CLOSED">Cerrada</option>
             <option value="CANCELLED">Cancelada</option>
           </select>
@@ -175,9 +227,10 @@ export default function WorkshopRequestsPage() {
             const statusMeta = STATUS_META[r.estado] || STATUS_META.OPEN;
             const StatusIcon = statusMeta.icon;
             const myQuoteStatus = myQuotesByRequest[r.id];
+            const pendienteAceptacion = !!r.workshopId && r.workshopId === workshop?.id && r.estado === 'OPEN';
             return (
+              <div key={r.id} className="space-y-2">
               <Link
-                key={r.id}
                 href={`/dashboard/workshop/requests/${r.id}`}
                 className="block p-5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-2xl transition-all group"
               >
@@ -236,6 +289,32 @@ export default function WorkshopRequestsPage() {
                   </div>
                 </div>
               </Link>
+              {pendienteAceptacion && (
+                <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-amber-950/20 border border-amber-500/30 rounded-2xl">
+                  <span className="text-[11px] text-amber-300 font-semibold flex items-center gap-1.5">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    El cliente te eligió: espera tu aceptación para entrar al CRM
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={(e) => handleReject(e, r.id)}
+                      disabled={actingId === r.id}
+                      className="px-3 py-1.5 bg-zinc-950 hover:bg-red-950/40 border border-zinc-800 hover:border-red-800 text-red-400 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      <XCircle className="w-3.5 h-3.5" /> Rechazar
+                    </button>
+                    <button
+                      onClick={(e) => handleAccept(e, r.id)}
+                      disabled={actingId === r.id}
+                      className="px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-zinc-950 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      {actingId === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                      Aceptar
+                    </button>
+                  </div>
+                </div>
+              )}
+              </div>
             );
           })}
         </div>

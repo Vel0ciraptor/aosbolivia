@@ -40,7 +40,8 @@ export default function WorkshopDashboard() {
         const reqRes = await api.get('/requests/all');
         if (cancelled) return;
         const allReqs = (reqRes.data || []).filter(
-          (r: RequestItem) => r.categoria === 'TALLER' && r.estado !== 'CANCELLED'
+          (r: RequestItem) =>
+            r.categoria === 'TALLER' && r.estado !== 'CANCELLED' && r.estado !== 'REJECTED'
         );
         setRequests(allReqs);
 

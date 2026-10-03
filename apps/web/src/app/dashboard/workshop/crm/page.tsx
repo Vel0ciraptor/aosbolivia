@@ -143,6 +143,10 @@ export default function WorkshopCrmPage() {
   const [showStatusPassword, setShowStatusPassword] = useState(false);
   const [changingStatus, setChangingStatus] = useState(false);
 
+  const [kmInput, setKmInput] = useState('');
+  const [savingKm, setSavingKm] = useState(false);
+  const [kmError, setKmError] = useState<string | null>(null);
+
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
   const [partNeeds, setPartNeeds] = useState<PartNeed[]>([]);
   const [selectedPartId, setSelectedPartId] = useState<string | null>(null);
@@ -277,6 +281,8 @@ export default function WorkshopCrmPage() {
       setHorasEstimadasInput(data.horasEstimadas ? String(data.horasEstimadas) : '');
       setPrecioServicioInput(data.precioServicio != null ? String(data.precioServicio) : '');
       setPartPriceEdits({});
+      setKmInput(data.kilometraje != null ? String(data.kilometraje) : '');
+      setKmError(null);
       fetchTeamUsers();
       if (data.estado === 'TRABAJANDO') fetchInventory();
     } catch (err) { console.error(err); }
@@ -306,6 +312,22 @@ export default function WorkshopCrmPage() {
   };
 
   const openStatusModal = (job: WorkshopJob) => { setStatusModalJob(job); setStatusObs(''); setStatusPassword(''); };
+
+  const handleSaveKm = async () => {
+    if (!detailJob) return;
+    const parsed = parseInt(kmInput, 10);
+    if (isNaN(parsed) || parsed < 0) { setKmError('Ingresa un kilometraje válido (número).'); return; }
+    setKmError(null);
+    setSavingKm(true);
+    try {
+      await api.put(`/workshops/me/jobs/${detailJob.id}`, { kilometraje: parsed });
+      setDetailJob({ ...detailJob, kilometraje: parsed });
+      fetchJobs();
+    } catch (err: unknown) {
+      const data = (err as { response?: { data?: { message?: string } } })?.response?.data;
+      setKmError(data?.message || 'No se pudo guardar el kilometraje.');
+    } finally { setSavingKm(false); }
+  };
 
   const handleStatusChange = async (newStatus: string) => {
     if (!statusModalJob) return;
@@ -849,6 +871,35 @@ export default function WorkshopCrmPage() {
                       <Camera className="w-4 h-4 text-blue-400" /> Ingreso del vehículo
                     </h4>
 
+                    <div className="mb-4 pb-4 border-b border-zinc-800">
+                      <label className="text-[10px] text-zinc-500 font-bold uppercase flex items-center gap-1 mb-1">
+                        <Fuel className="w-3 h-3" /> Kilometraje al ingresar <span className="text-red-400">*</span>
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          value={kmInput}
+                          onChange={(e) => setKmInput(e.target.value)}
+                          placeholder="Ej: 125000"
+                          className="flex-1 px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-blue-500 text-zinc-100 text-sm font-mono"
+                        />
+                        <button
+                          onClick={handleSaveKm}
+                          disabled={savingKm || !kmInput.trim()}
+                          className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50"
+                        >
+                          {savingKm ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Guardar
+                        </button>
+                      </div>
+                      {kmError && <p className="text-xs text-red-400 mt-1.5">{kmError}</p>}
+                      {!detailJob.kilometraje && (
+                        <p className="text-[11px] text-amber-400/80 mt-1.5">
+                          Registra el kilometraje antes de avanzar a check inicial.
+                        </p>
+                      )}
+                    </div>
+
                     <div className="mb-4">
                       <label className="text-[10px] text-zinc-500 font-bold uppercase flex items-center gap-1 mb-1">
                         <ImageIcon className="w-3 h-3" /> Fotos de ingreso (máx. 5)
@@ -1198,7 +1249,19 @@ export default function WorkshopCrmPage() {
                       <RefreshCw className="w-4 h-4" /> Reabrir vehículo
                     </button>
                   )}
-                  {STATUS_META[detailJob.estado]?.next && (<button onClick={() => { setDetailJob(null); openStatusModal(detailJob); }} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl transition-colors flex items-center gap-2">Avanzar estado<ChevronRight className="w-4 h-4" /></button>)}
+                  {STATUS_META[detailJob.estado]?.next && (() => {
+                    const faltaKm = detailJob.estado === 'INGRESANDO' && !detailJob.kilometraje;
+                    return (
+                      <button
+                        onClick={() => { setDetailJob(null); openStatusModal(detailJob); }}
+                        disabled={faltaKm}
+                        title={faltaKm ? 'Primero registra el kilometraje de ingreso' : undefined}
+                        className={`px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl transition-colors flex items-center gap-2 ${faltaKm ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        Avanzar estado<ChevronRight className="w-4 h-4" />
+                      </button>
+                    );
+                  })()}
                   <button onClick={() => { setDetailJob(null); openEdit(detailJob); }} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-sm rounded-xl transition-colors flex items-center gap-2"><Edit2 className="w-4 h-4" /> Editar</button>
                 </div>
               )}
@@ -1230,6 +1293,12 @@ export default function WorkshopCrmPage() {
                 <p className="text-xs text-zinc-400">Reabrir a:{(() => { const meta = STATUS_META.INGRESANDO; const Icon = meta.icon; return (<span className={`ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${meta.bg} ${meta.color}`}><Icon className="w-3 h-3" />{meta.label}</span>); })()}</p>
               ) : STATUS_META[statusModalJob.estado]?.next && <p className="text-xs text-zinc-400">Avanzar a:{(() => { const nextKey = STATUS_META[statusModalJob.estado].next!; const meta = STATUS_META[nextKey]; const Icon = meta.icon; return (<span className={`ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${meta.bg} ${meta.color}`}><Icon className="w-3 h-3" />{meta.label}</span>); })()}</p>}
             </div>
+            {statusModalJob.estado === 'INGRESANDO' && !statusModalJob.kilometraje && (
+              <div className="mb-4 p-3 bg-amber-950/30 border border-amber-700/40 rounded-xl flex items-start gap-2 text-amber-300 text-xs">
+                <Fuel className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>Primero registra el kilometraje de ingreso en la ficha del vehículo (sección &quot;Ingreso del vehículo&quot;).</span>
+              </div>
+            )}
             <div className="space-y-1.5 mb-4"><label className="text-xs font-semibold text-zinc-300">Observaciones (opcional)</label><textarea value={statusObs} onChange={(e) => setStatusObs(e.target.value)} rows={2} placeholder="Detalles del cambio de estado..." className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-emerald-500 text-zinc-100 text-sm resize-none" /></div>
             <div className="space-y-1.5 mb-6">
               <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5"><Lock className="w-3.5 h-3.5 text-zinc-500" /> Contraseña de firma <span className="text-red-400">*</span></label>
@@ -1247,7 +1316,7 @@ export default function WorkshopCrmPage() {
                   const target = statusModalJob.estado === 'FINALIZADO' ? 'INGRESANDO' : STATUS_META[statusModalJob.estado]?.next!;
                   handleStatusChange(target);
                 }}
-                disabled={changingStatus || !statusPassword}
+                disabled={changingStatus || !statusPassword || (statusModalJob.estado === 'INGRESANDO' && !statusModalJob.kilometraje)}
                 className={`px-5 py-2.5 font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50 ${
                   statusModalJob.estado === 'FINALIZADO'
                     ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-zinc-950'

@@ -3,6 +3,7 @@ import {
   IsNumber,
   IsOptional,
   IsObject,
+  IsArray,
   Min,
   Max,
 } from 'class-validator';
@@ -55,4 +56,20 @@ export class UpdateWorkshopDto {
   @IsOptional()
   @IsObject()
   horario?: Record<string, string>;
+
+  @ApiProperty({
+    required: false,
+    description: 'Color de marca para el PDF (#RRGGBB)',
+  })
+  @IsOptional()
+  @IsString()
+  colorPrimario?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Tags personalizados de tipo de trabajo',
+  })
+  @IsOptional()
+  @IsArray()
+  trabajoTags?: string[];
 }

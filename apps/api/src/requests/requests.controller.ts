@@ -60,10 +60,18 @@ export class RequestsController {
 
   @Post(':id/accept')
   @ApiOperation({
-    summary: 'Aceptar solicitud dirigida (entra al CRM como ingresado)',
+    summary: 'Aceptar solicitud dirigida (entra a Llegada de vehículos)',
   })
   accept(@Param('id') id: string, @Req() req: any) {
     return this.requestsService.accept(id, req.user);
+  }
+
+  @Post(':id/accept-emergency')
+  @ApiOperation({
+    summary: 'Aceptar solicitud de emergencia de forma atómica',
+  })
+  acceptEmergency(@Param('id') id: string, @Req() req: any) {
+    return this.requestsService.acceptEmergency(id, req.user);
   }
 
   @Post(':id/reject')
@@ -72,3 +80,4 @@ export class RequestsController {
     return this.requestsService.reject(id, req.user);
   }
 }
+

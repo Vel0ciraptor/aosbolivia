@@ -6,7 +6,7 @@ import { api } from '../../../../lib/api';
 import { useWorkshopProfile } from '../../../../store/useWorkshopProfile';
 import {
   Building2, ArrowLeft, Save, Loader2, AlertCircle, CheckCircle2,
-  Phone, MapPin, Wrench, Users, ImagePlus, Trash2,
+  Phone, MapPin, Wrench, Users, ImagePlus, Trash2, Palette,
 } from 'lucide-react';
 import TeamTab from './TeamTab';
 import LocationFields from '../../../../components/LocationFields';
@@ -63,6 +63,7 @@ export default function WorkshopProfilePage() {
   const [longitud, setLongitud] = useState('');
   const [initialized, setInitialized] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [colorPrimario, setColorPrimario] = useState('#10b981');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -129,6 +130,7 @@ export default function WorkshopProfilePage() {
       setDireccion(workshop.direccion || '');
       setLatitud(String(workshop.latitud ?? ''));
       setLongitud(String(workshop.longitud ?? ''));
+      setColorPrimario((workshop as any).colorPrimario || '#10b981');
       setInitialized(true);
     }
   }, [workshop, initialized]);
@@ -157,6 +159,7 @@ export default function WorkshopProfilePage() {
         direccion: direccion.trim(),
         latitud: lat,
         longitud: lng,
+        colorPrimario: colorPrimario.trim() || undefined,
       });
       setMessage({ type: 'success', text: 'Perfil actualizado correctamente.' });
       reload();
@@ -326,6 +329,34 @@ export default function WorkshopProfilePage() {
               className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
               required
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
+              <Palette className="w-3.5 h-3.5" /> Color de la empresa (PDF)
+            </label>
+            <div className="flex items-center gap-3 flex-wrap">
+              <input
+                type="color"
+                value={/^#[0-9A-Fa-f]{6}$/.test(colorPrimario) ? colorPrimario : '#10b981'}
+                onChange={(e) => setColorPrimario(e.target.value)}
+                className="w-12 h-10 bg-zinc-950 border border-zinc-800 rounded-lg cursor-pointer p-1"
+              />
+              <input
+                type="text"
+                value={colorPrimario}
+                onChange={(e) => setColorPrimario(e.target.value)}
+                placeholder="#10b981"
+                className="w-28 px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm font-mono"
+              />
+              <div
+                className="px-4 py-2 rounded-xl text-xs font-bold"
+                style={{ backgroundColor: colorPrimario || '#10b981', color: '#fff' }}
+              >
+                Vista previa
+              </div>
+            </div>
+            <p className="text-[11px] text-zinc-500">Se usa en el encabezado, títulos y total de los PDF de servicio. El logo que subas arriba también aparece en el reporte.</p>
           </div>
 
           <div className="space-y-1.5">

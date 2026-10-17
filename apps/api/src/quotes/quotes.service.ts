@@ -256,6 +256,7 @@ export class QuotesService {
               clienteNombre: request.user.name,
               clienteTelefono: request.user.phone,
               estado: 'INGRESANDO',
+              origen: 'COTIZACION',
               fechaCita: slotStart,
             },
           });

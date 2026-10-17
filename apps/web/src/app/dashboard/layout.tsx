@@ -116,7 +116,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (user.role === 'WORKSHOP') {
       return [
         ...base,
-        { name: 'CRM', href: '/dashboard/workshop/crm', icon: Car },
+        { name: 'Llegada de vehículos', href: '/dashboard/workshop/crm', icon: Car },
         { name: 'Solicitudes', href: '/dashboard/workshop/requests', icon: ClipboardList },
         { name: 'Mis Cotizaciones', href: '/dashboard/workshop/quotes', icon: MessageSquareCode },
         { name: 'Agenda', href: '/dashboard/workshop/schedule', icon: CalendarDays },
@@ -129,7 +129,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if ((user.role as string) === 'WORKSHOP_USER') {
       return [
         ...base,
-        { name: 'CRM', href: '/dashboard/workshop/crm', icon: Car }
+        { name: 'Llegada de vehículos', href: '/dashboard/workshop/crm', icon: Car }
       ];
     }
 
@@ -261,7 +261,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                pathname.includes('/provider/catalog') ? 'Mi Catálogo' :
                pathname.includes('/provider/quotes') ? 'Mis Cotizaciones' :
                pathname.includes('/provider/requests') ? 'Solicitudes' :
-               pathname.includes('/workshop/crm') ? 'CRM - Vehículos en Taller' :
+               pathname.includes('/workshop/crm') ? 'Llegada de vehículos' :
                pathname.includes('/workshop/profile') ? 'Perfil del Taller' :
                pathname.includes('/workshop/services') ? 'Servicios del Taller' :
                pathname.includes('/workshop/quotes') ? 'Mis Cotizaciones' :

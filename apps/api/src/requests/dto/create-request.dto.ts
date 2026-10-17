@@ -30,10 +30,21 @@ export class CreateRequestDto {
   @ApiProperty({
     required: false,
     description:
-      'Taller de confianza: si se envía, la solicitud solo es visible para ese taller y debe incluir fechaCita con un slot libre',
+      'Taller de confianza: si se envía, la solicitud solo es visible para ese taller',
     example: 'clxxx...',
   })
   @IsOptional()
   @IsString()
   workshopId?: string;
+
+  @ApiProperty({
+    required: false,
+    enum: ['PROGRAMADO', 'URGENCIA', 'EMERGENCIA'],
+    description: 'Modalidad de atención: PROGRAMADO (con cita), URGENCIA (atención hoy en taller de confianza) o EMERGENCIA (abierto a red)',
+    default: 'PROGRAMADO',
+  })
+  @IsOptional()
+  @IsString()
+  modalidad?: 'PROGRAMADO' | 'URGENCIA' | 'EMERGENCIA';
 }
+

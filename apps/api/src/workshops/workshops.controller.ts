@@ -41,6 +41,12 @@ import {
   UpdatePartNeedDto,
   StartStopWorkDto,
   UpdateWorklogDto,
+  AddWorkTagDto,
+  UpdateCostDto,
+  CreateMaterialRequestDto,
+  ApproveMaterialRequestDto,
+  DeliverMaterialRequestDto,
+  SendApprovalWhatsAppDto,
 } from './dto/workshop-job.dto';
 import {
   CreateInventoryItemDto,
@@ -80,6 +86,12 @@ export class WorkshopsController {
   @ApiOperation({ summary: 'Actualizar perfil del taller autenticado' })
   updateMe(@Req() req: any, @Body() dto: UpdateWorkshopDto) {
     return this.workshopsService.update(req.user.id, dto);
+  }
+
+  @Post('me/work-tags')
+  @ApiOperation({ summary: 'Guardar un tag personalizado de tipo de trabajo' })
+  addWorkTag(@Req() req: any, @Body() dto: AddWorkTagDto) {
+    return this.workshopsService.addWorkTag(req.user.workshopId, dto.nombre);
   }
 
   @Get('me/services')
@@ -159,7 +171,10 @@ export class WorkshopsController {
     @Param('id') id: string,
     @Body() dto: UpdateWorkshopJobDto,
   ) {
-    return this.workshopsService.updateJob(req.user.workshopId, id, dto);
+    return this.workshopsService.updateJob(req.user.workshopId, id, dto, {
+      id: req.user.id,
+      name: req.user.name,
+    });
   }
 
   @Patch('me/jobs/:id/status')
@@ -540,6 +555,216 @@ export class WorkshopsController {
     return this.workshopsService.removeLogo(req.user.workshopId);
   }
 
+  // ─── WhatsApp y Autorización ───
+
+  @Post('me/jobs/:id/whatsapp-approval')
+  @ApiOperation({ summary: 'Generar y registrar enlace de WhatsApp para aprobación de diagnóstico' })
+  sendApprovalWhatsApp(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: SendApprovalWhatsAppDto,
+  ) {
+    return this.workshopsService.sendDiagnosticApprovalWhatsApp(
+      req.user.workshopId,
+      id,
+      req.user.id,
+      dto,
+    );
+  }
+
+  @Post('me/jobs/:id/whatsapp-ready')
+  @ApiOperation({ summary: 'Enviar notificación por WhatsApp de vehículo terminado/listo' })
+  sendReadyWhatsApp(@Req() req: any, @Param('id') id: string) {
+    return this.workshopsService.sendVehicleReadyWhatsApp(
+      req.user.workshopId,
+      id,
+      req.user.id,
+    );
+  }
+
+  // ─── Edición de Costo con Auditoría ───
+
+  @Patch('me/jobs/:id/cost')
+  @ApiOperation({ summary: 'Modificar costo final del cliente con justificación y auditoría' })
+  updateCost(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: UpdateCostDto,
+  ) {
+    return this.workshopsService.updateJobCost(
+      req.user.workshopId,
+      id,
+      {
+        id: req.user.id,
+        name: req.user.name,
+        role: req.user.workshopUserRole || req.user.role,
+      },
+      dto,
+    );
+  }
+
+  @Get('me/jobs/:id/cost-audits')
+  @ApiOperation({ summary: 'Consultar historial de auditoría de modificaciones de precio' })
+  getCostAudits(@Req() req: any, @Param('id') id: string) {
+    return this.workshopsService.getJobCostAudits(req.user.workshopId, id);
+  }
+
+  // ─── Insumos y Salidas de Almacén ───
+
+  @Post('me/jobs/:id/materials')
+  @ApiOperation({ summary: 'Solicitar insumos o repuestos para una orden de trabajo' })
+  requestMaterial(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: CreateMaterialRequestDto,
+  ) {
+    return this.workshopsService.createMaterialRequest(
+      req.user.workshopId,
+      id,
+      { id: req.user.id, name: req.user.name },
+      dto,
+    );
+  }
+
+  @Get('me/materials')
+  @ApiOperation({ summary: 'Listar solicitudes de materiales del taller' })
+  listMaterials(@Req() req: any, @Query('jobId') jobId?: string) {
+    return this.workshopsService.listMaterialRequests(req.user.workshopId, jobId);
+  }
+
+  @Patch('me/materials/:id/approve')
+  @ApiOperation({ summary: 'Aprobar o rechazar solicitud de material (Jefe Mecánico / Admin)' })
+  approveMaterial(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: ApproveMaterialRequestDto,
+  ) {
+    return this.workshopsService.approveMaterialRequest(
+      req.user.workshopId,
+      id,
+      {
+        id: req.user.id,
+        name: req.user.name,
+        role: req.user.workshopUserRole || req.user.role,
+      },
+      dto,
+    );
+  }
+
+  @Patch('me/materials/:id/deliver')
+  @ApiOperation({ summary: 'Registrar entrega física de materiales desde almacén (descuenta stock)' })
+  deliverMaterial(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: DeliverMaterialRequestDto,
+  ) {
+    return this.workshopsService.deliverMaterialRequest(
+      req.user.workshopId,
+      id,
+      {
+        id: req.user.id,
+        name: req.user.name,
+        role: req.user.workshopUserRole || req.user.role,
+      },
+      dto,
+    );
+  }
+
+  // ─── Insumos Predefinidos en Servicios ───
+
+  @Post('me/jobs/:id/services/:serviceId/load-materials')
+  @ApiOperation({ summary: 'Cargar insumos predefinidos de un servicio a la orden de trabajo' })
+  loadSuggestedMaterials(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Param('serviceId') serviceId: string,
+  ) {
+    return this.workshopsService.addSuggestedMaterialsToJob(
+      req.user.workshopId,
+      id,
+      serviceId,
+      { id: req.user.id, name: req.user.name },
+    );
+  }
+
+  // ─── Importación y Plantillas Excel ───
+
+  @Get('me/inventory/template')
+  @ApiOperation({ summary: 'Descargar plantilla oficial Excel para inventario' })
+  downloadInventoryTemplate(@Res() res: Response) {
+    const buffer = this.workshopsService.getInventoryTemplate();
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="plantilla_inventario.xlsx"',
+    );
+    res.end(buffer);
+  }
+
+  @Post('me/inventory/excel-preview')
+  @ApiOperation({ summary: 'Previsualizar y validar archivo Excel de inventario' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file'))
+  previewInventory(@Req() req: any, @UploadedFile() file: Express.Multer.File) {
+    if (!file) throw new BadRequestException('Archivo no subido');
+    return this.workshopsService.previewInventoryImport(req.user.workshopId, file.buffer);
+  }
+
+  @Post('me/inventory/excel-confirm')
+  @ApiOperation({ summary: 'Confirmar e importar masivamente el inventario desde Excel' })
+  confirmInventory(@Req() req: any, @Body() body: { items: any[] }) {
+    return this.workshopsService.confirmInventoryImport(
+      req.user.workshopId,
+      req.user.id,
+      req.user.name || 'Usuario',
+      body.items || [],
+    );
+  }
+
+  @Get('me/services/template')
+  @ApiOperation({ summary: 'Descargar plantilla oficial Excel para catálogo de servicios' })
+  downloadServicesTemplate(@Res() res: Response) {
+    const buffer = this.workshopsService.getServicesTemplate();
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="plantilla_servicios.xlsx"',
+    );
+    res.end(buffer);
+  }
+
+  @Post('me/services/excel-preview')
+  @ApiOperation({ summary: 'Previsualizar y validar archivo Excel de servicios' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file'))
+  previewServices(@Req() req: any, @UploadedFile() file: Express.Multer.File) {
+    if (!file) throw new BadRequestException('Archivo no subido');
+    return this.workshopsService.previewServicesImport(req.user.workshopId, file.buffer);
+  }
+
+  @Post('me/services/excel-confirm')
+  @ApiOperation({ summary: 'Confirmar e importar masivamente el catálogo de servicios desde Excel' })
+  confirmServices(@Req() req: any, @Body() body: { services: any[] }) {
+    return this.workshopsService.confirmServicesImport(
+      req.user.workshopId,
+      body.services || [],
+    );
+  }
+
+  // ─── Tipo de Cambio ───
+
+  @Get('me/exchange-rate')
+  @ApiOperation({ summary: 'Obtener cotización actual del Dólar Blue Bolivia (valor de venta)' })
+  getExchangeRate() {
+    return this.workshopsService.getExchangeRate();
+  }
+
   // ─── Otros ───
 
   @Get('nearby')
@@ -558,3 +783,4 @@ export class WorkshopsController {
     return this.workshopsService.findOne(id);
   }
 }
+

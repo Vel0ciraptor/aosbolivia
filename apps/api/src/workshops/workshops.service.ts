@@ -21,7 +21,16 @@ import {
   UpdatePartNeedDto,
   StartStopWorkDto,
   UpdateWorklogDto,
+  UpdateCostDto,
+  CreateMaterialRequestDto,
+  ApproveMaterialRequestDto,
+  DeliverMaterialRequestDto,
+  CustomerApprovalDecisionDto,
+  SendApprovalWhatsAppDto,
 } from './dto/workshop-job.dto';
+import { ExchangeRateService } from './exchange-rate.service';
+import { WhatsAppService } from './whatsapp.service';
+import { ExcelImportService, InventoryPreviewItem, ServicePreviewItem } from './excel-import.service';
 import {
   CreateWorkshopUserDto,
   UpdateWorkshopUserDto,
@@ -32,20 +41,6 @@ import { isEmail } from 'class-validator';
 import { randomBytes } from 'crypto';
 import { readFile, stat, unlink } from 'fs/promises';
 import { basename, extname, join } from 'path';
-
-const DEFAULT_CHECKPOINTS = [
-  'Motor',
-  'Aceite y filtros',
-  'Frenos',
-  'Alineación y balanceo',
-  'Suspensión',
-  'Eléctrico',
-  'Neumáticos',
-  'Refrigeración',
-  'Transmisión',
-  'Carrocería',
-  'Aire acondicionado',
-];
 
 const MECHANIC_ROLE = 'MECANICO';
 const MECHANIC_EDITABLE_STATES = ['CHECK_INICIAL', 'TRABAJANDO'];
@@ -134,7 +129,12 @@ function getImageDimensions(buf: Buffer): { width: number; height: number } | nu
 
 @Injectable()
 export class WorkshopsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private exchangeRateService: ExchangeRateService,
+    private whatsAppService: WhatsAppService,
+    private excelImportService: ExcelImportService,
+  ) {}
 
   async findAll() {
     return this.prisma.workshop.findMany({
@@ -175,8 +175,31 @@ export class WorkshopsService {
     if (!workshop) throw new NotFoundException('Taller no encontrado');
     return this.prisma.workshop.update({
       where: { userId },
-      data: { ...dto, horario: dto.horario as any },
+      data: {
+        ...dto,
+        horario: dto.horario as any,
+        trabajoTags: dto.trabajoTags as any,
+      },
     });
+  }
+
+  // Tags personalizados de tipo de trabajo (CRM)
+  async addWorkTag(workshopId: string, nombre: string) {
+    const clean = (nombre || '').trim();
+    if (!clean) throw new BadRequestException('El nombre del tag es obligatorio');
+    const workshop = await this.prisma.workshop.findUnique({
+      where: { id: workshopId },
+    });
+    if (!workshop) throw new NotFoundException('Taller no encontrado');
+    const tags = ((workshop.trabajoTags as string[]) || []).slice();
+    if (!tags.some((t) => t.toLowerCase() === clean.toLowerCase())) {
+      tags.push(clean);
+    }
+    const updated = await this.prisma.workshop.update({
+      where: { id: workshopId },
+      data: { trabajoTags: tags },
+    });
+    return { trabajoTags: (updated.trabajoTags as string[]) || [] };
   }
 
   async findNearby(lat: number, lng: number, radiusKm: number = 50) {
@@ -336,6 +359,7 @@ export class WorkshopsService {
         clienteNombre: dto.clienteNombre,
         clienteTelefono: dto.clienteTelefono,
         requestId: dto.requestId,
+        origen: dto.origen || 'DIRECTO',
         estado: 'INGRESANDO',
       },
     });
@@ -385,6 +409,7 @@ export class WorkshopsService {
         clienteNombre: request.user.name,
         clienteTelefono: request.user.phone,
         estado: 'INGRESANDO',
+        origen: 'DIRECTO',
         fechaCita: fechaCita ?? request.fechaCita ?? null,
       },
     });
@@ -404,6 +429,7 @@ export class WorkshopsService {
     workshopId: string,
     jobId: string,
     dto: UpdateWorkshopJobDto,
+    actor?: { id: string; name?: string },
   ) {
     const job = await this.prisma.workshopJob.findUnique({
       where: { id: jobId },
@@ -414,14 +440,27 @@ export class WorkshopsService {
         'No tiene permiso para modificar este registro',
       );
     }
+
+    const data: any = {
+      ...dto,
+      imagenes: dto.imagenes as any,
+      imagenesIngreso: dto.imagenesIngreso as any,
+      imagenesTerminado: dto.imagenesTerminado as any,
+      tipoTrabajo: dto.tipoTrabajo as any,
+      serviciosRealizados: dto.serviciosRealizados as any,
+      diagnosticoImagenes: dto.diagnosticoImagenes as any,
+    };
+
+    // Si se modifica o registra el nivel de combustible, registrar quién y cuándo
+    if (dto.nivelCombustible && dto.nivelCombustible !== job.nivelCombustible) {
+      data.nivelCombustible = dto.nivelCombustible;
+      data.combustibleRegistradoPor = actor?.name || actor?.id || 'Recepción';
+      data.combustibleRegistradoEn = new Date();
+    }
+
     return this.prisma.workshopJob.update({
       where: { id: jobId },
-      data: {
-        ...dto,
-        imagenes: dto.imagenes as any,
-        imagenesIngreso: dto.imagenesIngreso as any,
-        imagenesTerminado: dto.imagenesTerminado as any,
-      },
+      data,
     });
   }
 
@@ -477,7 +516,6 @@ export class WorkshopsService {
     }
 
     // Del ingreso al check inicial: primero hay que registrar el kilometraje
-    // (el taller no conoce ese dato; lo aporta al recibir el vehículo).
     if (
       job.estado === 'INGRESANDO' &&
       dto.estado === 'CHECK_INICIAL' &&
@@ -486,6 +524,26 @@ export class WorkshopsService {
       throw new BadRequestException(
         'Primero ingresa el kilometraje del vehículo',
       );
+    }
+
+    // Al pasar a TRABAJANDO: verificar mecánico asignado y autorización del cliente
+    if (dto.estado === 'TRABAJANDO') {
+      const worklogs = (job.mecanicosAsignados as any[]) || [];
+      if (!worklogs.length) {
+        throw new BadRequestException(
+          'Debe asignar al menos un mecánico responsable antes de iniciar los trabajos.',
+        );
+      }
+      if (job.autorizacionEstado === 'PENDIENTE_APROBACION') {
+        throw new BadRequestException(
+          'No se puede iniciar el trabajo: está pendiente la aprobación del presupuesto por el cliente.',
+        );
+      }
+      if (job.autorizacionEstado === 'RECHAZADO') {
+        throw new BadRequestException(
+          'El cliente rechazó el presupuesto. Realice los ajustes necesarios y vuelva a solicitar aprobación.',
+        );
+      }
     }
 
     const data: any = { estado: dto.estado };
@@ -503,21 +561,6 @@ export class WorkshopsService {
         },
       }),
     ]);
-
-    if (dto.estado === 'CHECK_INICIAL') {
-      const existing = await this.prisma.jobCheckpoint.findMany({
-        where: { jobId },
-      });
-      if (existing.length === 0) {
-        await this.prisma.jobCheckpoint.createMany({
-          data: DEFAULT_CHECKPOINTS.map((servicio) => ({
-            jobId,
-            servicio,
-            checked: false,
-          })),
-        });
-      }
-    }
 
     return updatedJob;
   }
@@ -803,6 +846,17 @@ export class WorkshopsService {
       throw new BadRequestException('El usuario no es un mecánico del taller');
     }
 
+    if (job.autorizacionEstado === 'PENDIENTE_APROBACION') {
+      throw new BadRequestException(
+        'No se puede iniciar el trabajo: está pendiente la aprobación del presupuesto por el cliente.',
+      );
+    }
+    if (job.autorizacionEstado === 'RECHAZADO') {
+      throw new BadRequestException(
+        'El cliente rechazó el presupuesto. Realice los ajustes necesarios y vuelva a solicitar aprobación.',
+      );
+    }
+
     const worklogs = (job.mecanicosAsignados as any[]) || [];
     const active = worklogs.find((w) => w.userId === userId && !w.fin);
     if (active)
@@ -815,11 +869,31 @@ export class WorkshopsService {
       inicio: new Date().toISOString(),
       fin: null,
       horasReales: null,
+      iniciadoPor: actor.name || actor.id,
     };
+
+    const updateData: any = {
+      mecanicosAsignados: [...worklogs, entry],
+    };
+
+    // Si aún estaba en CHECK_INICIAL o INGRESANDO, avanza automáticamente a TRABAJANDO
+    if (job.estado === 'CHECK_INICIAL' || job.estado === 'INGRESANDO') {
+      updateData.estado = 'TRABAJANDO';
+      await this.prisma.workshopJobLog.create({
+        data: {
+          jobId,
+          estado: 'TRABAJANDO',
+          observaciones: `Trabajo iniciado por ${mechanic.name} (Asignado por: ${actor.name || actor.id})`,
+          firmaUsuarioId: actor.id,
+          firmaUsuarioNombre: actor.name,
+          firmaUsuarioRol: actor.role || 'SUPERVISOR',
+        },
+      });
+    }
 
     const updated = await this.prisma.workshopJob.update({
       where: { id: jobId },
-      data: { mecanicosAsignados: [...worklogs, entry] },
+      data: updateData,
     });
     return updated.mecanicosAsignados;
   }
@@ -1368,6 +1442,8 @@ export class WorkshopsService {
     if (job.workshopId !== workshopId)
       throw new ForbiddenException('Sin permiso');
 
+    const accent = (job.workshop.colorPrimario as string) || '#10b981';
+
     const checkpoints = (job.checkpoints || [])
       .map(
         (cp) => `
@@ -1417,20 +1493,35 @@ export class WorkshopsService {
         ].join(', ')
       : '';
 
+    const servicios = (job.serviciosRealizados as any[]) || [];
+    const serviciosRows = servicios
+      .map(
+        (s) => `
+      <tr>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;">${s.nombre || '-'}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:14px;">$${(Number(s.precio) || 0).toFixed(2)}</td>
+      </tr>
+    `,
+      )
+      .join('');
+
     const totalRepuestos = (job.partNeeds || []).reduce((sum, pn) => {
       if (pn.precioUnitario != null)
         return sum + Number(pn.precioUnitario) * pn.cantidad;
       return sum;
     }, 0);
-    const precioServicio =
+    const precioServicioLegacy =
       job.precioServicio != null ? Number(job.precioServicio) : 0;
-    const totalCostos = precioServicio + totalRepuestos;
+    const totalServicios = servicios.length
+      ? servicios.reduce((sum, s) => sum + (Number(s.precio) || 0), 0)
+      : precioServicioLegacy;
+    const totalCostos = totalServicios + totalRepuestos;
 
     const logs = (job.logs || [])
       .map(
         (log) => `
-      <div style="margin-bottom:12px;padding-left:20px;border-left:3px solid #10b981;">
-        <strong style="font-size:14px;color:#10b981;">${log.estado}</strong>
+      <div style="margin-bottom:12px;padding-left:20px;border-left:3px solid ${accent};">
+        <strong style="font-size:14px;color:${accent};">${log.estado}</strong>
         <span style="font-size:12px;color:#9ca3af;margin-left:8px;">${new Date(log.createdAt).toLocaleString('es-VE')}</span>
         ${log.observaciones ? `<p style="font-size:13px;color:#6b7280;margin:4px 0 0 0;">${log.observaciones}</p>` : ''}
       </div>
@@ -1465,10 +1556,65 @@ export class WorkshopsService {
         }),
       );
 
+    const embedLogo = async (): Promise<string> => {
+      const url = job.workshop.imageUrl;
+      if (!url) return '';
+      try {
+        const name = imageKey(url);
+        const data = await readFile(join(UPLOAD_LOGOS_DIR, name));
+        const ext = extname(name).toLowerCase();
+        const mime =
+          ext === '.png'
+            ? 'image/png'
+            : ext === '.gif'
+              ? 'image/gif'
+              : ext === '.webp'
+                ? 'image/webp'
+                : 'image/jpeg';
+        return `data:${mime};base64,${data.toString('base64')}`;
+      } catch {
+        return url;
+      }
+    };
+
+    const logoSrc = await embedLogo();
+    const logoHtml = logoSrc
+      ? `<img src="${logoSrc}" alt="Logo" style="width:64px;height:64px;object-fit:contain;border-radius:10px;" />`
+      : '';
+
+    const embedFotoTablero = async (): Promise<string> => {
+      const url = job.fotoTablero;
+      if (!url) return '';
+      return embedReportImage(url);
+    };
+    const fotoTableroSrc = await embedFotoTablero();
+
     const imagenes = (await renderImages(job.imagenes)).join('');
     const imagenesTerminado = (
       await renderImages(job.imagenesTerminado)
     ).join('');
+    const imagenesDiagnostico = (
+      await renderImages(job.diagnosticoImagenes)
+    ).join('');
+
+    // Cálculos económicos con descuento e IVA
+    const subtotal = totalCostos;
+    let descuentoMonto = 0;
+    if (job.descuentoTipo === 'PORCENTAJE') {
+      descuentoMonto = subtotal * ((Number(job.descuentoValor) || 0) / 100);
+    } else if (job.descuentoTipo === 'FIJO') {
+      descuentoMonto = Math.min(subtotal, Number(job.descuentoValor) || 0);
+    }
+    const baseImponible = Math.max(0, subtotal - descuentoMonto);
+    const ivaMonto = job.aplicaIva
+      ? baseImponible * ((Number(job.porcentajeIva) || 13) / 100)
+      : 0;
+    const totalFinalUsd = baseImponible + ivaMonto;
+
+    // Tipo de cambio oficial de venta (BOB)
+    const rateInfo = await this.exchangeRateService.getLatestRate();
+    const rateVenta = Number(job.tipoCambioAplicado) || rateInfo.venta;
+    const totalFinalBob = Math.round(totalFinalUsd * rateVenta * 100) / 100;
 
     const html = `
     <!DOCTYPE html>
@@ -1478,10 +1624,13 @@ export class WorkshopsService {
     </head>
     <body style="font-family:system-ui,-apple-system,sans-serif;margin:0;padding:40px;color:#1f2937;">
       <div style="max-width:800px;margin:0 auto;">
-        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #10b981;padding-bottom:16px;margin-bottom:24px;">
-          <div>
-            <h1 style="font-size:24px;font-weight:800;margin:0;color:#111827;">${job.workshop.nombre}</h1>
-            <p style="font-size:13px;color:#6b7280;margin:4px 0 0 0;">${job.workshop.direccion} | ${job.workshop.telefono}</p>
+        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid ${accent};padding-bottom:16px;margin-bottom:24px;">
+          <div style="display:flex;align-items:center;gap:14px;">
+            ${logoHtml}
+            <div>
+              <h1 style="font-size:24px;font-weight:800;margin:0;color:#111827;">${job.workshop.nombre}</h1>
+              <p style="font-size:13px;color:#6b7280;margin:4px 0 0 0;">${job.workshop.direccion} | ${job.workshop.telefono}</p>
+            </div>
           </div>
           <div style="text-align:right;">
             <p style="font-size:11px;color:#9ca3af;margin:0;">REPORTE DE SERVICIO</p>
@@ -1495,13 +1644,16 @@ export class WorkshopsService {
             <p style="font-size:18px;font-weight:700;margin:0;">${job.marca} ${job.modelo} ${job.anio}</p>
             ${job.placa ? `<p style="font-size:14px;color:#6b7280;margin:4px 0 0 0;">Placa: ${job.placa}</p>` : ''}
             ${job.kilometraje ? `<p style="font-size:14px;color:#6b7280;margin:4px 0 0 0;">Kilometraje: ${job.kilometraje.toLocaleString()} km</p>` : ''}
+            <p style="font-size:14px;margin:4px 0 0 0;"><strong style="color:#374151;">Combustible:</strong> ${job.nivelCombustible ? `<span style="font-weight:700;color:${accent};">${job.nivelCombustible}</span> (Registrado por: ${job.combustibleRegistradoPor || 'Recepción'})` : 'No registrado'}</p>
+            <p style="font-size:14px;margin:4px 0 0 0;"><strong style="color:#374151;">Ingreso:</strong> ${job.origen === 'COTIZACION' ? 'Vía cotización aceptada' : 'Directo al taller'}</p>
             ${job.fechaCita ? `<p style="font-size:14px;color:#6b7280;margin:4px 0 0 0;">Cita: ${new Date(job.fechaCita).toLocaleString('es-BO', { timeZone: 'America/La_Paz', day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}</p>` : ''}
-            <p style="font-size:13px;color:#9ca3af;margin:8px 0 0 0;border-top:1px solid #e5e7eb;padding-top:6px;">Agenda del taller: ${job.workshop.capacidadSlot ?? 1} veh&iacute;culo(s) por slot</p>
+            ${fotoTableroSrc ? `<div style="margin-top:10px;"><p style="font-size:11px;color:#6b7280;margin:0 0 4px 0;">Evidencia Odómetro / Tablero:</p><img src="${fotoTableroSrc}" style="width:140px;height:90px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;" /></div>` : ''}
           </div>
           <div style="padding:16px;background:#f9fafb;border-radius:12px;border:1px solid #e5e7eb;">
             <h3 style="font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;margin:0 0 8px 0;">Cliente</h3>
             <p style="font-size:16px;font-weight:600;margin:0;">${job.clienteNombre}</p>
             ${job.clienteTelefono ? `<p style="font-size:14px;color:#6b7280;margin:4px 0 0 0;">${job.clienteTelefono}</p>` : ''}
+            <p style="font-size:13px;color:#6b7280;margin:8px 0 0 0;"><strong>Autorización:</strong> ${job.autorizacionEstado === 'APROBADO' ? '<span style="color:#059669;font-weight:700;">Aprobado por el cliente</span>' : job.autorizacionEstado === 'PENDIENTE_APROBACION' ? '<span style="color:#d97706;font-weight:700;">Pendiente de aprobación</span>' : 'Directa'}</p>
           </div>
         </div>
 
@@ -1510,6 +1662,17 @@ export class WorkshopsService {
           <p style="font-size:14px;margin:0;">${job.problema}</p>
           ${tipoTrabajoText ? `<p style="font-size:13px;color:#78350f;margin:8px 0 0 0;"><strong>Tipo de trabajo:</strong> ${tipoTrabajoText}</p>` : ''}
         </div>
+
+        ${
+          job.diagnosticoMecanico
+            ? `
+        <div style="padding:16px;background:#f0fdf4;border-radius:12px;border:1px solid #86efac;margin-bottom:24px;">
+          <h3 style="font-size:12px;font-weight:700;color:#166534;text-transform:uppercase;margin:0 0 8px 0;">Diagnóstico Mecánico</h3>
+          <p style="font-size:14px;margin:0;color:#14532d;">${job.diagnosticoMecanico}</p>
+          ${imagenesDiagnostico ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">${imagenesDiagnostico}</div>` : ''}
+        </div>`
+            : ''
+        }
 
         ${
           job.checkpoints && job.checkpoints.length > 0
@@ -1529,18 +1692,16 @@ export class WorkshopsService {
         }
 
         ${
-          worklogRows
+          serviciosRows
             ? `
         <div style="margin-bottom:24px;">
-          <h2 style="font-size:16px;font-weight:700;margin:0 0 12px 0;color:#111827;">Mecánicos y Horas</h2>
+          <h2 style="font-size:16px;font-weight:700;margin:0 0 12px 0;color:#111827;">Trabajos Realizados</h2>
           <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
             <thead><tr style="background:#f9fafb;">
-              <th style="padding:8px 12px;text-align:left;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Mecánico</th>
-              <th style="padding:8px 12px;text-align:center;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Inicio</th>
-              <th style="padding:8px 12px;text-align:center;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Fin</th>
-              <th style="padding:8px 12px;text-align:center;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Horas</th>
+              <th style="padding:8px 12px;text-align:left;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Servicio</th>
+              <th style="padding:8px 12px;text-align:right;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Precio</th>
             </tr></thead>
-            <tbody>${worklogRows}</tbody>
+            <tbody>${serviciosRows}</tbody>
           </table>
         </div>`
             : ''
@@ -1558,7 +1719,6 @@ export class WorkshopsService {
               <th style="padding:8px 12px;text-align:left;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Tipo</th>
               <th style="padding:8px 12px;text-align:right;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Precio U.</th>
               <th style="padding:8px 12px;text-align:right;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Subtotal</th>
-              <th style="padding:8px 12px;text-align:center;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Usado</th>
             </tr></thead>
             <tbody>${partNeeds}</tbody>
           </table>
@@ -1567,30 +1727,68 @@ export class WorkshopsService {
         }
 
         ${
-          precioServicio > 0 || totalRepuestos > 0
+          totalServicios > 0 || totalRepuestos > 0
             ? `
         <div style="margin-bottom:24px;">
-          <h2 style="font-size:16px;font-weight:700;margin:0 0 12px 0;color:#111827;">Resumen de Costos</h2>
+          <h2 style="font-size:16px;font-weight:700;margin:0 0 12px 0;color:#111827;">Informe Económico</h2>
           <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
             <thead><tr style="background:#f9fafb;">
               <th style="padding:8px 12px;text-align:left;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Concepto</th>
-              <th style="padding:8px 12px;text-align:right;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Monto</th>
+              <th style="padding:8px 12px;text-align:right;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Monto ($ USD)</th>
             </tr></thead>
             <tbody>
               <tr>
-                <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;">Servicio</td>
-                <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:14px;">${precioServicio > 0 ? `$${precioServicio.toFixed(2)}` : '-'}</td>
+                <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;">${servicios.length ? `Servicios realizados (${servicios.length})` : 'Servicio'}</td>
+                <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:14px;">${totalServicios > 0 ? `$${totalServicios.toFixed(2)}` : '-'}</td>
               </tr>
               <tr>
                 <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;">Repuestos / Insumos</td>
                 <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:14px;">${totalRepuestos > 0 ? `$${totalRepuestos.toFixed(2)}` : '-'}</td>
               </tr>
+              <tr style="background:#f9fafb;">
+                <td style="padding:8px 12px;font-size:14px;font-weight:600;color:#374151;">Subtotal Bruto</td>
+                <td style="padding:8px 12px;text-align:right;font-size:14px;font-weight:600;color:#374151;">$${subtotal.toFixed(2)}</td>
+              </tr>
+              ${
+                descuentoMonto > 0
+                  ? `<tr>
+                <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#dc2626;">Descuento (${job.descuentoTipo === 'PORCENTAJE' ? `${job.descuentoValor}%` : 'Fijo'})</td>
+                <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:14px;color:#dc2626;">-$${descuentoMonto.toFixed(2)}</td>
+              </tr>`
+                  : ''
+              }
+              ${
+                job.aplicaIva
+                  ? `<tr>
+                <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;">IVA (${Number(job.porcentajeIva || 13)}%)</td>
+                <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:14px;">$${ivaMonto.toFixed(2)}</td>
+              </tr>`
+                  : `<tr>
+                <td style="padding:6px 12px;font-size:12px;color:#9ca3af;">Tratamiento fiscal</td>
+                <td style="padding:6px 12px;text-align:right;font-size:12px;color:#9ca3af;">Sin IVA</td>
+              </tr>`
+              }
+              <tr style="background:#f9fafb;">
+                <td style="padding:10px 12px;font-size:16px;font-weight:800;color:${accent};">TOTAL (USD)</td>
+                <td style="padding:10px 12px;text-align:right;font-size:16px;font-weight:800;color:${accent};">$${totalFinalUsd.toFixed(2)}</td>
+              </tr>
               <tr style="background:#ecfdf5;">
-                <td style="padding:10px 12px;font-size:15px;font-weight:800;color:#065f46;">TOTAL</td>
-                <td style="padding:10px 12px;text-align:right;font-size:15px;font-weight:800;color:#065f46;">$${totalCostos.toFixed(2)}</td>
+                <td style="padding:10px 12px;font-size:15px;font-weight:800;color:#065f46;">TOTAL EN BOLIVIANOS (BOB)</td>
+                <td style="padding:10px 12px;text-align:right;font-size:15px;font-weight:800;color:#065f46;">Bs. ${totalFinalBob.toFixed(2)}</td>
               </tr>
             </tbody>
           </table>
+          <p style="font-size:11px;color:#9ca3af;margin:6px 0 0 0;">* Tipo de cambio aplicado: <strong>${rateVenta} BOB/USD</strong> (Valor de venta del Dólar).</p>
+        </div>`
+            : ''
+        }
+
+        ${
+          job.conclusionesEntrega
+            ? `
+        <div style="padding:16px;background:#f8fafc;border-radius:12px;border:1px solid #cbd5e1;margin-bottom:24px;">
+          <h3 style="font-size:12px;font-weight:700;color:#334155;text-transform:uppercase;margin:0 0 8px 0;">Conclusiones de Observaciones</h3>
+          <p style="font-size:14px;margin:0;color:#1e293b;">${job.conclusionesEntrega}</p>
         </div>`
             : ''
         }
@@ -1604,11 +1802,14 @@ export class WorkshopsService {
         ${imagenesTerminado ? `<div style="margin-bottom:24px;"><h2 style="font-size:16px;font-weight:700;margin:0 0 12px 0;color:#111827;">Fotos del Resultado</h2><div style="display:flex;gap:8px;flex-wrap:wrap;">${imagenesTerminado}</div></div>` : ''}
 
         ${
-          job.firmaDigital
+          job.firmaDigital || job.firmaIngreso
             ? `
         <div style="margin-bottom:24px;">
-          <h2 style="font-size:16px;font-weight:700;margin:0 0 12px 0;color:#111827;">Firma del Cliente</h2>
-          <img src="${job.firmaDigital}" style="height:80px;border:1px solid #e5e7eb;border-radius:8px;padding:8px;background:white;" />
+          <h2 style="font-size:16px;font-weight:700;margin:0 0 12px 0;color:#111827;">Firmas</h2>
+          <div style="display:flex;gap:24px;flex-wrap:wrap;">
+            ${job.firmaIngreso ? `<div><p style="font-size:12px;color:#6b7280;margin:0 0 4px 0;">Firma de ingreso</p><img src="${job.firmaIngreso}" style="height:80px;border:1px solid #e5e7eb;border-radius:8px;padding:8px;background:white;" /></div>` : ''}
+            ${job.firmaDigital ? `<div><p style="font-size:12px;color:#6b7280;margin:0 0 4px 0;">Firma de salida (cliente)</p><img src="${job.firmaDigital}" style="height:80px;border:1px solid #e5e7eb;border-radius:8px;padding:8px;background:white;" /></div>` : ''}
+          </div>
         </div>`
             : ''
         }
@@ -1620,15 +1821,546 @@ export class WorkshopsService {
     </body>
     </html>`;
 
-    await Promise.all(
-      [
-        ...((job.imagenes as string[]) || []),
-        ...((job.imagenesTerminado as string[]) || []),
-      ].map((url) =>
-        unlink(join(UPLOAD_IMAGES_DIR, imageKey(url))).catch(() => undefined),
-      ),
-    );
-
     return html;
   }
+
+  // ─────────────────────────────────────────────
+  // WHATSAPP Y AUTORIZACIÓN DEL CLIENTE
+  // ─────────────────────────────────────────────
+
+  async sendDiagnosticApprovalWhatsApp(
+    workshopId: string,
+    jobId: string,
+    userId: string,
+    dto?: SendApprovalWhatsAppDto,
+  ) {
+    const job = await this.prisma.workshopJob.findUnique({
+      where: { id: jobId },
+      include: { workshop: true, partNeeds: true },
+    });
+    if (!job) throw new NotFoundException('Vehículo no encontrado');
+    if (job.workshopId !== workshopId) throw new ForbiddenException('Sin permiso');
+    if (!job.clienteTelefono) {
+      throw new BadRequestException('El cliente no tiene un número de teléfono registrado');
+    }
+
+    // Generar token único con expiración
+    const { token, expiresAt } = this.whatsAppService.generateApprovalToken();
+
+    // Calcular costos presupuestados
+    const servicios = (job.serviciosRealizados as any[]) || [];
+    const totalServicios = servicios.length
+      ? servicios.reduce((sum, s) => sum + (Number(s.precio) || 0), 0)
+      : Number(job.precioServicio) || 0;
+    const totalRepuestos = (job.partNeeds || []).reduce(
+      (sum, p) => sum + Number(p.precioUnitario || 0) * (p.cantidad || 1),
+      0,
+    );
+    const totalEstimadoUsd = totalServicios + totalRepuestos;
+
+    const rateInfo = await this.exchangeRateService.getLatestRate();
+    const totalEstimadoBob = totalEstimadoUsd * rateInfo.venta;
+
+    // Actualizar orden con token y estado pendiente de aprobación
+    await this.prisma.workshopJob.update({
+      where: { id: jobId },
+      data: {
+        autorizacionToken: token,
+        autorizacionTokenExpira: expiresAt,
+        autorizacionPresupuesto: totalEstimadoUsd,
+        autorizacionEstado: 'PENDIENTE_APROBACION',
+        tipoCambioAplicado: rateInfo.venta,
+      },
+    });
+
+    return this.whatsAppService.sendDiagnosticApproval({
+      workshopId,
+      jobId,
+      enviadoPorId: userId,
+      clienteNombre: job.clienteNombre,
+      clienteTelefono: job.clienteTelefono,
+      vehiculo: `${job.marca} ${job.modelo} (${job.anio})`,
+      placa: job.placa || undefined,
+      diagnostico: job.diagnosticoMecanico || job.problema || 'Inspección técnica general',
+      servicios: servicios.map((s) => ({ nombre: s.nombre, precio: Number(s.precio) || 0 })),
+      totalEstimadoUsd,
+      totalEstimadoBob,
+      token,
+      appUrl: dto?.appUrl,
+    });
+  }
+
+  async sendVehicleReadyWhatsApp(
+    workshopId: string,
+    jobId: string,
+    userId: string,
+    appUrl?: string,
+  ) {
+    const job = await this.prisma.workshopJob.findUnique({
+      where: { id: jobId },
+      include: { workshop: true, partNeeds: true },
+    });
+    if (!job) throw new NotFoundException('Vehículo no encontrado');
+    if (job.workshopId !== workshopId) throw new ForbiddenException('Sin permiso');
+    if (!job.clienteTelefono) {
+      throw new BadRequestException('El cliente no tiene un número de teléfono registrado');
+    }
+
+    const servicios = (job.serviciosRealizados as any[]) || [];
+    const totalServicios = servicios.length
+      ? servicios.reduce((sum, s) => sum + (Number(s.precio) || 0), 0)
+      : Number(job.precioServicio) || 0;
+    const totalRepuestos = (job.partNeeds || []).reduce(
+      (sum, p) => sum + Number(p.precioUnitario || 0) * (p.cantidad || 1),
+      0,
+    );
+    const subtotal = totalServicios + totalRepuestos;
+    let descuentoMonto = 0;
+    if (job.descuentoTipo === 'PORCENTAJE') {
+      descuentoMonto = subtotal * ((Number(job.descuentoValor) || 0) / 100);
+    } else if (job.descuentoTipo === 'FIJO') {
+      descuentoMonto = Math.min(subtotal, Number(job.descuentoValor) || 0);
+    }
+    const base = Math.max(0, subtotal - descuentoMonto);
+    const iva = job.aplicaIva ? base * ((Number(job.porcentajeIva) || 13) / 100) : 0;
+    const totalFinalUsd = base + iva;
+
+    const rateInfo = await this.exchangeRateService.getLatestRate();
+    const rateVenta = Number(job.tipoCambioAplicado) || rateInfo.venta;
+    const totalFinalBob = totalFinalUsd * rateVenta;
+
+    return this.whatsAppService.sendVehicleReady({
+      workshopId,
+      jobId,
+      enviadoPorId: userId,
+      clienteNombre: job.clienteNombre,
+      clienteTelefono: job.clienteTelefono,
+      vehiculo: `${job.marca} ${job.modelo}`,
+      placa: job.placa || undefined,
+      tallerNombre: job.workshop.nombre,
+      tallerDireccion: job.workshop.direccion,
+      totalPagarUsd: totalFinalUsd,
+      totalPagarBob: totalFinalBob,
+    });
+  }
+
+  // Vista pública para el cliente desde WhatsApp
+  async getJobByApprovalToken(token: string) {
+    const job = await this.prisma.workshopJob.findUnique({
+      where: { autorizacionToken: token },
+      include: {
+        workshop: {
+          select: {
+            nombre: true,
+            telefono: true,
+            direccion: true,
+            colorPrimario: true,
+            imageUrl: true,
+          },
+        },
+        partNeeds: true,
+      },
+    });
+
+    if (!job) throw new NotFoundException('Enlace de aprobación no válido o inexistente.');
+
+    const now = new Date();
+    if (job.autorizacionTokenExpira && job.autorizacionTokenExpira < now && job.autorizacionEstado === 'PENDIENTE_APROBACION') {
+      await this.prisma.workshopJob.update({
+        where: { id: job.id },
+        data: { autorizacionEstado: 'EXPIRADO' },
+      });
+      job.autorizacionEstado = 'EXPIRADO';
+    }
+
+    const rateInfo = await this.exchangeRateService.getLatestRate();
+    const rateVenta = Number(job.tipoCambioAplicado) || rateInfo.venta;
+    const servicios = (job.serviciosRealizados as any[]) || [];
+    const totalServicios = servicios.length
+      ? servicios.reduce((sum, s) => sum + (Number(s.precio) || 0), 0)
+      : Number(job.precioServicio) || 0;
+    const totalRepuestos = (job.partNeeds || []).reduce(
+      (sum, p) => sum + Number(p.precioUnitario || 0) * (p.cantidad || 1),
+      0,
+    );
+    const totalEstimadoUsd = totalServicios + totalRepuestos;
+    const totalEstimadoBob = totalEstimadoUsd * rateVenta;
+
+    return {
+      id: job.id,
+      vehiculo: `${job.marca} ${job.modelo} (${job.anio})`,
+      placa: job.placa,
+      kilometraje: job.kilometraje,
+      diagnosticoMecanico: job.diagnosticoMecanico || job.problema,
+      diagnosticoImagenes: (job.diagnosticoImagenes as string[]) || [],
+      servicios,
+      piezas: job.partNeeds,
+      totalEstimadoUsd,
+      totalEstimadoBob,
+      tipoCambioVenta: rateVenta,
+      autorizacionEstado: job.autorizacionEstado,
+      autorizacionTokenExpira: job.autorizacionTokenExpira,
+      autorizacionDecididoEn: job.autorizacionDecididoEn,
+      workshop: job.workshop,
+    };
+  }
+
+  // Cliente aprueba o rechaza el presupuesto
+  async decideJobApproval(
+    token: string,
+    dto: CustomerApprovalDecisionDto,
+    ip: string,
+    userAgent: string,
+  ) {
+    const job = await this.prisma.workshopJob.findUnique({
+      where: { autorizacionToken: token },
+    });
+    if (!job) throw new NotFoundException('Token no válido.');
+
+    if (job.autorizacionEstado === 'APROBADO' || job.autorizacionEstado === 'RECHAZADO') {
+      throw new ConflictException(
+        `Este presupuesto ya fue ${job.autorizacionEstado === 'APROBADO' ? 'aprobado' : 'rechazado'} anteriormente el ${job.autorizacionDecididoEn ? new Date(job.autorizacionDecididoEn).toLocaleString('es-BO') : ''}.`,
+      );
+    }
+
+    const now = new Date();
+    if (job.autorizacionTokenExpira && job.autorizacionTokenExpira < now) {
+      throw new BadRequestException('El enlace de aprobación ha expirado. Comuníquese con el taller.');
+    }
+
+    const nuevoEstado = dto.decision === 'APROBAR' ? 'APROBADO' : 'RECHAZADO';
+
+    const updated = await this.prisma.workshopJob.update({
+      where: { id: job.id },
+      data: {
+        autorizacionEstado: nuevoEstado,
+        autorizacionDecididoEn: now,
+        autorizacionIpCliente: ip,
+        autorizacionUserAgent: userAgent,
+        autorizacionFirma: dto.firma || undefined,
+        autorizacionRechazoMotivo: dto.motivo || undefined,
+      },
+    });
+
+    // Registrar en bitácora de auditoría
+    await this.prisma.workshopJobLog.create({
+      data: {
+        jobId: job.id,
+        estado: job.estado,
+        observaciones: `Decisión del cliente: ${nuevoEstado} el presupuesto vía enlace web.${dto.motivo ? ` Motivo: ${dto.motivo}` : ''}`,
+      },
+    });
+
+    return {
+      ok: true,
+      estado: nuevoEstado,
+      decididoEn: now,
+    };
+  }
+
+  // ─────────────────────────────────────────────
+  // EDICIÓN DE COSTO AL CLIENTE CON AUDITORÍA
+  // ─────────────────────────────────────────────
+
+  async updateJobCost(
+    workshopId: string,
+    jobId: string,
+    user: { id: string; name: string; role?: string },
+    dto: UpdateCostDto,
+  ) {
+    if (user.role && !['SUPERVISOR', 'CONTABILIDAD'].includes(user.role)) {
+      throw new ForbiddenException('No tiene permisos para modificar el costo final.');
+    }
+
+    const job = await this.prisma.workshopJob.findUnique({ where: { id: jobId } });
+    if (!job) throw new NotFoundException('Vehículo no encontrado');
+    if (job.workshopId !== workshopId) throw new ForbiddenException('Sin permiso');
+    if (job.estado === 'FINALIZADO') {
+      throw new BadRequestException('No se puede modificar el costo de una orden ya finalizada.');
+    }
+
+    const precioAnterior = Number(job.precioServicio) || 0;
+    const precioNuevo = dto.nuevoPrecio;
+
+    const [costAudit, updatedJob] = await this.prisma.$transaction([
+      this.prisma.workshopJobCostAudit.create({
+        data: {
+          jobId,
+          precioAnterior,
+          precioNuevo,
+          userId: user.id,
+          userName: user.name || 'Usuario',
+          justificacion: dto.justificacion.trim(),
+        },
+      }),
+      this.prisma.workshopJob.update({
+        where: { id: jobId },
+        data: { precioServicio: precioNuevo },
+      }),
+    ]);
+
+    return {
+      ok: true,
+      precioAnterior,
+      precioNuevo,
+      justificacion: dto.justificacion,
+      auditId: costAudit.id,
+      presupuestoExcedido:
+        job.autorizacionPresupuesto && precioNuevo > Number(job.autorizacionPresupuesto),
+    };
+  }
+
+  async getJobCostAudits(workshopId: string, jobId: string) {
+    const job = await this.prisma.workshopJob.findUnique({ where: { id: jobId } });
+    if (!job || job.workshopId !== workshopId) throw new ForbiddenException('Sin permiso');
+
+    return this.prisma.workshopJobCostAudit.findMany({
+      where: { jobId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  // ─────────────────────────────────────────────
+  // SOLICITUDES Y SALIDAS DE ALMACÉN (MATERIALES)
+  // ─────────────────────────────────────────────
+
+  async createMaterialRequest(
+    workshopId: string,
+    jobId: string,
+    user: { id: string; name: string },
+    dto: CreateMaterialRequestDto,
+  ) {
+    const item = await this.prisma.inventoryItem.findFirst({
+      where: { id: dto.inventoryItemId, workshopId },
+    });
+    if (!item) throw new NotFoundException('Item de inventario no encontrado');
+
+    return this.prisma.workshopMaterialRequest.create({
+      data: {
+        workshopId,
+        jobId,
+        inventoryItemId: dto.inventoryItemId,
+        servicioId: dto.servicioId,
+        cantidad: dto.cantidad,
+        justificacion: dto.justificacion,
+        solicitadoPorId: user.id,
+        solicitadoPor: user.name || 'Mecánico',
+      },
+      include: { inventoryItem: true },
+    });
+  }
+
+  async listMaterialRequests(workshopId: string, jobId?: string) {
+    const where: any = { workshopId };
+    if (jobId) where.jobId = jobId;
+
+    return this.prisma.workshopMaterialRequest.findMany({
+      where,
+      include: { inventoryItem: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async approveMaterialRequest(
+    workshopId: string,
+    requestId: string,
+    user: { id: string; name: string; role?: string },
+    dto: ApproveMaterialRequestDto,
+  ) {
+    if (user.role && !['SUPERVISOR', 'JEFE_MECANICO'].includes(user.role)) {
+      throw new ForbiddenException(
+        'Solo el Jefe Mecánico o Administrador puede aprobar solicitudes de material.',
+      );
+    }
+
+    const req = await this.prisma.workshopMaterialRequest.findFirst({
+      where: { id: requestId, workshopId },
+    });
+    if (!req) throw new NotFoundException('Solicitud de material no encontrada');
+    if (req.estado !== 'PENDIENTE') {
+      throw new ConflictException(`La solicitud ya se encuentra en estado ${req.estado}`);
+    }
+
+    const nuevoEstado = dto.accion === 'APROBAR' ? 'APROBADA' : 'RECHAZADA';
+
+    return this.prisma.workshopMaterialRequest.update({
+      where: { id: requestId },
+      data: {
+        estado: nuevoEstado,
+        aprobadoPorId: user.id,
+        aprobadoPor: user.name || 'Jefe de Taller',
+        aprobadoEn: new Date(),
+        justificacion: dto.motivo ? `${req.justificacion || ''} | Motivo rechazo: ${dto.motivo}` : req.justificacion,
+      },
+      include: { inventoryItem: true },
+    });
+  }
+
+  async deliverMaterialRequest(
+    workshopId: string,
+    requestId: string,
+    user: { id: string; name: string; role?: string },
+    dto: DeliverMaterialRequestDto,
+  ) {
+    if (user.role && !['SUPERVISOR', 'INVENTARIO'].includes(user.role)) {
+      throw new ForbiddenException(
+        'Solo el Encargado de Almacén/Inventario puede registrar la entrega física de materiales.',
+      );
+    }
+
+    const req = await this.prisma.workshopMaterialRequest.findFirst({
+      where: { id: requestId, workshopId },
+      include: { inventoryItem: true, job: true },
+    });
+    if (!req) throw new NotFoundException('Solicitud de material no encontrada');
+    if (req.estado !== 'APROBADA') {
+      throw new BadRequestException('Solo se pueden entregar materiales previamente aprobados.');
+    }
+    if (dto.cantidadEntregada > req.cantidad) {
+      throw new BadRequestException(
+        `La cantidad a entregar (${dto.cantidadEntregada}) no puede superar la autorizada (${req.cantidad}).`,
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const item = await tx.inventoryItem.findUnique({
+        where: { id: req.inventoryItemId },
+      });
+      if (!item) throw new NotFoundException('Item de inventario inexistente');
+
+      if (item.stock < dto.cantidadEntregada) {
+        throw new BadRequestException(
+          `Stock insuficiente en almacén. Disponible: ${item.stock}, Solicitado: ${dto.cantidadEntregada}`,
+        );
+      }
+
+      const stockNuevo = item.stock - dto.cantidadEntregada;
+
+      // 1. Descontar inventario
+      await tx.inventoryItem.update({
+        where: { id: item.id },
+        data: { stock: stockNuevo },
+      });
+
+      // 2. Registrar movimiento trazable
+      await tx.inventoryMovement.create({
+        data: {
+          inventoryItemId: item.id,
+          workshopId,
+          tipo: 'SALIDA_ORDEN',
+          cantidad: dto.cantidadEntregada,
+          stockAnterior: item.stock,
+          stockNuevo,
+          jobId: req.jobId,
+          usuarioId: user.id,
+          usuarioNombre: user.name || 'Almacenero',
+          motivo: `Entrega para orden ${req.job.marca} ${req.job.modelo} (${req.job.placa || 'Sin placa'})`,
+        },
+      });
+
+      // 3. Crear o actualizar JobPartNeed para que figure en la orden
+      await tx.jobPartNeed.create({
+        data: {
+          jobId: req.jobId,
+          inventoryItemId: item.id,
+          nombre: item.nombre,
+          cantidad: dto.cantidadEntregada,
+          esInsumo: true,
+          yaUsado: true,
+          yaUsadoEn: new Date(),
+          precioUnitario: item.precioUnitario,
+          usadoPorId: user.id,
+          usadoPorNombre: user.name || 'Almacenero',
+        },
+      });
+
+      // 4. Actualizar estado de la solicitud
+      return tx.workshopMaterialRequest.update({
+        where: { id: requestId },
+        data: {
+          estado: 'ENTREGADA',
+          cantidadEntregada: dto.cantidadEntregada,
+          entregadoPorId: user.id,
+          entregadoPor: user.name || 'Almacenero',
+          entregadoEn: new Date(),
+        },
+        include: { inventoryItem: true },
+      });
+    });
+  }
+
+  // ─────────────────────────────────────────────
+  // PLANTILLAS DE SERVICIOS CON INSUMOS PREDEFINIDOS
+  // ─────────────────────────────────────────────
+
+  async addSuggestedMaterialsToJob(
+    workshopId: string,
+    jobId: string,
+    serviceId: string,
+    user: { id: string; name: string },
+  ) {
+    const service = await this.prisma.workshopService.findFirst({
+      where: { id: serviceId, workshopId },
+    });
+    if (!service) throw new NotFoundException('Servicio no encontrado');
+
+    const sugeridos = (service.materialesSugeridos as any[]) || [];
+    if (!sugeridos.length) {
+      return { ok: true, mensaje: 'El servicio no tiene insumos predefinidos', agregados: 0 };
+    }
+
+    let agregados = 0;
+    for (const mat of sugeridos) {
+      if (mat.inventoryItemId) {
+        await this.createMaterialRequest(workshopId, jobId, user, {
+          inventoryItemId: mat.inventoryItemId,
+          cantidad: Number(mat.cantidad) || 1,
+          servicioId: service.id,
+          justificacion: `Carga automática de insumo predefinido para servicio: ${service.nombre}`,
+        });
+        agregados++;
+      }
+    }
+
+    return { ok: true, agregados };
+  }
+
+  // ─────────────────────────────────────────────
+  // IMPORTACIÓN EXCEL DE INVENTARIO Y SERVICIOS
+  // ─────────────────────────────────────────────
+
+  getInventoryTemplate() {
+    return this.excelImportService.generateInventoryTemplate();
+  }
+
+  getServicesTemplate() {
+    return this.excelImportService.generateServicesTemplate();
+  }
+
+  previewInventoryImport(workshopId: string, buffer: Buffer) {
+    return this.excelImportService.previewInventory(workshopId, buffer);
+  }
+
+  confirmInventoryImport(
+    workshopId: string,
+    userId: string,
+    userName: string,
+    items: InventoryPreviewItem[],
+  ) {
+    return this.excelImportService.confirmInventory(workshopId, userId, userName, items);
+  }
+
+  previewServicesImport(workshopId: string, buffer: Buffer) {
+    return this.excelImportService.previewServices(workshopId, buffer);
+  }
+
+  confirmServicesImport(workshopId: string, services: ServicePreviewItem[]) {
+    return this.excelImportService.confirmServices(workshopId, services);
+  }
+
+  // Tipo de cambio oficial vigente
+  getExchangeRate() {
+    return this.exchangeRateService.getLatestRate();
+  }
 }
+

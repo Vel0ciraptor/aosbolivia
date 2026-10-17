@@ -81,6 +81,7 @@ model Request {
   descripcion     String
   aiParsed        Json?           // resultado del parser IA mock
   estado          String          @default("OPEN")
+  modalidad       String          @default("PROGRAMADO") // PROGRAMADO | URGENCIA | EMERGENCIA
   fechaCita       DateTime?       // fecha/hora que desea el cliente para ingresar
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
@@ -188,6 +189,8 @@ model Workshop {
   capacidadSlot Int          @default(1) // vehículos que puede atender en el mismo slot
   estado      String         @default("ACTIVE")
   imageUrl    String?
+  colorPrimario String?      // color de marca usado en el PDF (#RRGGBB)
+  trabajoTags Json?          // tags personalizados de tipo de trabajo ["Pintura", ...]
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
@@ -230,9 +233,13 @@ model WorkshopUser {
 model WorkshopService {
   id                String   @id @default(cuid())
   workshopId        String
+  codigo            String?
   nombre            String
   descripcion       String?
+  categoria         String?
   precioReferencial Decimal?
+  duracionEstimada  Decimal? // en horas
+  materialesSugeridos Json?  // [{ inventoryItemId, nombre, cantidad, esInsumo }]
   createdAt         DateTime @default(now())
 
   workshop Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
@@ -257,6 +264,7 @@ model WorkshopJob {
   clienteNombre     String
   clienteTelefono   String?
   estado            String          @default("INGRESANDO")
+  origen            String          @default("DIRECTO") // DIRECTO | COTIZACION
   fechaCita         DateTime?
   firmaDigital      String?
   firmaIngreso      String?
@@ -264,9 +272,38 @@ model WorkshopJob {
   imagenesIngreso   Json?
   imagenesTerminado Json?
   tipoTrabajo       Json?
+  serviciosRealizados Json?         // [{ id, nombre, precio }] trabajos realizados con su precio
   horasEstimadas    Int?
   mecanicosAsignados Json?
   precioServicio    Decimal?
+
+  // ── Recepción e Inspección ──
+  nivelCombustible          String?         // 'EMPTY' | '1/4' | '1/2' | '3/4' | 'FULL'
+  combustibleRegistradoPor  String?
+  combustibleRegistradoEn   DateTime?
+  fotoTablero               String?
+  diagnosticoMecanico       String?
+  diagnosticoImagenes       Json?
+
+  // ── Autorización WhatsApp ──
+  autorizacionEstado        String          @default("SIN_SOLICITAR") // SIN_SOLICITAR | PENDIENTE_APROBACION | APROBADO | RECHAZADO | EXPIRADO
+  autorizacionToken         String?         @unique
+  autorizacionTokenExpira   DateTime?
+  autorizacionPresupuesto   Decimal?
+  autorizacionDecididoEn    DateTime?
+  autorizacionIpCliente     String?
+  autorizacionUserAgent     String?
+  autorizacionFirma         String?
+  autorizacionRechazoMotivo String?
+
+  // ── Salida e Informe Económico ──
+  conclusionesEntrega       String?
+  descuentoTipo             String?         // 'PORCENTAJE' | 'FIJO'
+  descuentoValor            Decimal?        @default(0)
+  aplicaIva                 Boolean         @default(false)
+  porcentajeIva             Decimal?        @default(13)
+  tipoCambioAplicado        Decimal?
+
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
@@ -275,8 +312,26 @@ model WorkshopJob {
   logs       WorkshopJobLog[]
   checkpoints JobCheckpoint[]
   partNeeds  JobPartNeed[]
+  materialRequests WorkshopMaterialRequest[]
+  costAudits WorkshopJobCostAudit[]
+  whatsappLogs WhatsAppMessageLog[]
 
   @@map("workshop_jobs")
+}
+
+model WorkshopJobCostAudit {
+  id             String      @id @default(cuid())
+  jobId          String
+  precioAnterior Decimal
+  precioNuevo    Decimal
+  userId         String
+  userName       String
+  justificacion  String
+  createdAt      DateTime    @default(now())
+
+  job WorkshopJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("workshop_job_cost_audits")
 }
 
 model WorkshopJobLog {
@@ -334,26 +389,117 @@ model JobPartNeed {
 }
 
 // ─────────────────────────────────────────────
+// WORKSHOP MATERIAL REQUESTS (Almacén)
+// ─────────────────────────────────────────────
+
+model WorkshopMaterialRequest {
+  id                String   @id @default(cuid())
+  workshopId        String
+  jobId             String
+  inventoryItemId   String
+  servicioId        String?
+  cantidad          Int      @default(1)
+  cantidadEntregada Int      @default(0)
+  estado            String   @default("PENDIENTE") // PENDIENTE | APROBADA | ENTREGADA | RECHAZADA | CANCELADA
+  justificacion     String?
+  solicitadoPorId   String
+  solicitadoPor     String
+  aprobadoPorId     String?
+  aprobadoPor       String?
+  aprobadoEn        DateTime?
+  entregadoPorId    String?
+  entregadoPor      String?
+  entregadoEn       DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  job           WorkshopJob   @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id])
+
+  @@map("workshop_material_requests")
+}
+
+model InventoryMovement {
+  id              String   @id @default(cuid())
+  inventoryItemId String
+  workshopId      String
+  tipo            String   // INGRESO_INICIAL | AJUSTE_EXCEL | SALIDA_ORDEN | DEVOLUCION
+  cantidad        Int
+  stockAnterior   Int
+  stockNuevo      Int
+  jobId           String?
+  usuarioId       String
+  usuarioNombre   String
+  motivo          String?
+  createdAt       DateTime @default(now())
+
+  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+
+  @@map("inventory_movements")
+}
+
+// ─────────────────────────────────────────────
 // INVENTORY (Inventario del taller)
 // ─────────────────────────────────────────────
 
 model InventoryItem {
   id             String   @id @default(cuid())
   workshopId     String
+  sku            String?
   nombre         String
   descripcion    String?
   categoria      String
   stock          Int      @default(0)
-  precioUnitario Decimal  @default(0)
+  precioUnitario Decimal  @default(0) // precio de venta
+  precioCosto    Decimal? @default(0) // precio de costo
   unidad         String   @default("unidad")
   estado         String   @default("ACTIVE")
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  workshop   Workshop      @relation(fields: [workshopId], references: [id], onDelete: Cascade)
-  partNeeds  JobPartNeed[]
+  workshop         Workshop                  @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  partNeeds        JobPartNeed[]
+  materialRequests WorkshopMaterialRequest[]
+  movements        InventoryMovement[]
 
   @@map("inventory_items")
+}
+
+// ─────────────────────────────────────────────
+// EXCHANGE RATE LOGS (Dólar Blue Bolivia)
+// ─────────────────────────────────────────────
+
+model ExchangeRateLog {
+  id            String   @id @default(cuid())
+  compraBlue    Decimal
+  ventaBlue     Decimal
+  oficial       Decimal
+  fuente        String   @default("api.dolarbluebolivia.click")
+  fechaEfectiva DateTime
+  consultadoEn  DateTime @default(now())
+
+  @@map("exchange_rate_logs")
+}
+
+// ─────────────────────────────────────────────
+// WHATSAPP MESSAGE LOGS
+// ─────────────────────────────────────────────
+
+model WhatsAppMessageLog {
+  id           String   @id @default(cuid())
+  workshopId   String
+  jobId        String
+  destinatario String
+  tipo         String   // DIAGNOSTICO_AUTORIZACION | VEHICULO_LISTO
+  enviadoPorId String
+  mensaje      String
+  exitoso      Boolean
+  respuestaApi String?
+  createdAt    DateTime @default(now())
+
+  job WorkshopJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("whatsapp_message_logs")
 }
 
 // ─────────────────────────────────────────────

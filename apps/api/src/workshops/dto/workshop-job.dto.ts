@@ -61,6 +61,11 @@ export class CreateWorkshopJobDto {
   @IsOptional()
   @IsString()
   requestId?: string;
+
+  @ApiProperty({ required: false, enum: ['DIRECTO', 'COTIZACION'] })
+  @IsOptional()
+  @IsIn(['DIRECTO', 'COTIZACION'])
+  origen?: string;
 }
 
 export class UpdateWorkshopJobDto {
@@ -149,7 +154,68 @@ export class UpdateWorkshopJobDto {
   @IsNumber()
   @Min(0)
   precioServicio?: number;
+
+  @ApiProperty({ required: false, enum: ['DIRECTO', 'COTIZACION'] })
+  @IsOptional()
+  @IsIn(['DIRECTO', 'COTIZACION'])
+  origen?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Trabajos realizados con precio individual',
+  })
+  @IsOptional()
+  @IsArray()
+  serviciosRealizados?: { id?: string; nombre: string; precio: number }[];
+
+  @ApiProperty({ required: false, enum: ['EMPTY', '1/4', '1/2', '3/4', 'FULL'] })
+  @IsOptional()
+  @IsString()
+  nivelCombustible?: string;
+
+  @ApiProperty({ required: false, description: 'Foto del tablero/odómetro como evidencia' })
+  @IsOptional()
+  @IsString()
+  fotoTablero?: string;
+
+  @ApiProperty({ required: false, description: 'Diagnóstico mecánico inicial' })
+  @IsOptional()
+  @IsString()
+  diagnosticoMecanico?: string;
+
+  @ApiProperty({ required: false, description: 'Fotos del diagnóstico' })
+  @IsOptional()
+  @IsArray()
+  diagnosticoImagenes?: string[];
+
+  @ApiProperty({ required: false, description: 'Conclusiones de observaciones en la entrega' })
+  @IsOptional()
+  @IsString()
+  conclusionesEntrega?: string;
+
+  @ApiProperty({ required: false, enum: ['PORCENTAJE', 'FIJO'] })
+  @IsOptional()
+  @IsString()
+  descuentoTipo?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  descuentoValor?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsBoolean()
+  aplicaIva?: boolean;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  porcentajeIva?: number;
 }
+
 
 export class UpdateJobStatusDto {
   @ApiProperty({ enum: VALID_STATES })
@@ -269,3 +335,85 @@ export class UpdateWorklogDto {
   @IsString()
   fin?: string;
 }
+
+export class AddWorkTagDto {
+  @ApiProperty({ description: 'Nombre del tag de tipo de trabajo' })
+  @IsString()
+  nombre: string;
+}
+
+export class UpdateCostDto {
+  @ApiProperty({ description: 'Nuevo precio asignado' })
+  @IsNumber()
+  @Min(0)
+  nuevoPrecio: number;
+
+  @ApiProperty({ description: 'Justificación obligatoria de la modificación' })
+  @IsString()
+  justificacion: string;
+}
+
+export class CreateMaterialRequestDto {
+  @ApiProperty({ description: 'ID del item de inventario' })
+  @IsString()
+  inventoryItemId: string;
+
+  @ApiProperty({ description: 'Cantidad solicitada', default: 1 })
+  @IsNumber()
+  @Min(1)
+  cantidad: number;
+
+  @ApiProperty({ required: false, description: 'ID del servicio relacionado' })
+  @IsOptional()
+  @IsString()
+  servicioId?: string;
+
+  @ApiProperty({ required: false, description: 'Motivo o justificación' })
+  @IsOptional()
+  @IsString()
+  justificacion?: string;
+}
+
+export class ApproveMaterialRequestDto {
+  @ApiProperty({ enum: ['APROBAR', 'RECHAZAR'] })
+  @IsString()
+  @IsIn(['APROBAR', 'RECHAZAR'])
+  accion: 'APROBAR' | 'RECHAZAR';
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  motivo?: string;
+}
+
+export class DeliverMaterialRequestDto {
+  @ApiProperty({ description: 'Cantidad entregada físicamente' })
+  @IsNumber()
+  @Min(1)
+  cantidadEntregada: number;
+}
+
+export class CustomerApprovalDecisionDto {
+  @ApiProperty({ enum: ['APROBAR', 'RECHAZAR'] })
+  @IsString()
+  @IsIn(['APROBAR', 'RECHAZAR'])
+  decision: 'APROBAR' | 'RECHAZAR';
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  motivo?: string;
+
+  @ApiProperty({ required: false, description: 'Firma digital en Base64' })
+  @IsOptional()
+  @IsString()
+  firma?: string;
+}
+
+export class SendApprovalWhatsAppDto {
+  @ApiProperty({ required: false, description: 'URL base de la aplicación para el enlace' })
+  @IsOptional()
+  @IsString()
+  appUrl?: string;
+}
+

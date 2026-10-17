@@ -7,8 +7,9 @@ import { api } from '../../../../lib/api';
 import {
   Sparkles, Send, ArrowLeft, AlertCircle, Loader2,
   Car, Tag, MapPin, Wrench, Truck, MessageCircle, CheckCircle2,
-  CalendarDays, Globe,
+  CalendarDays, Globe, AlertOctagon, Zap, Calendar,
 } from 'lucide-react';
+import VoiceDictationButton from '../../../../components/VoiceDictationButton';
 
 interface Vehicle {
   id: string;
@@ -100,6 +101,7 @@ export default function NewRequestPage() {
   const [loadingVehicles, setLoadingVehicles] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [modalidad, setModalidad] = useState<'PROGRAMADO' | 'URGENCIA' | 'EMERGENCIA'>('PROGRAMADO');
 
   const [workshops, setWorkshops] = useState<WorkshopOption[]>([]);
   const [loadingWorkshops, setLoadingWorkshops] = useState(true);
@@ -212,9 +214,17 @@ export default function NewRequestPage() {
       setError('Selecciona el tipo de servicio que necesitas.');
       return;
     }
-    if (workshopId && !slotISO) {
-      setError('Elige una cita disponible en el taller de confianza.');
-      return;
+
+    if (modalidad === 'URGENCIA') {
+      if (!workshopId) {
+        setError('Para una solicitud de urgencia debes seleccionar tu taller de confianza.');
+        return;
+      }
+    } else if (modalidad === 'PROGRAMADO') {
+      if (workshopId && !slotISO) {
+        setError('Elige una cita disponible en el taller de confianza.');
+        return;
+      }
     }
 
     try {
@@ -222,13 +232,12 @@ export default function NewRequestPage() {
       const res = await api.post('/requests', {
         descripcion: descripcion.trim(),
         vehicleId: vehicleId || undefined,
-        workshopId: workshopId || undefined,
+        workshopId: modalidad === 'EMERGENCIA' ? undefined : (workshopId || undefined),
         categoria,
-        fechaCita: workshopId
-          ? slotISO
-          : fechaCita
-            ? new Date(fechaCita).toISOString()
-            : undefined,
+        modalidad,
+        fechaCita: modalidad === 'PROGRAMADO'
+          ? (workshopId ? slotISO : (fechaCita ? new Date(fechaCita).toISOString() : undefined))
+          : undefined,
       });
       const requestId = res.data?.request?.id;
       if (requestId) {
@@ -278,9 +287,16 @@ export default function NewRequestPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-5">
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-zinc-300 block">
-                  ¿Qué necesitas? <span className="text-red-400">*</span>
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-zinc-300">
+                    ¿Qué necesitas? <span className="text-red-400">*</span>
+                  </label>
+                  <VoiceDictationButton
+                    onTranscript={(txt) => setDescripcion((prev) => (prev ? `${prev} ${txt}` : txt))}
+                    size="sm"
+                    title="Dictar lo que necesitas"
+                  />
+                </div>
                 <textarea
                   value={descripcion}
                   onChange={(e) => setDescripcion(e.target.value)}
@@ -292,6 +308,65 @@ export default function NewRequestPage() {
                 <div className="flex items-center justify-between text-[11px] text-zinc-500">
                   <span>Sé lo más específico posible para recibir mejores cotizaciones.</span>
                   <span>{descripcion.length} caracteres</span>
+                </div>
+              </div>
+
+              {/* Modalidad de Atención */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-zinc-300 block">
+                  Modalidad de Atención <span className="text-red-400">*</span>
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setModalidad('PROGRAMADO')}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      modalidad === 'PROGRAMADO'
+                        ? 'bg-brand-500/10 border-brand-500/50 text-brand-200'
+                        : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <Calendar className="w-4 h-4 text-blue-400" />
+                      <span className="text-xs font-bold text-zinc-100">Programado</span>
+                    </div>
+                    <p className="text-[10px] text-zinc-400">Reserva cita según la agenda disponible del taller.</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setModalidad('URGENCIA')}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      modalidad === 'URGENCIA'
+                        ? 'bg-amber-500/10 border-amber-500/50 text-amber-200'
+                        : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <Zap className="w-4 h-4 text-amber-400" />
+                      <span className="text-xs font-bold text-zinc-100">Urgencia</span>
+                    </div>
+                    <p className="text-[10px] text-zinc-400">Atención hoy mismo en tu taller de confianza sin cita fija.</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalidad('EMERGENCIA');
+                      setWorkshopId('');
+                    }}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      modalidad === 'EMERGENCIA'
+                        ? 'bg-red-500/15 border-red-500/60 text-red-200'
+                        : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <AlertOctagon className="w-4 h-4 text-red-400 animate-pulse" />
+                      <span className="text-xs font-bold text-red-200">Emergencia 🚨</span>
+                    </div>
+                    <p className="text-[10px] text-zinc-400">Alerta a todos los talleres de la red para auxilio rápido.</p>
+                  </button>
                 </div>
               </div>
 
@@ -388,68 +463,80 @@ export default function NewRequestPage() {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-zinc-300 block">
-                  Tu taller de confianza (opcional)
-                </label>
-                <p className="text-[11px] text-zinc-500">
-                  Si eliges un taller, esta solicitud <strong>solo lo verá ese taller</strong> y
-                  deberás escoger una cita de su agenda. Si lo dejas en público, la verán todos.
-                </p>
-                {loadingWorkshops ? (
-                  <div className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-500 text-sm flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" /> Cargando talleres...
+              {modalidad === 'EMERGENCIA' ? (
+                <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-start gap-3 text-red-300 text-xs">
+                  <AlertOctagon className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="text-red-200 block text-sm">Modalidad de Emergencia Activa</strong>
+                    <span>
+                      Esta solicitud será emitida con máxima prioridad a todos los talleres disponibles en la red de AOSBolivia para que atiendan tu caso de inmediato.
+                    </span>
                   </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => selectWorkshop('')}
-                      className={`p-3 rounded-xl border text-left transition-all ${
-                        workshopId === ''
-                          ? 'bg-brand-500/10 border-brand-500/40 text-brand-300'
-                          : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <Globe className={`w-4 h-4 ${workshopId === '' ? 'text-brand-400' : 'text-zinc-500'}`} />
-                        <span className="text-xs font-bold">Cualquier taller</span>
-                      </div>
-                      <p className="text-[10px] text-zinc-500">
-                        Solicitud pública: todos los talleres podrán cotizarla
-                      </p>
-                    </button>
-                    {workshops.map((w) => (
-                      <button
-                        key={w.id}
-                        type="button"
-                        onClick={() => selectWorkshop(w.id)}
-                        className={`p-3 rounded-xl border text-left transition-all ${
-                          workshopId === w.id
-                            ? 'bg-brand-500/10 border-brand-500/40 text-brand-300'
-                            : 'bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-zinc-700'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          <Wrench className={`w-4 h-4 shrink-0 ${workshopId === w.id ? 'text-brand-400' : 'text-zinc-500'}`} />
-                          <span className="text-xs font-bold truncate">{w.nombre}</span>
-                          {workshopId === w.id && (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 ml-auto" />
-                          )}
-                        </div>
-                        <p className="text-[10px] text-zinc-500 truncate flex items-center gap-1">
-                          <MapPin className="w-3 h-3 shrink-0" /> {w.direccion}
-                        </p>
-                        <p className="text-[10px] text-zinc-600">
-                          {w.services?.length || 0} servicios
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-zinc-300 block">
+                    {modalidad === 'URGENCIA' ? 'Taller de Confianza (Atención hoy) *' : 'Tu taller de confianza (opcional)'}
+                  </label>
+                  <p className="text-[11px] text-zinc-500">
+                    {modalidad === 'URGENCIA'
+                      ? 'Selecciona el taller al cual dirigirás tu urgencia para que te atienda hoy mismo.'
+                      : 'Si eliges un taller, esta solicitud solo la verá ese taller y deberás escoger una cita de su agenda.'}
+                  </p>
+                  {loadingWorkshops ? (
+                    <div className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-500 text-sm flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" /> Cargando talleres...
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {modalidad !== 'URGENCIA' && (
+                        <button
+                          type="button"
+                          onClick={() => selectWorkshop('')}
+                          className={`p-3 rounded-xl border text-left transition-all ${
+                            workshopId === ''
+                              ? 'bg-brand-500/10 border-brand-500/40 text-brand-300'
+                              : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <Globe className={`w-4 h-4 ${workshopId === '' ? 'text-brand-400' : 'text-zinc-500'}`} />
+                            <span className="text-xs font-bold">Cualquier taller</span>
+                          </div>
+                          <p className="text-[10px] text-zinc-500">
+                            Solicitud pública: todos los talleres podrán cotizarla
+                          </p>
+                        </button>
+                      )}
+                      {workshops.map((w) => (
+                        <button
+                          key={w.id}
+                          type="button"
+                          onClick={() => selectWorkshop(w.id)}
+                          className={`p-3 rounded-xl border text-left transition-all ${
+                            workshopId === w.id
+                              ? 'bg-brand-500/10 border-brand-500/40 text-brand-300'
+                              : 'bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-zinc-700'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <Wrench className={`w-4 h-4 shrink-0 ${workshopId === w.id ? 'text-brand-400' : 'text-zinc-500'}`} />
+                            <span className="text-xs font-bold truncate">{w.nombre}</span>
+                            {workshopId === w.id && (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 ml-auto" />
+                            )}
+                          </div>
+                          <p className="text-[10px] text-zinc-500 truncate flex items-center gap-1">
+                            <MapPin className="w-3 h-3 shrink-0" /> {w.direccion}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
-              {workshopId && (
+              {workshopId && modalidad === 'PROGRAMADO' && (
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-zinc-300 block">
                     Cita de ingreso <span className="text-red-400">*</span>

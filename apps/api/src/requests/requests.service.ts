@@ -33,8 +33,17 @@ export class RequestsService {
 
     const categoria = (dto.categoria || parsed.categoria) as RequestCategory;
     const titulo = parsed.resumen;
+    const modalidad = dto.modalidad || 'PROGRAMADO';
 
-    if (dto.workshopId) {
+    if (modalidad === 'EMERGENCIA') {
+      // EMERGENCIA: Notifica a toda la red, no exige taller fijo ni cita
+    } else if (modalidad === 'URGENCIA') {
+      // URGENCIA: Dirigida al taller de confianza, atención hoy mismo sin exigir cita fija
+      if (!dto.workshopId) {
+        throw new BadRequestException(
+          'Para una solicitud de urgencia debes seleccionar tu taller de confianza',
+        );
+      }
       const workshop = await this.prisma.workshop.findUnique({
         where: { id: dto.workshopId },
         select: { id: true, estado: true, nombre: true },
@@ -42,19 +51,30 @@ export class RequestsService {
       if (!workshop || workshop.estado !== 'ACTIVE') {
         throw new BadRequestException('El taller elegido no está disponible');
       }
-      if (!dto.fechaCita) {
-        throw new BadRequestException(
-          'Debes elegir una cita disponible en el taller de confianza',
+    } else {
+      // PROGRAMADO: Requiere validación de cita y capacidad si tiene taller de confianza
+      if (dto.workshopId) {
+        const workshop = await this.prisma.workshop.findUnique({
+          where: { id: dto.workshopId },
+          select: { id: true, estado: true, nombre: true },
+        });
+        if (!workshop || workshop.estado !== 'ACTIVE') {
+          throw new BadRequestException('El taller elegido no está disponible');
+        }
+        if (!dto.fechaCita) {
+          throw new BadRequestException(
+            'Debes elegir una cita disponible en el taller de confianza',
+          );
+        }
+        const free = await this.agendaService.isSlotFree(
+          dto.workshopId,
+          dto.fechaCita,
         );
-      }
-      const free = await this.agendaService.isSlotFree(
-        dto.workshopId,
-        dto.fechaCita,
-      );
-      if (!free) {
-        throw new ConflictException(
-          'Esa cita ya no está disponible, escoge otro horario',
-        );
+        if (!free) {
+          throw new ConflictException(
+            'Esa cita ya no está disponible, escoge otro horario',
+          );
+        }
       }
     }
 
@@ -63,11 +83,12 @@ export class RequestsService {
         data: {
           userId,
           vehicleId: dto.vehicleId,
-          workshopId: dto.workshopId,
+          workshopId: modalidad === 'EMERGENCIA' ? null : dto.workshopId,
           categoria,
           titulo,
           descripcion: dto.descripcion,
           aiParsed: parsed as any,
+          modalidad,
           fechaCita: dto.fechaCita ? new Date(dto.fechaCita) : null,
         },
         include: {
@@ -77,9 +98,8 @@ export class RequestsService {
         },
       });
 
-      // Reservar el slot elegido (hold): la cita queda BOOKED mientras el
-      // taller decide; si rechaza, se libera.
-      if (created.workshopId && created.fechaCita) {
+      // Reservar el slot si es programada con cita
+      if (modalidad === 'PROGRAMADO' && created.workshopId && created.fechaCita) {
         const endAt = await this.agendaService.getSlotEnd(
           created.workshopId,
           created.fechaCita.toISOString(),
@@ -92,6 +112,35 @@ export class RequestsService {
             startAt: created.fechaCita,
             endAt,
             status: 'BOOKED',
+          },
+        });
+      }
+
+      // Notificaciones según modalidad
+      if (modalidad === 'EMERGENCIA') {
+        const talleresActivos = await tx.workshop.findMany({
+          where: { estado: 'ACTIVE' },
+          select: { id: true },
+        });
+        if (talleresActivos.length) {
+          await tx.notification.createMany({
+            data: talleresActivos.map((w) => ({
+              workshopId: w.id,
+              tipo: 'EMERGENCY_REQUEST',
+              titulo: '🚨 Solicitud de EMERGENCIA',
+              mensaje: `Emergencia recibida: ${titulo}. Requiere atención inmediata.`,
+              requestId: created.id,
+            })),
+          });
+        }
+      } else if (modalidad === 'URGENCIA' && created.workshopId) {
+        await tx.notification.create({
+          data: {
+            workshopId: created.workshopId,
+            tipo: 'URGENT_REQUEST',
+            titulo: '⚡ Solicitud de URGENCIA (Atención hoy)',
+            mensaje: `El cliente necesita atención hoy mismo: ${titulo}.`,
+            requestId: created.id,
           },
         });
       }
@@ -332,4 +381,47 @@ export class RequestsService {
 
     return updated;
   }
+
+  // Un taller acepta una solicitud de emergencia disponible de forma atómica
+  async acceptEmergency(id: string, user?: RequestUser) {
+    if (!this.isWorkshopActor(user) || !user?.workshopId) {
+      throw new ForbiddenException(
+        'Solo un taller autorizado puede aceptar una emergencia',
+      );
+    }
+
+    const workshopId = user.workshopId;
+
+    // Actualización atómica para evitar asignaciones duplicadas
+    const updated = await this.prisma.request.updateMany({
+      where: {
+        id,
+        modalidad: 'EMERGENCIA',
+        estado: 'OPEN',
+      },
+      data: {
+        estado: 'IN_PROGRESS',
+        workshopId,
+      },
+    });
+
+    if (updated.count === 0) {
+      throw new ConflictException(
+        'Esta emergencia ya fue aceptada por otro taller o ya no está disponible.',
+      );
+    }
+
+    // Crear trabajo en Llegada de Vehículos
+    await this.workshopsService.createJobFromRequest(workshopId, id);
+
+    return this.prisma.request.findUnique({
+      where: { id },
+      include: {
+        vehicle: true,
+        user: { select: { name: true, email: true } },
+        workshop: { select: { id: true, nombre: true } },
+      },
+    });
+  }
 }
+

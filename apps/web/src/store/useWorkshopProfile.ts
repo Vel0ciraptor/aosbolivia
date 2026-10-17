@@ -30,6 +30,8 @@ export interface WorkshopProfile {
   longitud: number;
   estado: string;
   imageUrl?: string;
+  colorPrimario?: string;
+  trabajoTags?: string[];
   horario?: WeeklyPattern | null;
   capacidadSlot?: number;
   services: WorkshopService[];

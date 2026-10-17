@@ -8,6 +8,7 @@ interface VoiceDictationButtonProps {
   className?: string;
   size?: 'sm' | 'md';
   title?: string;
+  disabled?: boolean;
 }
 
 export default function VoiceDictationButton({
@@ -15,6 +16,7 @@ export default function VoiceDictationButton({
   className = '',
   size = 'md',
   title = 'Dictar por voz (Español)',
+  disabled = false,
 }: VoiceDictationButtonProps) {
   const [isSupported, setIsSupported] = useState(true);
   const [isListening, setIsListening] = useState(false);
@@ -94,6 +96,7 @@ export default function VoiceDictationButton({
   const toggleListening = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (disabled) return;
     if (isListening) {
       stopListening();
     } else {
@@ -119,11 +122,14 @@ export default function VoiceDictationButton({
       <button
         type="button"
         onClick={toggleListening}
+        disabled={disabled}
         title={isListening ? 'Detener dictado' : title}
         className={`p-1.5 rounded-lg transition-all duration-200 flex items-center justify-center ${
-          isListening
-            ? 'bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse scale-105'
-            : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
+          disabled
+            ? 'text-zinc-600 cursor-not-allowed opacity-50'
+            : isListening
+              ? 'bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse scale-105'
+              : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
         } ${className}`}
       >
         {isListening ? (

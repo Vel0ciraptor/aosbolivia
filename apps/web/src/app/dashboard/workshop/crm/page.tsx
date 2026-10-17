@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { api } from '../../../../lib/api';
 import { useWorkshopProfile } from '../../../../store/useWorkshopProfile';
 import { useAuthStore } from '../../../../store/useAuthStore';
-import { VoiceDictationButton } from '../../../../components/VoiceDictationButton';
+import VoiceDictationButton from '../../../../components/VoiceDictationButton';
 import {
   Car, Plus, Search, AlertCircle, Loader2,
   Edit2, Trash2, Save, RefreshCw, X, ChevronRight,
@@ -12,7 +12,7 @@ import {
   Calendar, History, AlertTriangle, Camera, Package, PenTool,
   Download, Image as ImageIcon, Square, Fuel, Lock,
   DollarSign, Play, Timer, ClipboardList, Eye, EyeOff, Tag,
-  Send, ExternalLink, ShieldCheck, Check, Sparkles, MessageSquare,
+  Send, ExternalLink, ShieldCheck, Check, Sparkles, MessageSquare, Clock,
 } from 'lucide-react';
 
 interface ServicioRealizado {

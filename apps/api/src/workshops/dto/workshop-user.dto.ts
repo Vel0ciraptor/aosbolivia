@@ -3,6 +3,8 @@ import {
   IsEmail,
   IsOptional,
   IsIn,
+  IsNumber,
+  Min,
   MinLength,
   Matches,
 } from 'class-validator';
@@ -45,6 +47,15 @@ export class CreateWorkshopUserDto {
   @IsString()
   @MinLength(6)
   password?: string;
+
+  @ApiPropertyOptional({
+    example: 8.5,
+    description: 'Tarifa por hora en USD (mano de obra de mecánico)',
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  tarifaHora?: number;
 }
 
 export class UpdateWorkshopUserDto {
@@ -69,6 +80,15 @@ export class UpdateWorkshopUserDto {
   @IsString()
   @IsIn(['ACTIVE', 'INACTIVE'])
   status?: string;
+
+  @ApiPropertyOptional({
+    example: 8.5,
+    description: 'Tarifa por hora en USD (mano de obra de mecánico)',
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  tarifaHora?: number;
 }
 
 export class ResetWorkshopUserPasswordDto {

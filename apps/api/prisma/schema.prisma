@@ -191,6 +191,7 @@ model Workshop {
   imageUrl    String?
   colorPrimario String?      // color de marca usado en el PDF (#RRGGBB)
   trabajoTags Json?          // tags personalizados de tipo de trabajo ["Pintura", ...]
+  whatsappNumero String?     // número desde donde se envían los WhatsApp a los clientes
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
@@ -221,6 +222,7 @@ model WorkshopUser {
   role        String   // SUPERVISOR | JEFE_MECANICO | MECANICO | INVENTARIO | CONTABILIDAD
   password    String
   status      String   @default("ACTIVE")
+  tarifaHora  Decimal? // USD por hora de mano de obra (mecánicos)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

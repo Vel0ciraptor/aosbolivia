@@ -15,6 +15,7 @@ interface WorkshopUser {
   phone?: string;
   role: string;
   status: string;
+  tarifaHora?: number | string | null;
   createdAt: string;
 }
 
@@ -83,7 +84,7 @@ export default function TeamTab({ workshopName }: TeamTabProps) {
     loadUsers();
   }, [loadUsers]);
 
-  const handleCreate = async (data: { name: string; emailPrefix: string; phone: string; role: string }) => {
+  const handleCreate = async (data: { name: string; emailPrefix: string; phone: string; role: string; tarifaHora?: number }) => {
     try {
       const res = await api.post('/workshops/me/users', data);
       setCredentials({
@@ -104,7 +105,7 @@ export default function TeamTab({ workshopName }: TeamTabProps) {
     }
   };
 
-  const handleUpdate = async (id: string, data: { name?: string; phone?: string; role?: string }) => {
+  const handleUpdate = async (id: string, data: { name?: string; phone?: string; role?: string; tarifaHora?: number }) => {
     try {
       await api.put(`/workshops/me/users/${id}`, data);
       setShowEditModal(null);
@@ -263,6 +264,7 @@ export default function TeamTab({ workshopName }: TeamTabProps) {
                   <th className="px-6 py-3 text-left text-xs font-semibold text-zinc-400 uppercase">Nombre</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-zinc-400 uppercase">Email</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-zinc-400 uppercase">Rol</th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-zinc-400 uppercase">Tarifa/H</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-zinc-400 uppercase">Estado</th>
                   <th className="px-6 py-3 text-right text-xs font-semibold text-zinc-400 uppercase">Acciones</th>
                 </tr>
@@ -294,6 +296,13 @@ export default function TeamTab({ workshopName }: TeamTabProps) {
                           <RoleIcon className="w-3 h-3" />
                           {roleConfig?.label || user.role}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {user.tarifaHora != null && Number(user.tarifaHora) > 0 ? (
+                          <span className="text-sm text-zinc-200 font-semibold">${Number(user.tarifaHora).toFixed(2)}/h</span>
+                        ) : (
+                          <span className="text-xs text-zinc-600">—</span>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold ${
@@ -395,20 +404,28 @@ function CreateUserModal({
 }: {
   workshopName: string;
   onClose: () => void;
-  onSubmit: (data: { name: string; emailPrefix: string; phone: string; role: string }) => void;
+  onSubmit: (data: { name: string; emailPrefix: string; phone: string; role: string; tarifaHora?: number }) => void;
 }) {
   const [name, setName] = useState('');
   const [emailPrefix, setEmailPrefix] = useState('');
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState('');
+  const [tarifaHora, setTarifaHora] = useState('');
   const [loading, setLoading] = useState(false);
 
   const slug = workshopName.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '');
+  const isMechanic = role === 'MECANICO' || role === 'JEFE_MECANICO';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    await onSubmit({ name, emailPrefix, phone, role });
+    await onSubmit({
+      name,
+      emailPrefix,
+      phone,
+      role,
+      ...(isMechanic && tarifaHora !== '' ? { tarifaHora: parseFloat(tarifaHora) || 0 } : {}),
+    });
     setLoading(false);
   };
 
@@ -478,6 +495,22 @@ function CreateUserModal({
             </select>
           </div>
 
+          {isMechanic && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-zinc-300">Tarifa por hora (USD) — mano de obra</label>
+              <input
+                type="number"
+                min="0"
+                step="0.5"
+                value={tarifaHora}
+                onChange={(e) => setTarifaHora(e.target.value)}
+                placeholder="8.50"
+                className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
+              />
+              <p className="text-[11px] text-zinc-500">Se usará para calcular la mano de obra (horas reales × tarifa) en cada trabajo.</p>
+            </div>
+          )}
+
           {role && (
             <div className="p-3 bg-brand-500/5 border border-brand-500/10 rounded-xl">
               <p className="text-[11px] text-brand-300">
@@ -525,17 +558,29 @@ function EditUserModal({
 }: {
   user: WorkshopUser;
   onClose: () => void;
-  onSubmit: (data: { name?: string; phone?: string; role?: string }) => void;
+  onSubmit: (data: { name?: string; phone?: string; role?: string; tarifaHora?: number }) => void;
 }) {
   const [name, setName] = useState(user.name);
   const [phone, setPhone] = useState(user.phone || '');
   const [role, setRole] = useState(user.role);
+  const [tarifaHora, setTarifaHora] = useState(
+    user.tarifaHora != null ? String(user.tarifaHora) : '',
+  );
   const [loading, setLoading] = useState(false);
+
+  const isMechanic = role === 'MECANICO' || role === 'JEFE_MECANICO';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    await onSubmit({ name, phone, role });
+    await onSubmit({
+      name,
+      phone,
+      role,
+      ...(isMechanic
+        ? { tarifaHora: tarifaHora === '' ? 0 : parseFloat(tarifaHora) || 0 }
+        : {}),
+    });
     setLoading(false);
   };
 
@@ -595,6 +640,21 @@ function EditUserModal({
               ))}
             </select>
           </div>
+
+          {isMechanic && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-zinc-300">Tarifa por hora (USD) — mano de obra</label>
+              <input
+                type="number"
+                min="0"
+                step="0.5"
+                value={tarifaHora}
+                onChange={(e) => setTarifaHora(e.target.value)}
+                placeholder="8.50"
+                className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
+              />
+            </div>
+          )}
 
           <div className="pt-4 flex justify-end gap-3 border-t border-zinc-800">
             <button

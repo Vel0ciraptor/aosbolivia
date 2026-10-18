@@ -57,6 +57,7 @@ export class WhatsAppService {
     totalEstimadoBob: number;
     token: string;
     appUrl?: string;
+    workshopPhone?: string;
   }): Promise<SendWhatsAppResult> {
     const baseAppUrl =
       params.appUrl ||
@@ -109,6 +110,9 @@ _El enlace tiene una validez de 72 horas._`;
           body: JSON.stringify({
             phone: telefonoNormalizado,
             message: mensaje,
+            ...(params.workshopPhone
+              ? { from: this.normalizePhone(params.workshopPhone) }
+              : {}),
           }),
         });
         if (!res.ok) {
@@ -159,6 +163,7 @@ _El enlace tiene una validez de 72 horas._`;
     tallerDireccion: string;
     totalPagarUsd?: number;
     totalPagarBob?: number;
+    workshopPhone?: string;
   }): Promise<SendWhatsAppResult> {
     const telefonoNormalizado = this.normalizePhone(params.clienteTelefono);
 
@@ -194,6 +199,9 @@ ${infoCosto}
           body: JSON.stringify({
             phone: telefonoNormalizado,
             message: mensaje,
+            ...(params.workshopPhone
+              ? { from: this.normalizePhone(params.workshopPhone) }
+              : {}),
           }),
         });
         if (!res.ok) {

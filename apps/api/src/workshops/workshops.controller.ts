@@ -245,7 +245,7 @@ export class WorkshopsController {
       req.user.workshopId,
       id,
       dto,
-      req.user.workshopUserRole,
+      { id: req.user.id, name: req.user.name },
     );
   }
 

@@ -6,7 +6,7 @@ import { api } from '../../../../lib/api';
 import { useWorkshopProfile } from '../../../../store/useWorkshopProfile';
 import {
   Building2, ArrowLeft, Save, Loader2, AlertCircle, CheckCircle2,
-  Phone, MapPin, Wrench, Users, ImagePlus, Trash2, Palette,
+  Phone, MapPin, Wrench, Users, ImagePlus, Trash2, Palette, MessageCircle,
 } from 'lucide-react';
 import TeamTab from './TeamTab';
 import LocationFields from '../../../../components/LocationFields';
@@ -58,6 +58,7 @@ export default function WorkshopProfilePage() {
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [telefono, setTelefono] = useState('');
+  const [whatsappNumero, setWhatsappNumero] = useState('');
   const [direccion, setDireccion] = useState('');
   const [latitud, setLatitud] = useState('');
   const [longitud, setLongitud] = useState('');
@@ -127,6 +128,7 @@ export default function WorkshopProfilePage() {
       setNombre(workshop.nombre || '');
       setDescripcion(workshop.descripcion || '');
       setTelefono(workshop.telefono || '');
+      setWhatsappNumero((workshop as any).whatsappNumero || '');
       setDireccion(workshop.direccion || '');
       setLatitud(String(workshop.latitud ?? ''));
       setLongitud(String(workshop.longitud ?? ''));
@@ -156,6 +158,7 @@ export default function WorkshopProfilePage() {
         nombre: nombre.trim(),
         descripcion: descripcion.trim() || undefined,
         telefono: telefono.trim(),
+        whatsappNumero: whatsappNumero.trim() || undefined,
         direccion: direccion.trim(),
         latitud: lat,
         longitud: lng,
@@ -383,6 +386,19 @@ export default function WorkshopProfilePage() {
                 className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
                 required
               />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
+                <MessageCircle className="w-3.5 h-3.5" /> Número WhatsApp del taller
+              </label>
+              <input
+                type="text"
+                value={whatsappNumero}
+                onChange={(e) => setWhatsappNumero(e.target.value)}
+                placeholder="71234567"
+                className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
+              />
+              <p className="text-[11px] text-zinc-500">Número desde donde se envían los WhatsApp a los clientes (con código de país, ej: 59171234567)</p>
             </div>
           </div>
 

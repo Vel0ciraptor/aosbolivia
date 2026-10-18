@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsIn,
   Min,
+  Max,
   IsBoolean,
   IsArray,
   ValidateNested,
@@ -227,10 +228,6 @@ export class UpdateJobStatusDto {
   @IsOptional()
   @IsString()
   observaciones?: string;
-
-  @ApiProperty()
-  @IsString()
-  password: string;
 }
 
 export class UpdateCheckpointDto {
@@ -343,14 +340,45 @@ export class AddWorkTagDto {
 }
 
 export class UpdateCostDto {
-  @ApiProperty({ description: 'Nuevo precio asignado' })
+  @ApiProperty({ required: false, description: 'Precio total del servicio (legacy)' })
+  @IsOptional()
   @IsNumber()
   @Min(0)
-  nuevoPrecio: number;
+  nuevoPrecio?: number;
 
   @ApiProperty({ description: 'Justificación obligatoria de la modificación' })
   @IsString()
   justificacion: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  precioServicio?: number;
+
+  @ApiProperty({ required: false, enum: ['PORCENTAJE', 'FIJO'] })
+  @IsOptional()
+  @IsString()
+  @IsIn(['PORCENTAJE', 'FIJO'])
+  descuentoTipo?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  descuentoValor?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsBoolean()
+  aplicaIva?: boolean;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  porcentajeIva?: number;
 }
 
 export class CreateMaterialRequestDto {

@@ -72,4 +72,12 @@ export class UpdateWorkshopDto {
   @IsOptional()
   @IsArray()
   trabajoTags?: string[];
+
+  @ApiProperty({
+    required: false,
+    description: 'Número de WhatsApp del taller desde donde se envían los mensajes a clientes',
+  })
+  @IsOptional()
+  @IsString()
+  whatsappNumero?: string;
 }

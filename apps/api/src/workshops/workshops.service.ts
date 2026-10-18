@@ -490,40 +490,18 @@ export class WorkshopsService {
       );
     }
 
-    // Validar contraseña del usuario que firma
-    let passwordValid = false;
-    if (signer.userType === 'WORKSHOP_USER') {
-      const workshopUser = await this.prisma.workshopUser.findUnique({
-        where: { id: signer.userId },
-      });
-      if (workshopUser) {
-        passwordValid = await bcrypt.compare(
-          dto.password,
-          workshopUser.password,
+    // Del ingreso al check inicial: primero hay que registrar el kilometraje y el combustible
+    if (job.estado === 'INGRESANDO' && dto.estado === 'CHECK_INICIAL') {
+      if (!job.kilometraje) {
+        throw new BadRequestException(
+          'Primero ingresa el kilometraje del vehículo',
         );
       }
-    } else {
-      const user = await this.prisma.user.findUnique({
-        where: { id: signer.userId },
-      });
-      if (user && user.password) {
-        passwordValid = await bcrypt.compare(dto.password, user.password);
+      if (!job.nivelCombustible) {
+        throw new BadRequestException(
+          'Primero registra el nivel de combustible del vehículo',
+        );
       }
-    }
-
-    if (!passwordValid) {
-      throw new ForbiddenException('Contraseña incorrecta');
-    }
-
-    // Del ingreso al check inicial: primero hay que registrar el kilometraje
-    if (
-      job.estado === 'INGRESANDO' &&
-      dto.estado === 'CHECK_INICIAL' &&
-      !job.kilometraje
-    ) {
-      throw new BadRequestException(
-        'Primero ingresa el kilometraje del vehículo',
-      );
     }
 
     // Al pasar a TRABAJANDO: verificar mecánico asignado y autorización del cliente
@@ -669,7 +647,7 @@ export class WorkshopsService {
     workshopId: string,
     jobId: string,
     dto: CreatePartNeedDto,
-    role?: string,
+    actor?: { id: string; name?: string },
   ) {
     const job = await this.prisma.workshopJob.findUnique({
       where: { id: jobId },
@@ -677,8 +655,6 @@ export class WorkshopsService {
     if (!job) throw new NotFoundException('Vehículo no encontrado');
     if (job.workshopId !== workshopId)
       throw new ForbiddenException('Sin permiso');
-    if (role === MECHANIC_ROLE)
-      throw new ForbiddenException('Un mecánico no administra piezas');
 
     let precioUnitario = dto.precioUnitario;
     if (precioUnitario === undefined && dto.inventoryItemId) {
@@ -688,17 +664,38 @@ export class WorkshopsService {
       if (item) precioUnitario = Number(item.precioUnitario);
     }
 
-    return this.prisma.jobPartNeed.create({
-      data: {
-        jobId,
-        inventoryItemId: dto.inventoryItemId,
-        nombre: dto.nombre,
-        cantidad: dto.cantidad,
-        esInsumo: dto.esInsumo,
-        precioUnitario,
-      },
-      include: { inventoryItem: true },
-    });
+    // Al agregar un insumo/repuesto del inventario se crea automáticamente
+    // una solicitud PENDIENTE a almacén que debe aprobar el jefe mecánico
+    const [partNeed] = await this.prisma.$transaction([
+      this.prisma.jobPartNeed.create({
+        data: {
+          jobId,
+          inventoryItemId: dto.inventoryItemId,
+          nombre: dto.nombre,
+          cantidad: dto.cantidad,
+          esInsumo: dto.esInsumo,
+          precioUnitario,
+        },
+        include: { inventoryItem: true },
+      }),
+      ...(dto.inventoryItemId
+        ? [
+            this.prisma.workshopMaterialRequest.create({
+              data: {
+                workshopId,
+                jobId,
+                inventoryItemId: dto.inventoryItemId,
+                cantidad: dto.cantidad,
+                justificacion: `Solicitud automática por ${dto.esInsumo ? 'insumo' : 'repuesto'}: ${dto.nombre}`,
+                solicitadoPorId: actor?.id || 'sistema',
+                solicitadoPor: actor?.name || 'Sistema',
+              },
+            }),
+          ]
+        : []),
+    ]);
+
+    return partNeed;
   }
 
   async removePartNeed(workshopId: string, jobId: string, partNeedId: string) {
@@ -870,6 +867,7 @@ export class WorkshopsService {
       fin: null,
       horasReales: null,
       iniciadoPor: actor.name || actor.id,
+      tarifaHora: mechanic.tarifaHora != null ? Number(mechanic.tarifaHora) : null,
     };
 
     const updateData: any = {
@@ -1122,15 +1120,7 @@ export class WorkshopsService {
   async findWorkshopUsers(workshopId: string) {
     return this.prisma.workshopUser.findMany({
       where: { workshopId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        role: true,
-        status: true,
-        createdAt: true,
-      },
+      select: { id: true, name: true, email: true, phone: true, role: true, status: true, tarifaHora: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -1172,16 +1162,9 @@ export class WorkshopsService {
         phone: dto.phone,
         role: dto.role,
         password: hashedPassword,
+        ...(dto.tarifaHora !== undefined && { tarifaHora: dto.tarifaHora }),
       },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        role: true,
-        status: true,
-        createdAt: true,
-      },
+      select: { id: true, name: true, email: true, phone: true, role: true, status: true, tarifaHora: true, createdAt: true },
     });
 
     return { ...user, plainPassword };
@@ -1206,16 +1189,9 @@ export class WorkshopsService {
         ...(dto.phone !== undefined && { phone: dto.phone }),
         ...(dto.role && { role: dto.role }),
         ...(dto.status && { status: dto.status }),
+        ...(dto.tarifaHora !== undefined && { tarifaHora: dto.tarifaHora }),
       },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        role: true,
-        status: true,
-        createdAt: true,
-      },
+      select: { id: true, name: true, email: true, phone: true, role: true, status: true, tarifaHora: true, createdAt: true },
     });
   }
 
@@ -1472,17 +1448,37 @@ export class WorkshopsService {
       .join('');
 
     const worklogs = (job.mecanicosAsignados as any[]) || [];
+    // Tarifas por hora actuales de los mecánicos involucrados
+    const userIds = [...new Set(worklogs.map((w) => w.userId).filter(Boolean))];
+    const tarifasMap = new Map<string, number>();
+    if (userIds.length) {
+      const users = await this.prisma.workshopUser.findMany({
+        where: { id: { in: userIds as string[] } },
+        select: { id: true, tarifaHora: true },
+      });
+      for (const u of users) {
+        if (u.tarifaHora != null) tarifasMap.set(u.id, Number(u.tarifaHora));
+      }
+    }
+    let totalManoObra = 0;
     const worklogRows = worklogs
-      .map(
-        (w) => `
+      .map((w) => {
+        const tarifa =
+          w.tarifaHora != null ? Number(w.tarifaHora) : tarifasMap.get(w.userId) ?? 0;
+        const horas = w.horasReales != null ? Number(w.horasReales) : 0;
+        const costo = horas * tarifa;
+        totalManoObra += costo;
+        return `
       <tr>
         <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;">${w.nombre || '-'}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:13px;color:#6b7280;">${w.inicio ? new Date(w.inicio).toLocaleString('es-VE') : '-'}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:13px;color:#6b7280;">${w.fin ? new Date(w.fin).toLocaleString('es-VE') : 'En curso'}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:14px;">${w.horasReales != null ? `${w.horasReales} h` : '-'}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:14px;">${tarifa > 0 ? `$${tarifa.toFixed(2)}/h` : '-'}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:14px;">${costo > 0 ? `$${costo.toFixed(2)}` : '-'}</td>
       </tr>
-    `,
-      )
+    `;
+      })
       .join('');
 
     const tipoTrabajo = job.tipoTrabajo as any;
@@ -1515,7 +1511,7 @@ export class WorkshopsService {
     const totalServicios = servicios.length
       ? servicios.reduce((sum, s) => sum + (Number(s.precio) || 0), 0)
       : precioServicioLegacy;
-    const totalCostos = totalServicios + totalRepuestos;
+    const totalCostos = totalServicios + totalRepuestos + totalManoObra;
 
     const logs = (job.logs || [])
       .map(
@@ -1727,7 +1723,27 @@ export class WorkshopsService {
         }
 
         ${
-          totalServicios > 0 || totalRepuestos > 0
+          worklogs.length
+            ? `
+        <div style="margin-bottom:24px;">
+          <h2 style="font-size:16px;font-weight:700;margin:0 0 12px 0;color:#111827;">Mano de Obra (Horas de Mecánico)</h2>
+          <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+            <thead><tr style="background:#f9fafb;">
+              <th style="padding:8px 12px;text-align:left;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Mecánico</th>
+              <th style="padding:8px 12px;text-align:center;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Inicio</th>
+              <th style="padding:8px 12px;text-align:center;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Fin</th>
+              <th style="padding:8px 12px;text-align:center;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Horas</th>
+              <th style="padding:8px 12px;text-align:right;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Tarifa/H</th>
+              <th style="padding:8px 12px;text-align:right;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Costo</th>
+            </tr></thead>
+            <tbody>${worklogRows}</tbody>
+          </table>
+        </div>`
+            : ''
+        }
+
+        ${
+          totalServicios > 0 || totalRepuestos > 0 || totalManoObra > 0
             ? `
         <div style="margin-bottom:24px;">
           <h2 style="font-size:16px;font-weight:700;margin:0 0 12px 0;color:#111827;">Informe Económico</h2>
@@ -1740,6 +1756,10 @@ export class WorkshopsService {
               <tr>
                 <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;">${servicios.length ? `Servicios realizados (${servicios.length})` : 'Servicio'}</td>
                 <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:14px;">${totalServicios > 0 ? `$${totalServicios.toFixed(2)}` : '-'}</td>
+              </tr>
+              <tr>
+                <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;">Mano de obra (horas mecánico)</td>
+                <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:14px;">${totalManoObra > 0 ? `$${totalManoObra.toFixed(2)}` : '-'}</td>
               </tr>
               <tr>
                 <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;">Repuestos / Insumos</td>
@@ -1887,6 +1907,8 @@ export class WorkshopsService {
       totalEstimadoBob,
       token,
       appUrl: dto?.appUrl,
+      workshopPhone:
+        (job.workshop as any)?.whatsappNumero || job.workshop?.telefono,
     });
   }
 
@@ -1914,7 +1936,24 @@ export class WorkshopsService {
       (sum, p) => sum + Number(p.precioUnitario || 0) * (p.cantidad || 1),
       0,
     );
-    const subtotal = totalServicios + totalRepuestos;
+    // Mano de obra: horas reales × tarifa por hora
+    const worklogsWL = (job.mecanicosAsignados as any[]) || [];
+    const userIdsWL = [...new Set(worklogsWL.map((w) => w.userId).filter(Boolean))];
+    const tarifasWL = new Map<string, number>();
+    if (userIdsWL.length) {
+      const users = await this.prisma.workshopUser.findMany({
+        where: { id: { in: userIdsWL as string[] } },
+        select: { id: true, tarifaHora: true },
+      });
+      for (const u of users) {
+        if (u.tarifaHora != null) tarifasWL.set(u.id, Number(u.tarifaHora));
+      }
+    }
+    const totalManoObraWL = worklogsWL.reduce((sum, w) => {
+      const tarifa = w.tarifaHora != null ? Number(w.tarifaHora) : tarifasWL.get(w.userId) ?? 0;
+      return sum + (w.horasReales != null ? Number(w.horasReales) : 0) * tarifa;
+    }, 0);
+    const subtotal = totalServicios + totalRepuestos + totalManoObraWL;
     let descuentoMonto = 0;
     if (job.descuentoTipo === 'PORCENTAJE') {
       descuentoMonto = subtotal * ((Number(job.descuentoValor) || 0) / 100);
@@ -1941,6 +1980,8 @@ export class WorkshopsService {
       tallerDireccion: job.workshop.direccion,
       totalPagarUsd: totalFinalUsd,
       totalPagarBob: totalFinalBob,
+      workshopPhone:
+        (job.workshop as any)?.whatsappNumero || job.workshop?.telefono,
     });
   }
 
@@ -2080,7 +2121,29 @@ export class WorkshopsService {
     }
 
     const precioAnterior = Number(job.precioServicio) || 0;
-    const precioNuevo = dto.nuevoPrecio;
+    const precioNuevo = dto.nuevoPrecio ?? dto.precioServicio ?? precioAnterior;
+
+    const dataUpdate: any = { precioServicio: precioNuevo };
+    if (dto.descuentoTipo !== undefined) dataUpdate.descuentoTipo = dto.descuentoTipo;
+    if (dto.descuentoValor !== undefined) dataUpdate.descuentoValor = dto.descuentoValor;
+    if (dto.aplicaIva !== undefined) dataUpdate.aplicaIva = dto.aplicaIva;
+    if (dto.porcentajeIva !== undefined) dataUpdate.porcentajeIva = dto.porcentajeIva;
+
+    const cambios: string[] = [];
+    if (precioNuevo !== precioAnterior)
+      cambios.push(`Precio servicio: $${precioAnterior} → $${precioNuevo}`);
+    if (dto.descuentoTipo !== undefined && dto.descuentoTipo !== job.descuentoTipo)
+      cambios.push(`Tipo descuento: ${job.descuentoTipo || 'ninguno'} → ${dto.descuentoTipo}`);
+    if (dto.descuentoValor !== undefined && Number(dto.descuentoValor) !== Number(job.descuentoValor || 0))
+      cambios.push(`Descuento: ${Number(job.descuentoValor || 0)} → ${Number(dto.descuentoValor)}`);
+    if (dto.aplicaIva !== undefined && dto.aplicaIva !== job.aplicaIva)
+      cambios.push(`IVA: ${job.aplicaIva ? 'sí' : 'no'} → ${dto.aplicaIva ? 'sí' : 'no'}`);
+    if (dto.porcentajeIva !== undefined && Number(dto.porcentajeIva) !== Number(job.porcentajeIva || 13))
+      cambios.push(`% IVA: ${Number(job.porcentajeIva || 13)} → ${Number(dto.porcentajeIva)}`);
+
+    const justificacion = cambios.length
+      ? `${dto.justificacion.trim()} (${cambios.join('; ')})`
+      : dto.justificacion.trim();
 
     const [costAudit, updatedJob] = await this.prisma.$transaction([
       this.prisma.workshopJobCostAudit.create({
@@ -2090,12 +2153,12 @@ export class WorkshopsService {
           precioNuevo,
           userId: user.id,
           userName: user.name || 'Usuario',
-          justificacion: dto.justificacion.trim(),
+          justificacion,
         },
       }),
       this.prisma.workshopJob.update({
         where: { id: jobId },
-        data: { precioServicio: precioNuevo },
+        data: dataUpdate,
       }),
     ]);
 

@@ -1744,6 +1744,9 @@ export class WorkshopsService implements OnModuleInit {
     const imagenesDiagnostico = (
       await renderImages(job.diagnosticoImagenes)
     ).join('');
+    const imagenesIngreso = (
+      await renderImages(job.imagenesIngreso)
+    ).join('');
 
     // Cálculos económicos con descuento e IVA
     const subtotal = totalCostos;
@@ -1768,7 +1771,15 @@ export class WorkshopsService implements OnModuleInit {
     <!DOCTYPE html>
     <html>
     <head><meta charset="utf-8"><title>Reporte - ${job.marca} ${job.modelo}</title>
-    <style>@media print { body { margin: 0; } }</style>
+    <style>
+      @media print {
+        body { margin: 0; }
+        .seccion { page-break-inside: avoid; break-inside: avoid; }
+        h1, h2, h3 { page-break-after: avoid; break-after: avoid; }
+        img { page-break-inside: avoid; break-inside: avoid; }
+        tr { page-break-inside: avoid; break-inside: avoid; }
+      }
+    </style>
     </head>
     <body style="font-family:system-ui,-apple-system,sans-serif;margin:0;padding:40px;color:#1f2937;">
       <div style="max-width:800px;margin:0 auto;">
@@ -1805,18 +1816,18 @@ export class WorkshopsService implements OnModuleInit {
           </div>
         </div>
 
-        <div style="padding:16px;background:#fef3c7;border-radius:12px;border:1px solid #f59e0b;margin-bottom:24px;">
+        <div class="seccion" style="padding:16px;background:#fef3c7;border-radius:12px;border:1px solid #f59e0b;margin-bottom:24px;">
           <h3 style="font-size:12px;font-weight:700;color:#92400e;text-transform:uppercase;margin:0 0 8px 0;">Problema Reportado</h3>
           <p style="font-size:14px;margin:0;">${job.problema}</p>
           ${tipoTrabajoText ? `<p style="font-size:13px;color:#78350f;margin:8px 0 0 0;"><strong>Tipo de trabajo:</strong> ${tipoTrabajoText}</p>` : ''}
         </div>
 
         ${
-          job.diagnosticoMecanico
+          job.diagnosticoMecanico || imagenesDiagnostico
             ? `
-        <div style="padding:16px;background:#f0fdf4;border-radius:12px;border:1px solid #86efac;margin-bottom:24px;">
+        <div class="seccion" style="padding:16px;background:#f0fdf4;border-radius:12px;border:1px solid #86efac;margin-bottom:24px;">
           <h3 style="font-size:12px;font-weight:700;color:#166534;text-transform:uppercase;margin:0 0 8px 0;">Diagnóstico Mecánico</h3>
-          <p style="font-size:14px;margin:0;color:#14532d;">${job.diagnosticoMecanico}</p>
+          ${job.diagnosticoMecanico ? `<p style="font-size:14px;margin:0;color:#14532d;">${job.diagnosticoMecanico}</p>` : ''}
           ${imagenesDiagnostico ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">${imagenesDiagnostico}</div>` : ''}
         </div>`
             : ''
@@ -1897,7 +1908,7 @@ export class WorkshopsService implements OnModuleInit {
         ${
           totalServicios > 0 || totalRepuestos > 0 || totalManoObra > 0
             ? `
-        <div style="margin-bottom:24px;">
+        <div class="seccion" style="margin-bottom:24px;">
           <h2 style="font-size:16px;font-weight:700;margin:0 0 12px 0;color:#111827;">Informe Económico</h2>
           <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
             <thead><tr style="background:#f9fafb;">
@@ -1958,25 +1969,26 @@ export class WorkshopsService implements OnModuleInit {
         ${
           job.conclusionesEntrega
             ? `
-        <div style="padding:16px;background:#f8fafc;border-radius:12px;border:1px solid #cbd5e1;margin-bottom:24px;">
+        <div class="seccion" style="padding:16px;background:#f8fafc;border-radius:12px;border:1px solid #cbd5e1;margin-bottom:24px;">
           <h3 style="font-size:12px;font-weight:700;color:#334155;text-transform:uppercase;margin:0 0 8px 0;">Conclusiones de Observaciones</h3>
           <p style="font-size:14px;margin:0;color:#1e293b;">${job.conclusionesEntrega}</p>
         </div>`
             : ''
         }
 
-        <div style="margin-bottom:24px;">
+        <div class="seccion" style="margin-bottom:24px;">
           <h2 style="font-size:16px;font-weight:700;margin:0 0 12px 0;color:#111827;">Historial de Estados</h2>
           ${logs}
         </div>
 
-        ${imagenes ? `<div style="margin-bottom:24px;"><h2 style="font-size:16px;font-weight:700;margin:0 0 12px 0;color:#111827;">Fotos del Trabajo</h2><div style="display:flex;gap:8px;flex-wrap:wrap;">${imagenes}</div></div>` : ''}
-        ${imagenesTerminado ? `<div style="margin-bottom:24px;"><h2 style="font-size:16px;font-weight:700;margin:0 0 12px 0;color:#111827;">Fotos del Resultado</h2><div style="display:flex;gap:8px;flex-wrap:wrap;">${imagenesTerminado}</div></div>` : ''}
+        ${imagenesIngreso ? `<div class="seccion" style="margin-bottom:24px;"><h2 style="font-size:16px;font-weight:700;margin:0 0 12px 0;color:#111827;">Fotos de Ingreso</h2><div style="display:flex;gap:8px;flex-wrap:wrap;">${imagenesIngreso}</div></div>` : ''}
+        ${imagenes ? `<div class="seccion" style="margin-bottom:24px;"><h2 style="font-size:16px;font-weight:700;margin:0 0 12px 0;color:#111827;">Fotos del Trabajo</h2><div style="display:flex;gap:8px;flex-wrap:wrap;">${imagenes}</div></div>` : ''}
+        ${imagenesTerminado ? `<div class="seccion" style="margin-bottom:24px;"><h2 style="font-size:16px;font-weight:700;margin:0 0 12px 0;color:#111827;">Fotos del Resultado</h2><div style="display:flex;gap:8px;flex-wrap:wrap;">${imagenesTerminado}</div></div>` : ''}
 
         ${
           job.firmaDigital || job.firmaIngreso
             ? `
-        <div style="margin-bottom:24px;">
+        <div class="seccion" style="margin-bottom:24px;">
           <h2 style="font-size:16px;font-weight:700;margin:0 0 12px 0;color:#111827;">Firmas</h2>
           <div style="display:flex;gap:24px;flex-wrap:wrap;">
             ${job.firmaIngreso ? `<div><p style="font-size:12px;color:#6b7280;margin:0 0 4px 0;">Firma de ingreso</p><img src="${job.firmaIngreso}" style="height:80px;border:1px solid #e5e7eb;border-radius:8px;padding:8px;background:white;" /></div>` : ''}

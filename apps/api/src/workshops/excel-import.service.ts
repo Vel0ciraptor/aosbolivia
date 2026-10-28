@@ -34,6 +34,19 @@ export interface ServicePreviewItem {
   serviceIdExistente?: string;
 }
 
+export interface VehiclePreviewItem {
+  fila: number;
+  marca: string;
+  modelo: string;
+  anio: number;
+  motor?: string;
+  combustible?: string;
+  placa?: string;
+  vin?: string;
+  esActualizacion: boolean;
+  vehicleIdExistente?: string;
+}
+
 @Injectable()
 export class ExcelImportService {
   constructor(private prisma: PrismaService) {}
@@ -463,6 +476,208 @@ export class ExcelImportService {
           });
           creados++;
         }
+      }
+
+      return { ok: true, creados, actualizados, total: creados + actualizados };
+    });
+  }
+
+  /**
+   * Genera plantilla Excel oficial para importar la flota de vehículos del cliente
+   */
+  generateVehiclesTemplate(): Buffer {
+    const headers = [
+      'Marca',
+      'Modelo',
+      'Año',
+      'Motor',
+      'Combustible',
+      'Placa',
+      'VIN',
+    ];
+
+    const sampleRows = [
+      ['Toyota', 'Hilux', 2019, '2.8 TDI', 'Diesel', 'ABC-123', 'MR0FZ29G0J1234567'],
+      ['Chevrolet', 'Tracker', 2021, '', 'Gasolina', 'XYZ-789', ''],
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleRows]);
+    ws['!cols'] = [
+      { wch: 16 },
+      { wch: 20 },
+      { wch: 8 },
+      { wch: 18 },
+      { wch: 16 },
+      { wch: 12 },
+      { wch: 22 },
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Flota');
+    return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  }
+
+  /**
+   * Previsualiza y valida la flota de vehículos del cliente desde Excel.
+   * Detecta duplicados por placa o VIN contra los vehículos ya registrados.
+   */
+  async previewVehicles(userId: string, buffer: Buffer) {
+    let wb: XLSX.WorkBook;
+    try {
+      wb = XLSX.read(buffer, { type: 'buffer' });
+    } catch {
+      throw new BadRequestException('El archivo no es un Excel (.xlsx/.xls) válido.');
+    }
+
+    const sheetName = wb.SheetNames[0];
+    if (!sheetName) throw new BadRequestException('El archivo Excel está vacío.');
+
+    const sheet = wb.Sheets[sheetName];
+    const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+    if (rows.length < 2) {
+      throw new BadRequestException('El archivo no contiene filas de datos.');
+    }
+
+    const existentes = await this.prisma.vehicle.findMany({
+      where: { userId },
+      select: { id: true, placa: true, vin: true },
+    });
+
+    const placaMap = new Map<string, string>();
+    const vinMap = new Map<string, string>();
+    existentes.forEach((v) => {
+      if (v.placa) placaMap.set(v.placa.trim().toLowerCase(), v.id);
+      if (v.vin) vinMap.set(v.vin.trim().toLowerCase(), v.id);
+    });
+
+    const itemsValidos: VehiclePreviewItem[] = [];
+    const errores: RowError[] = [];
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || row.length === 0 || row.every((c) => c === undefined || c === null || String(c).trim() === '')) {
+        continue; // Fila vacía
+      }
+
+      const filaNum = i + 1;
+      const marca = row[0] ? String(row[0]).trim() : '';
+      const modelo = row[1] ? String(row[1]).trim() : '';
+      const anio =
+        row[2] !== undefined && row[2] !== null && !isNaN(Number(row[2]))
+          ? parseInt(row[2], 10)
+          : 0;
+      const motor = row[3] ? String(row[3]).trim() : undefined;
+      let combustible = row[4] ? String(row[4]).trim() : undefined;
+      const placa = row[5] ? String(row[5]).trim().toUpperCase() : undefined;
+      const vin = row[6] ? String(row[6]).trim().toUpperCase() : undefined;
+
+      let conError = false;
+      if (!marca) {
+        errores.push({ fila: filaNum, columna: 'Marca', mensaje: 'La marca es obligatoria.' });
+        conError = true;
+      }
+      if (!modelo) {
+        errores.push({ fila: filaNum, columna: 'Modelo', mensaje: 'El modelo es obligatorio.' });
+        conError = true;
+      }
+      if (!anio || anio < 1950 || anio > 2035) {
+        errores.push({ fila: filaNum, columna: 'Año', mensaje: 'El año debe estar entre 1950 y 2035.' });
+        conError = true;
+      }
+      if (conError) continue;
+
+      // Normalizar variantes comunes de combustible
+      if (combustible) {
+        const c = combustible.toLowerCase();
+        if (c.startsWith('gas')) combustible = 'Gasolina';
+        else if (c.startsWith('die')) combustible = 'Diesel';
+        else if (c.startsWith('híb') || c.startsWith('hib')) combustible = 'Hibrido';
+        else if (c.startsWith('elec')) combustible = 'Electrico';
+      }
+
+      let esActualizacion = false;
+      let vehicleIdExistente: string | undefined;
+
+      if (placa && placaMap.has(placa.toLowerCase())) {
+        esActualizacion = true;
+        vehicleIdExistente = placaMap.get(placa.toLowerCase());
+      } else if (vin && vinMap.has(vin.toLowerCase())) {
+        esActualizacion = true;
+        vehicleIdExistente = vinMap.get(vin.toLowerCase());
+      }
+
+      itemsValidos.push({
+        fila: filaNum,
+        marca,
+        modelo,
+        anio,
+        motor,
+        combustible,
+        placa,
+        vin,
+        esActualizacion,
+        vehicleIdExistente,
+      });
+    }
+
+    return {
+      totalFilas: itemsValidos.length + errores.length,
+      nuevos: itemsValidos.filter((it) => !it.esActualizacion).length,
+      actualizaciones: itemsValidos.filter((it) => it.esActualizacion).length,
+      rechazados: errores.length,
+      items: itemsValidos,
+      errores,
+    };
+  }
+
+  /**
+   * Confirma e inserta/actualiza transaccionalmente la flota del cliente
+   */
+  async confirmVehicles(userId: string, items: VehiclePreviewItem[]) {
+    if (!items.length) throw new BadRequestException('No hay vehículos válidos para importar.');
+
+    return this.prisma.$transaction(async (tx) => {
+      let creados = 0;
+      let actualizados = 0;
+
+      for (const v of items) {
+        if (v.esActualizacion && v.vehicleIdExistente) {
+          // Revalidar pertenencia: solo vehículos del propio cliente
+          const actual = await tx.vehicle.findFirst({
+            where: { id: v.vehicleIdExistente, userId },
+          });
+          if (actual) {
+            await tx.vehicle.update({
+              where: { id: actual.id },
+              data: {
+                marca: v.marca,
+                modelo: v.modelo,
+                anio: v.anio,
+                motor: v.motor || actual.motor,
+                combustible: v.combustible || actual.combustible,
+                placa: v.placa || actual.placa,
+                vin: v.vin || actual.vin,
+              },
+            });
+            actualizados++;
+            continue;
+          }
+        }
+
+        await tx.vehicle.create({
+          data: {
+            userId,
+            marca: v.marca,
+            modelo: v.modelo,
+            anio: v.anio,
+            motor: v.motor,
+            combustible: v.combustible,
+            placa: v.placa,
+            vin: v.vin,
+          },
+        });
+        creados++;
       }
 
       return { ok: true, creados, actualizados, total: creados + actualizados };

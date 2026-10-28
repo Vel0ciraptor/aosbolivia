@@ -174,6 +174,7 @@ export class WorkshopsController {
     return this.workshopsService.updateJob(req.user.workshopId, id, dto, {
       id: req.user.id,
       name: req.user.name,
+      role: req.user.workshopUserRole,
     });
   }
 

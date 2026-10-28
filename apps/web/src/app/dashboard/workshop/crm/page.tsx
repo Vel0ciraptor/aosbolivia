@@ -224,8 +224,13 @@ export default function WorkshopCrmPage() {
   // Mejoras v4: Tipo de trabajo, mecánicos, historial, tipo de cambio
   const isMechanic = user?.workshopUserRole === 'MECANICO';
   const workshopRole = user?.workshopUserRole || user?.role || '';
-  const canApproveMaterials = ['SUPERVISOR', 'JEFE_MECANICO'].includes(workshopRole);
-  const canDeliverMaterials = ['SUPERVISOR', 'INVENTARIO'].includes(workshopRole);
+  // El dueño del taller (User.role WORKSHOP/ADMIN, sin workshopUserRole) es el "admin" del CRM
+  const isWorkshopAdmin = user?.role === 'WORKSHOP' || user?.role === 'ADMIN';
+  // Horas trabajadas: solo admin (dueño) y jefe mecánico las registran/corrigen (etapa Terminado)
+  const canEditHours = isWorkshopAdmin || workshopRole === 'JEFE_MECANICO';
+  // Pedidos de insumos/repuestos: el mecánico pide; admin o jefe mecánico aprueban (y descuentan inventario)
+  const canApproveMaterials = isWorkshopAdmin || workshopRole === 'JEFE_MECANICO';
+  const canDeliverMaterials = ['SUPERVISOR', 'INVENTARIO'].includes(workshopRole) || isWorkshopAdmin;
   const canAdjustCost = ['SUPERVISOR', 'CONTABILIDAD'].includes(workshopRole);
   const [tipoTrabajoSel, setTipoTrabajoSel] = useState<string[]>([]);
   const [tipoTrabajoOtro, setTipoTrabajoOtro] = useState('');
@@ -739,7 +744,14 @@ export default function WorkshopCrmPage() {
     field: 'imagenes' | 'imagenesTerminado' | 'imagenesIngreso' | 'diagnosticoImagenes'
   ) => {
     if (!detailJob || !e.target.files) return;
-    const files = Array.from(e.target.files).slice(0, 5);
+    const current = (detailJob[field] as string[]) || [];
+    const remaining = Math.max(0, 5 - current.length);
+    if (remaining === 0) {
+      alert('Máximo 5 fotos por vehículo en esta etapa.');
+      return;
+    }
+    const selected = Array.from(e.target.files);
+    const files = selected.slice(0, remaining);
     setUploading(true);
     try {
       const urls: string[] = [];
@@ -751,10 +763,12 @@ export default function WorkshopCrmPage() {
         });
         urls.push(res.data.url);
       }
-      const current = (detailJob[field] as string[]) || [];
       const updated = [...current, ...urls].slice(0, 5);
       await api.put(`/workshops/me/jobs/${detailJob.id}`, { [field]: updated });
       setDetailJob({ ...detailJob, [field]: updated });
+      if (selected.length > files.length) {
+        alert(`Solo se guardaron ${files.length} foto(s): el máximo es 5 por vehículo.`);
+      }
     } catch (err: any) { alert(err.response?.data?.message || 'No se pudieron subir las imágenes.'); }
     finally { setUploading(false); }
   };
@@ -1220,7 +1234,8 @@ export default function WorkshopCrmPage() {
     </div>
   );
 
-  const renderHorasEditables = () => (
+  // Horas de mecánico y mano de obra: solo admin (dueño) y jefe mecánico pueden registrarlas.
+  const renderHorasEditables = (editable: boolean) => (
     <div className="mb-4">
       <h5 className="text-xs font-bold text-zinc-300 flex items-center gap-1.5 mb-2"><Timer className="w-3.5 h-3.5 text-orange-400" /> Horas de mecánico y mano de obra</h5>
       {(detailJob?.mecanicosAsignados || []).length === 0 ? (
@@ -1241,14 +1256,20 @@ export default function WorkshopCrmPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <input
-                    type="number" min="0" step="0.25"
-                    defaultValue={w.horasReales != null ? String(w.horasReales) : ''}
-                    onBlur={(e) => handleWorklogHoursBlur(w, e.target.value)}
-                    placeholder="0.00"
-                    className="w-20 px-2 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 text-xs font-mono text-right focus:border-orange-500"
-                  />
-                  <span className="text-[10px] text-zinc-500 font-bold">h</span>
+                  {editable ? (
+                    <>
+                      <input
+                        type="number" min="0" step="0.25"
+                        defaultValue={w.horasReales != null ? String(w.horasReales) : ''}
+                        onBlur={(e) => handleWorklogHoursBlur(w, e.target.value)}
+                        placeholder="0.00"
+                        className="w-20 px-2 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 text-xs font-mono text-right focus:border-orange-500"
+                      />
+                      <span className="text-[10px] text-zinc-500 font-bold">h</span>
+                    </>
+                  ) : (
+                    <span className="text-xs font-mono text-zinc-300 font-semibold">{w.horasReales != null ? `${w.horasReales} h` : '—'}</span>
+                  )}
                 </div>
                 <div className="text-right shrink-0 min-w-[80px]">
                   <p className="text-[10px] text-zinc-500 font-mono">${tarifa.toFixed(2)}/h</p>
@@ -1259,7 +1280,7 @@ export default function WorkshopCrmPage() {
           })}
         </div>
       )}
-      <p className="text-[10px] text-zinc-600 mt-1.5">La tarifa/hora proviene del perfil del equipo. Puedes corregir las horas manualmente; se guarda al salir del campo.</p>
+      <p className="text-[10px] text-zinc-600 mt-1.5">Las horas se registran automáticamente cuando el mecánico pulsa &quot;Terminar&quot;. Solo el administrador o el jefe mecánico pueden corregirlas manualmente. La tarifa/hora proviene del perfil del equipo.</p>
     </div>
   );
 
@@ -1358,7 +1379,9 @@ export default function WorkshopCrmPage() {
                               <td className="py-2.5 pr-3 text-zinc-400 text-xs">{r.inicio ? new Date(r.inicio).toLocaleString('es-VE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-'}</td>
                               <td className="py-2.5 pr-3 text-zinc-400 text-xs">{r.fin ? new Date(r.fin).toLocaleString('es-VE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-'}</td>
                               <td className="py-2.5 pr-3 text-right font-bold text-zinc-200">{r.horasReales != null ? `${r.horasReales} h` : '-'}</td>
-                              <td className="py-2.5"><button onClick={() => handleEditMechanicHour(r)} className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-bold rounded-lg flex items-center gap-1"><Edit2 className="w-3 h-3" /> Editar</button></td>
+                              <td className="py-2.5">{canEditHours ? (
+                                <button onClick={() => handleEditMechanicHour(r)} className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-bold rounded-lg flex items-center gap-1"><Edit2 className="w-3 h-3" /> Editar</button>
+                              ) : <span className="text-[10px] text-zinc-600">—</span>}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -1975,14 +1998,19 @@ export default function WorkshopCrmPage() {
                     <div className="flex items-center gap-2">
                       <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-500/10 border border-purple-500/30 text-[11px] font-extrabold text-purple-400">3</span>
                       <h4 className="text-sm font-bold text-zinc-200 flex items-center gap-2">
-                        <Wrench className="w-4 h-4 text-purple-400" /> Trabajando — Mecánicos, Horas y Servicios
+                        <Wrench className="w-4 h-4 text-purple-400" /> Trabajando — Mecánicos y Servicios
                       </h4>
                     </div>
+                    {isMechanic && (
+                      <p className="text-[11px] text-zinc-500 -mt-3">
+                        Tu rol aquí: pulsa <span className="font-bold text-brand-400">Empezar</span> al iniciar y <span className="font-bold text-red-400">Terminar</span> al finalizar, sube hasta 5 <span className="font-bold text-zinc-300">fotos del arreglo</span> (cámara o galería) y pide insumos o repuestos a almacén. Las horas se registran automáticamente al terminar y solo admin o jefe mecánico las corrigen en la etapa &quot;Terminado&quot;.
+                      </p>
+                    )}
 
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="text-sm font-bold text-zinc-200 flex items-center gap-2">
-                          <Wrench className="w-4 h-4 text-purple-400" /> Mecánicos Asignados y Registro de Horas
+                          <Wrench className="w-4 h-4 text-purple-400" /> Mecánicos Asignados
                         </h4>
                         {!isMechanic && (detailJob.mecanicosAsignados || []).length === 0 && (
                           <span className="text-xs text-red-400 font-bold animate-pulse">
@@ -2038,11 +2066,69 @@ export default function WorkshopCrmPage() {
                       )}
                     </div>
 
-                    {/* Servicios en ejecución */}
-                    <div className="pt-4 border-t border-zinc-800">
-                      {renderServiciosEditor(!isMechanic)}
-                      {renderHorasEditables()}
+                    {/* ── Fotos del arreglo (máx. 5) — cámara o galería; pasan automáticamente a "Terminado" ── */}
+                    <div className="pt-4 border-t border-zinc-800 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <label className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
+                          <Camera className="w-4 h-4 text-purple-400" /> Fotos del arreglo
+                          <span className="text-[10px] text-zinc-500 font-mono">({(detailJob.imagenesTerminado || []).length}/5)</span>
+                        </label>
+                        {uploading && <Loader2 className="w-4 h-4 animate-spin text-zinc-400" />}
+                      </div>
+                      {(detailJob.imagenesTerminado || []).length < 5 && (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <label className="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 text-xs font-bold rounded-xl cursor-pointer flex items-center gap-2 border border-zinc-700">
+                            <Camera className="w-4 h-4 text-purple-400" />
+                            <span>Tomar foto</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              capture="environment"
+                              className="hidden"
+                              onChange={(e) => handleImageUpload(e, 'imagenesTerminado')}
+                              disabled={uploading}
+                            />
+                          </label>
+                          <label className="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 text-xs font-bold rounded-xl cursor-pointer flex items-center gap-2 border border-zinc-700">
+                            <ImageIcon className="w-4 h-4" />
+                            <span>Subir de galería</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              className="hidden"
+                              onChange={(e) => handleImageUpload(e, 'imagenesTerminado')}
+                              disabled={uploading}
+                            />
+                          </label>
+                          <span className="text-[11px] text-zinc-500">Se comprimen y convierten a WebP automáticamente.</span>
+                        </div>
+                      )}
+                      {(detailJob.imagenesTerminado || []).length === 0 ? (
+                        <p className="text-[11px] text-zinc-500">Sin fotos aún. Sube evidencia de los arreglos desde la cámara o la galería (máx. 5). Aparecerán automáticamente en la etapa &quot;Terminado&quot;.</p>
+                      ) : (
+                        <div className="flex gap-2 flex-wrap">
+                          {(detailJob.imagenesTerminado || []).map((url, i) => (
+                            <div key={i} className="relative group">
+                              <img src={url} alt="" className="w-20 h-20 object-cover rounded-lg border border-zinc-800" />
+                              <button
+                                onClick={() => handleRemoveImage(url, 'imagenesTerminado')}
+                                className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 rounded-full text-white text-[8px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                x
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
+
+                    {/* Servicios en ejecución (las horas se registran en la etapa Terminado) */}
+                    {!isMechanic && (
+                      <div className="pt-4 border-t border-zinc-800">
+                        {renderServiciosEditor(!isMechanic)}
+                      </div>
+                    )}
 
                     {/* ── 9. SOLICITUDES DE MATERIALES / ALMACEN ── */}
                     <div className="pt-4 border-t border-zinc-800">
@@ -2051,27 +2137,30 @@ export default function WorkshopCrmPage() {
                           <h4 className="text-sm font-bold text-zinc-200 flex items-center gap-2">
                             <Package className="w-4 h-4 text-amber-400" /> Insumos / Repuestos — Solicitudes a Almacén
                           </h4>
-                          <p className="text-[11px] text-zinc-500">Al agregar un insumo o repuesto se crea automáticamente una solicitud PENDIENTE en almacén.</p>
+                          <p className="text-[11px] text-zinc-500">El mecánico pide lo que necesita; al aprobarlo el jefe mecánico o el admin, se descuenta del inventario general.</p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setIsLoadSuggestedOpen(true)}
-                            className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold rounded-xl flex items-center gap-1.5"
-                          >
-                            <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Cargar sugeridos de servicio
-                          </button>
+                          {!isMechanic && (
+                            <button
+                              type="button"
+                              onClick={() => setIsLoadSuggestedOpen(true)}
+                              className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold rounded-xl flex items-center gap-1.5"
+                            >
+                              <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Cargar sugeridos de servicio
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={() => setIsMaterialReqOpen(true)}
                             className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5"
                           >
-                            <Plus className="w-3.5 h-3.5" /> Pedir a Almacén
+                            <Plus className="w-3.5 h-3.5" /> {isMechanic ? 'Pedir insumo / repuesto' : 'Pedir a Almacén'}
                           </button>
                         </div>
                       </div>
 
-                      {/* Agregar insumo/repuesto rápido desde inventario */}
+                      {/* Agregar insumo/repuesto rápido desde inventario (solo admin/jefe; el mecánico pide vía "Pedir a Almacén") */}
+                      {!isMechanic && (
                       <div className="p-3 bg-zinc-900 border border-zinc-800 rounded-xl">
                         <p className="text-[10px] text-zinc-500 font-bold uppercase mb-2">Agregar insumo / repuesto del inventario</p>
                         <div className="flex flex-wrap items-end gap-2">
@@ -2110,6 +2199,7 @@ export default function WorkshopCrmPage() {
                           </button>
                         </div>
                       </div>
+                      )}
 
                       {/* Tabla de piezas/insumos del job */}
                       {renderPartesTabla(!isMechanic)}
@@ -2212,7 +2302,7 @@ export default function WorkshopCrmPage() {
                     </div>
 
                     {renderServiciosEditor(!isMechanic)}
-                    {renderHorasEditables()}
+                    {renderHorasEditables(canEditHours)}
                     {renderPartesTabla(!isMechanic)}
                     {renderTotalesCompleto()}
 
@@ -2515,7 +2605,7 @@ export default function WorkshopCrmPage() {
                     </option>
                   ))}
                 </select>
-                <p className="text-[10px] text-zinc-500">La solicitud se creará con estado PENDIENTE para aprobación del jefe de taller.</p>
+                <p className="text-[10px] text-zinc-500">La solicitud quedará PENDIENTE hasta que el jefe mecánico o el admin la apruebe; al aprobarla se descuenta del inventario general.</p>
               </div>
 
               <div className="space-y-1">

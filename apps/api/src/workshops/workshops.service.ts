@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   BadRequestException,
   ConflictException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateWorkshopDto } from './dto/update-workshop.dto';
@@ -39,8 +40,9 @@ import {
 import * as bcrypt from 'bcryptjs';
 import { isEmail } from 'class-validator';
 import { randomBytes } from 'crypto';
-import { readFile, stat, unlink } from 'fs/promises';
+import { access, readFile, stat, unlink } from 'fs/promises';
 import { basename, extname, join } from 'path';
+import sharp from 'sharp';
 
 const MECHANIC_ROLE = 'MECANICO';
 const MECHANIC_EDITABLE_STATES = ['CHECK_INICIAL', 'TRABAJANDO'];
@@ -52,7 +54,46 @@ const MAX_LOGO_BYTES = 300 * 1024; // 300 KB
 const MAX_LOGO_DIMENSION = 300; // 300x300 px
 
 const imageKey = (url: string) => basename(url.split('?')[0]);
-const WORKLOG_ADMIN_ROLES = ['SUPERVISOR', 'JEFE_MECANICO', 'CONTABILIDAD'];
+// Las horas trabajadas (horasReales) solo las registra/corrige el Jefe Mecánico
+// o el Administrador del taller (dueño, workshopUserRole undefined → isWorklogAdmin).
+const WORKLOG_ADMIN_ROLES = ['JEFE_MECANICO'];
+// Aprobación de pedidos de insumos/repuestos: Jefe Mecánico o Admin (dueño del taller).
+const MATERIAL_APPROVER_ROLES = ['JEFE_MECANICO', 'WORKSHOP'];
+
+// Fotos de vehículos: máximo 5 por etapa y conversión automática a WebP
+const MAX_JOB_PHOTOS = 5;
+const WEBP_MAX_WIDTH = 1600;
+const WEBP_QUALITY = 80;
+const NON_WEBP_EXT_RE = /\.(jpe?g|png|gif)$/i;
+
+// Convierte una imagen existente a WebP (máx. 1600px de ancho), elimina el
+// original JPG/PNG/GIF y devuelve la nueva URL. Si el archivo no existe o ya
+// es WebP, devuelve la misma URL sin tocar nada.
+async function convertImageFileToWebp(url: string): Promise<string> {
+  if (!url || !NON_WEBP_EXT_RE.test(url)) return url;
+  const oldKey = imageKey(url);
+  if (!oldKey) return url;
+  const oldPath = join(UPLOAD_IMAGES_DIR, oldKey);
+  try {
+    await access(oldPath);
+  } catch {
+    return url; // el archivo ya no existe en disco
+  }
+  const newKey = `${oldKey.replace(/\.[^.]+$/, '')}.webp`;
+  const newPath = join(UPLOAD_IMAGES_DIR, newKey);
+  try {
+    await sharp(oldPath)
+      .rotate() // respeta la orientación EXIF de las fotos de cámara
+      .resize({ width: WEBP_MAX_WIDTH, withoutEnlargement: true })
+      .webp({ quality: WEBP_QUALITY })
+      .toFile(newPath);
+    await unlink(oldPath); // se elimina el original JPG/PNG/GIF
+  } catch {
+    return url; // si falla la conversión, conserva el original
+  }
+  const idx = url.indexOf(oldKey);
+  return idx >= 0 ? `${url.slice(0, idx)}${newKey}${url.slice(idx + oldKey.length)}` : url;
+}
 
 // Lee las dimensiones de PNG, JPEG, GIF o WEBP sin dependencias externas
 function getImageDimensions(buf: Buffer): { width: number; height: number } | null {
@@ -128,13 +169,20 @@ function getImageDimensions(buf: Buffer): { width: number; height: number } | nu
 }
 
 @Injectable()
-export class WorkshopsService {
+export class WorkshopsService implements OnModuleInit {
   constructor(
     private prisma: PrismaService,
     private exchangeRateService: ExchangeRateService,
     private whatsAppService: WhatsAppService,
     private excelImportService: ExcelImportService,
   ) {}
+
+  // Al arrancar, convierte las fotos antiguas JPG/PNG/GIF a WebP y elimina los originales.
+  async onModuleInit() {
+    this.migrateJobImagesToWebp().catch((err) =>
+      console.warn('[workshop-images] Migración WebP fallida:', err?.message || err),
+    );
+  }
 
   async findAll() {
     return this.prisma.workshop.findMany({
@@ -272,6 +320,11 @@ export class WorkshopsService {
   // ─────────────────────────────────────────────
 
   async findJobs(workshopId: string, estado?: string, role?: string, userId?: string) {
+    // Un usuario sin taller (p. ej. un CLIENT) no debe listar jobs: Prisma
+    // ignora `undefined` en el where y devolvería TODOS los jobs del sistema.
+    if (!workshopId) {
+      throw new ForbiddenException('No tienes un taller asociado');
+    }
     const where: any = { workshopId };
     if (estado) where.estado = estado;
     if (role === MECHANIC_ROLE) {
@@ -329,6 +382,8 @@ export class WorkshopsService {
         estado: job.estado,
         createdAt: job.createdAt,
         mecanicosAsignados,
+        // Fotos del arreglo: el mecánico las sube y las administra desde "Trabajando"
+        imagenesTerminado: job.imagenesTerminado,
         logs: job.logs,
         checkpoints: job.checkpoints,
         partNeeds: (job.partNeeds || []).map((pn) => ({
@@ -429,7 +484,7 @@ export class WorkshopsService {
     workshopId: string,
     jobId: string,
     dto: UpdateWorkshopJobDto,
-    actor?: { id: string; name?: string },
+    actor?: { id: string; name?: string; role?: string },
   ) {
     const job = await this.prisma.workshopJob.findUnique({
       where: { id: jobId },
@@ -450,6 +505,32 @@ export class WorkshopsService {
       serviciosRealizados: dto.serviciosRealizados as any,
       diagnosticoImagenes: dto.diagnosticoImagenes as any,
     };
+
+    // El mecánico solo puede subir/administrar las fotos del arreglo
+    if (actor?.role === MECHANIC_ROLE) {
+      const extra = Object.keys(data).filter(
+        (k) => data[k] !== undefined && k !== 'imagenesTerminado',
+      );
+      if (extra.length > 0) {
+        throw new ForbiddenException(
+          'Un mecánico solo puede actualizar las fotos del arreglo',
+        );
+      }
+    }
+
+    // Máximo 5 fotos por etapa
+    if (Array.isArray(data.imagenesTerminado)) {
+      data.imagenesTerminado = (data.imagenesTerminado as string[]).slice(0, MAX_JOB_PHOTOS);
+    }
+    if (Array.isArray(data.imagenes)) {
+      data.imagenes = (data.imagenes as string[]).slice(0, MAX_JOB_PHOTOS);
+    }
+    if (Array.isArray(data.imagenesIngreso)) {
+      data.imagenesIngreso = (data.imagenesIngreso as string[]).slice(0, MAX_JOB_PHOTOS);
+    }
+    if (Array.isArray(data.diagnosticoImagenes)) {
+      data.diagnosticoImagenes = (data.diagnosticoImagenes as string[]).slice(0, MAX_JOB_PHOTOS);
+    }
 
     // Si se modifica o registra el nivel de combustible, registrar quién y cuándo
     if (dto.nivelCombustible && dto.nivelCombustible !== job.nivelCombustible) {
@@ -1291,12 +1372,29 @@ export class WorkshopsService {
     if (job.workshopId !== workshopId)
       throw new ForbiddenException('Sin permiso');
 
+    // Convertir a WebP (máx. 1600px) y eliminar el original JPG/PNG/GIF:
+    // solo se conserva el archivo .webp en disco.
+    const originalPath = join(UPLOAD_IMAGES_DIR, file.filename);
+    const webpKey = `${file.filename.replace(/\.[^.]+$/, '')}.webp`;
+    const webpPath = join(UPLOAD_IMAGES_DIR, webpKey);
+    try {
+      await sharp(originalPath)
+        .rotate() // respeta la orientación EXIF de las fotos de cámara
+        .resize({ width: WEBP_MAX_WIDTH, withoutEnlargement: true })
+        .webp({ quality: WEBP_QUALITY })
+        .toFile(webpPath);
+    } catch {
+      try { await unlink(originalPath); } catch { /* ya no existe */ }
+      throw new BadRequestException('No se pudo procesar la imagen');
+    }
+    try { await unlink(originalPath); } catch { /* ya no existe */ }
+
     const existingUrls = [
       ...((job.imagenes as string[]) || []),
       ...((job.imagenesIngreso as string[]) || []),
       ...((job.imagenesTerminado as string[]) || []),
     ];
-    let totalBytes = file.size;
+    let totalBytes = (await stat(webpPath)).size;
     for (const url of existingUrls) {
       try {
         totalBytes += (await stat(join(UPLOAD_IMAGES_DIR, imageKey(url)))).size;
@@ -1306,7 +1404,7 @@ export class WorkshopsService {
     }
     if (totalBytes > MAX_JOB_IMAGES_BYTES) {
       try {
-        await unlink(join(UPLOAD_IMAGES_DIR, file.filename));
+        await unlink(webpPath);
       } catch {
         // ya no existe
       }
@@ -1316,8 +1414,62 @@ export class WorkshopsService {
     }
 
     const baseUrl = process.env.APP_URL || 'http://localhost:3004';
-    const url = `${baseUrl}/uploads/workshop-images/${file.filename}`;
+    const url = `${baseUrl}/uploads/workshop-images/${webpKey}`;
     return { url };
+  }
+
+  // ─────────────────────────────────────────────
+  // MIGRACIÓN DE FOTOS ANTIGUAS A WebP (una vez convertidas se borra el original)
+  // ─────────────────────────────────────────────
+
+  async migrateJobImagesToWebp(): Promise<void> {
+    const IMAGE_FIELDS = [
+      'imagenes',
+      'imagenesIngreso',
+      'imagenesTerminado',
+      'diagnosticoImagenes',
+    ] as const;
+
+    const jobs = await this.prisma.workshopJob.findMany({
+      select: { id: true, ...Object.fromEntries(IMAGE_FIELDS.map((f) => [f, true])), fotoTablero: true },
+    });
+
+    let converted = 0;
+    for (const job of jobs) {
+      const data: any = {};
+
+      for (const field of IMAGE_FIELDS) {
+        const list = (job[field] as string[]) || [];
+        if (!Array.isArray(list) || list.length === 0) continue;
+        const next: string[] = [];
+        let changed = false;
+        for (const url of list) {
+          const newUrl = await convertImageFileToWebp(url);
+          if (newUrl !== url) changed = true;
+          if (newUrl !== url) converted++;
+          next.push(newUrl);
+        }
+        if (changed) data[field] = next;
+      }
+
+      if (job.fotoTablero && NON_WEBP_EXT_RE.test(job.fotoTablero)) {
+        const newUrl = await convertImageFileToWebp(job.fotoTablero);
+        if (newUrl !== job.fotoTablero) {
+          data.fotoTablero = newUrl;
+          converted++;
+        }
+      }
+
+      if (Object.keys(data).length > 0) {
+        await this.prisma.workshopJob.update({ where: { id: job.id }, data });
+      }
+    }
+
+    if (converted > 0) {
+      console.log(
+        `[workshop-images] Migración WebP: ${converted} foto(s) convertida(s) y original(es) eliminado(s)`,
+      );
+    }
   }
 
   // ─────────────────────────────────────────────
@@ -2230,32 +2382,121 @@ export class WorkshopsService {
     user: { id: string; name: string; role?: string },
     dto: ApproveMaterialRequestDto,
   ) {
-    if (user.role && !['SUPERVISOR', 'JEFE_MECANICO'].includes(user.role)) {
+    // Solo el Jefe Mecánico o el Administrador (dueño) del taller aprueban/rechazan.
+    // Nota: el dueño llega con role 'WORKSHOP' (sin workshopUserRole).
+    if (user.role && !MATERIAL_APPROVER_ROLES.includes(user.role)) {
       throw new ForbiddenException(
-        'Solo el Jefe Mecánico o Administrador puede aprobar solicitudes de material.',
+        'Solo el Jefe Mecánico o el Administrador del taller puede aprobar solicitudes de material.',
       );
     }
 
     const req = await this.prisma.workshopMaterialRequest.findFirst({
       where: { id: requestId, workshopId },
+      include: { inventoryItem: true, job: true },
     });
     if (!req) throw new NotFoundException('Solicitud de material no encontrada');
     if (req.estado !== 'PENDIENTE') {
       throw new ConflictException(`La solicitud ya se encuentra en estado ${req.estado}`);
     }
 
-    const nuevoEstado = dto.accion === 'APROBAR' ? 'APROBADA' : 'RECHAZADA';
+    // Rechazar: solo cambia el estado.
+    if (dto.accion !== 'APROBAR') {
+      return this.prisma.workshopMaterialRequest.update({
+        where: { id: requestId },
+        data: {
+          estado: 'RECHAZADA',
+          aprobadoPorId: user.id,
+          aprobadoPor: user.name || 'Jefe de Taller',
+          aprobadoEn: new Date(),
+          justificacion: dto.motivo ? `${req.justificacion || ''} | Motivo rechazo: ${dto.motivo}` : req.justificacion,
+        },
+        include: { inventoryItem: true },
+      });
+    }
 
-    return this.prisma.workshopMaterialRequest.update({
-      where: { id: requestId },
-      data: {
-        estado: nuevoEstado,
-        aprobadoPorId: user.id,
-        aprobadoPor: user.name || 'Jefe de Taller',
-        aprobadoEn: new Date(),
-        justificacion: dto.motivo ? `${req.justificacion || ''} | Motivo rechazo: ${dto.motivo}` : req.justificacion,
-      },
-      include: { inventoryItem: true },
+    // Aprobar: descuenta de inmediato del inventario general con trazabilidad.
+    return this.prisma.$transaction(async (tx) => {
+      const item = await tx.inventoryItem.findUnique({
+        where: { id: req.inventoryItemId },
+      });
+      if (!item) throw new NotFoundException('Item de inventario inexistente');
+
+      if (item.stock < req.cantidad) {
+        throw new BadRequestException(
+          `Stock insuficiente en almacén. Disponible: ${item.stock}, Solicitado: ${req.cantidad}`,
+        );
+      }
+
+      const stockNuevo = item.stock - req.cantidad;
+
+      // 1. Descontar inventario general
+      await tx.inventoryItem.update({
+        where: { id: item.id },
+        data: { stock: stockNuevo },
+      });
+
+      // 2. Registrar movimiento trazable
+      await tx.inventoryMovement.create({
+        data: {
+          inventoryItemId: item.id,
+          workshopId,
+          tipo: 'SALIDA_ORDEN',
+          cantidad: req.cantidad,
+          stockAnterior: item.stock,
+          stockNuevo,
+          jobId: req.jobId,
+          usuarioId: user.id,
+          usuarioNombre: user.name || 'Jefe de Taller',
+          motivo: `Aprobado para orden ${req.job.marca} ${req.job.modelo} (${req.job.placa || 'Sin placa'})`,
+        },
+      });
+
+      // 3. Marcar como usado el partNeed vinculado (si existe) o crearlo, para que figure en la orden
+      const existingPartNeed = await tx.jobPartNeed.findFirst({
+        where: { jobId: req.jobId, inventoryItemId: item.id, yaUsado: false },
+      });
+      if (existingPartNeed) {
+        await tx.jobPartNeed.update({
+          where: { id: existingPartNeed.id },
+          data: {
+            yaUsado: true,
+            yaUsadoEn: new Date(),
+            usadoPorId: user.id,
+            usadoPorNombre: user.name || 'Jefe de Taller',
+          },
+        });
+      } else {
+        await tx.jobPartNeed.create({
+          data: {
+            jobId: req.jobId,
+            inventoryItemId: item.id,
+            nombre: item.nombre,
+            cantidad: req.cantidad,
+            esInsumo: true,
+            yaUsado: true,
+            yaUsadoEn: new Date(),
+            precioUnitario: item.precioUnitario,
+            usadoPorId: user.id,
+            usadoPorNombre: user.name || 'Jefe de Taller',
+          },
+        });
+      }
+
+      // 4. Actualizar la solicitud como aprobada y entregada (stock descontado)
+      return tx.workshopMaterialRequest.update({
+        where: { id: requestId },
+        data: {
+          estado: 'ENTREGADA',
+          cantidadEntregada: req.cantidad,
+          aprobadoPorId: user.id,
+          aprobadoPor: user.name || 'Jefe de Taller',
+          aprobadoEn: new Date(),
+          entregadoPorId: user.id,
+          entregadoPor: user.name || 'Jefe de Taller',
+          entregadoEn: new Date(),
+        },
+        include: { inventoryItem: true },
+      });
     });
   }
 

@@ -7,6 +7,7 @@ import {
   Package, Plus, Search, Edit2, Trash2, Save, X,
   Loader2, AlertCircle, RefreshCw, Box, Wrench,
 } from 'lucide-react';
+import ExcelImportActions from '../../../../components/ExcelImportActions';
 
 interface InventoryItem {
   id: string;
@@ -120,7 +121,10 @@ export default function InventoryPage() {
           <h2 className="text-2xl font-bold text-zinc-100 flex items-center gap-2"><Package className="w-6 h-6 text-brand-400" /><span>Inventario del Taller</span></h2>
           <p className="text-sm text-zinc-400">Repuestos e insumos disponibles.</p>
         </div>
-        <button onClick={openCreate} className="px-4 py-2.5 bg-gradient-to-r from-brand-500 to-brand-600 text-white font-bold text-sm rounded-xl hover:shadow-lg transition-all flex items-center gap-2"><Plus className="w-4 h-4" /> Agregar item</button>
+        <div className="flex flex-wrap items-center gap-2">
+          <ExcelImportActions kind="inventory" onImported={fetchItems} />
+          <button onClick={openCreate} className="px-4 py-2.5 bg-gradient-to-r from-brand-500 to-brand-600 text-white font-bold text-sm rounded-xl hover:shadow-lg transition-all flex items-center gap-2"><Plus className="w-4 h-4" /> Agregar item</button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -153,7 +157,7 @@ export default function InventoryPage() {
         <div className="p-12 bg-zinc-900/30 border border-zinc-800/80 border-dashed rounded-3xl text-center">
           <Package className="w-8 h-8 text-zinc-500 mx-auto mb-3" />
           <h3 className="font-bold text-zinc-300">{items.length === 0 ? 'Inventario vacío' : 'Sin resultados'}</h3>
-          {items.length === 0 && <p className="text-zinc-500 text-sm mt-1">Agrega repuestos e insumos para tu taller.</p>}
+          {items.length === 0 && <p className="text-zinc-500 text-sm mt-1">Agrega repuestos e insumos manualmente o descarga la plantilla Excel para cargarlos en masa.</p>}
         </div>
       ) : (
         <div className="overflow-x-auto">

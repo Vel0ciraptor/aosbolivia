@@ -8,7 +8,7 @@ import {
   Car, Settings, Wrench, Truck, LogOut, LayoutDashboard,
   MessageSquareCode, FileText, ClipboardList, PlusCircle,
   Menu, X, User as UserIcon, Shield, Users, Store, Package,
-  KeyRound, Eye, EyeOff, CalendarDays,
+  KeyRound, Eye, EyeOff, CalendarDays, Activity,
 } from 'lucide-react';
 import Link from 'next/link';
 import NotificationCenter from '../../components/NotificationCenter';
@@ -98,6 +98,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       return [
         ...base,
         { name: 'Mis Vehículos', href: '/dashboard/client/vehicles', icon: Car },
+        { name: 'Seguimiento', href: '/dashboard/client/tracking', icon: Activity },
         { name: 'Crear Solicitud', href: '/dashboard/client/new-request', icon: PlusCircle },
         { name: 'Mis Solicitudes', href: '/dashboard/client/requests', icon: ClipboardList }
       ];
@@ -269,6 +270,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                pathname.includes('/workshop/requests') ? 'Solicitudes' :
                pathname.includes('/tow/profile') ? 'Perfil del Servicio' :
                pathname.includes('/tow/requests') ? 'Solicitudes' :
+               pathname.includes('/client/tracking') ? 'Seguimiento de Vehículos' :
                pathname.includes('vehicles') ? 'Mis Vehículos' :
                pathname.includes('new-request') ? 'Nueva Solicitud' :
                pathname.includes('requests') ? 'Solicitudes' : 'AOSBolivia'}

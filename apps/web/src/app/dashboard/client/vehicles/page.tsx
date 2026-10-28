@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../../../lib/api';
 import { Car, Plus, Trash2, X, AlertCircle, Fuel, Settings, Calendar } from 'lucide-react';
+import ExcelImportActions from '../../../../components/ExcelImportActions';
 
 interface Vehicle {
   id: string;
@@ -96,18 +97,21 @@ export default function VehiclesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-zinc-100">Mis Vehículos</h2>
-          <p className="text-sm text-zinc-400">Registra tus vehículos para cotizar repuestos o servicios de forma más rápida.</p>
+          <p className="text-sm text-zinc-400">Registra tus vehículos o importa toda tu flota desde una plantilla Excel.</p>
         </div>
-        <button
-          onClick={handleOpenModal}
-          className="px-4 py-2.5 bg-gradient-to-r from-brand-500 to-brand-500 text-white font-bold rounded-xl flex items-center gap-2 hover:shadow-lg hover:shadow-brand-500/10 transition-all transform active:scale-95 text-sm"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Agregar Vehículo</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <ExcelImportActions kind="vehicles" onImported={fetchVehicles} />
+          <button
+            onClick={handleOpenModal}
+            className="px-4 py-2.5 bg-gradient-to-r from-brand-500 to-brand-500 text-white font-bold rounded-xl flex items-center gap-2 hover:shadow-lg hover:shadow-brand-500/10 transition-all transform active:scale-95 text-sm"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Agregar Vehículo</span>
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -121,7 +125,7 @@ export default function VehiclesPage() {
           </div>
           <h3 className="font-bold text-zinc-300 text-base">No hay vehículos registrados</h3>
           <p className="text-zinc-500 text-sm mt-1 max-w-sm mx-auto">
-            Registra tu primer carro para que nuestro chatbot de IA y los proveedores puedan identificar la compatibilidad exacta de los repuestos.
+            Registra tus vehículos uno a uno o descarga la plantilla Excel para cargar toda tu flota de una sola vez.
           </p>
           <button
             onClick={handleOpenModal}

@@ -707,6 +707,15 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
             </div>
           )}
 
+          {request.estado === 'IN_PROGRESS' && (
+            <Link
+              href="/dashboard/client/tracking"
+              className="block p-4 bg-brand-500/5 border border-brand-500/20 rounded-2xl text-xs font-bold text-brand-300 hover:bg-brand-500/10 transition-colors"
+            >
+              Ver seguimiento en tiempo real del vehículo →
+            </Link>
+          )}
+
           <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-3">
             <div className="flex items-center gap-2 pb-3 border-b border-zinc-800/60">
               <Hash className="w-4 h-4 text-brand-400" />

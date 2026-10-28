@@ -7,11 +7,17 @@ import {
   Body,
   Param,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
   Req,
+  Res,
+  BadRequestException,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes } from '@nestjs/swagger';
 import { VehiclesService } from './vehicles.service';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
+import { ExcelImportService } from '../workshops/excel-import.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Vehicles')
@@ -19,7 +25,10 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 @UseGuards(JwtAuthGuard)
 @Controller('vehicles')
 export class VehiclesController {
-  constructor(private vehiclesService: VehiclesService) {}
+  constructor(
+    private vehiclesService: VehiclesService,
+    private excelImportService: ExcelImportService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Registrar vehículo' })
@@ -31,6 +40,38 @@ export class VehiclesController {
   @ApiOperation({ summary: 'Listar mis vehículos' })
   findAll(@Req() req: any) {
     return this.vehiclesService.findAllByUser(req.user.id);
+  }
+
+  // ── Importación masiva de flota por Excel (empresas con varios vehículos) ──
+
+  @Get('excel-template')
+  @ApiOperation({ summary: 'Descargar plantilla Excel para importar la flota' })
+  downloadTemplate(@Res() res: any) {
+    const buffer = this.excelImportService.generateVehiclesTemplate();
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="plantilla_vehiculos.xlsx"',
+    );
+    res.end(buffer);
+  }
+
+  @Post('excel-preview')
+  @ApiOperation({ summary: 'Previsualizar y validar archivo Excel de flota' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file'))
+  previewExcel(@Req() req: any, @UploadedFile() file: Express.Multer.File) {
+    if (!file) throw new BadRequestException('Archivo no subido');
+    return this.excelImportService.previewVehicles(req.user.id, file.buffer);
+  }
+
+  @Post('excel-confirm')
+  @ApiOperation({ summary: 'Confirmar e importar masivamente la flota desde Excel' })
+  confirmExcel(@Req() req: any, @Body() body: { vehicles: any[] }) {
+    return this.excelImportService.confirmVehicles(req.user.id, body.vehicles || []);
   }
 
   @Get(':id')

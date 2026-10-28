@@ -8,6 +8,7 @@ import {
   Wrench, Plus, Search, X, AlertCircle, Loader2,
   Edit2, Trash2, DollarSign, Hash, Tag, Save, RefreshCw,
 } from 'lucide-react';
+import ExcelImportActions from '../../../../components/ExcelImportActions';
 
 interface WorkshopService {
   id: string;
@@ -169,7 +170,8 @@ export default function WorkshopServicesPage() {
           </h2>
           <p className="text-sm text-zinc-400">Gestiona los servicios mecánicos que ofrece tu taller.</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <ExcelImportActions kind="services" onImported={() => { fetchServices(); reload(); }} />
           <Link
             href="/dashboard/workshop/profile"
             className="px-4 py-2.5 bg-zinc-900 border border-zinc-800 text-zinc-300 font-semibold text-sm rounded-xl hover:bg-zinc-800 transition-all"
@@ -225,7 +227,7 @@ export default function WorkshopServicesPage() {
             <>
               <h3 className="font-bold text-zinc-300 text-base">No tienes servicios registrados</h3>
               <p className="text-zinc-500 text-sm mt-1 max-w-sm mx-auto">
-                Agrega los servicios que ofrece tu taller (cambio de aceite, alineación, frenos...) para mostrarlos a los clientes.
+                Agrega los servicios que ofrece tu taller (cambio de aceite, alineación, frenos...) o descarga la plantilla Excel para cargarlos en masa.
               </p>
               <button
                 onClick={openCreate}

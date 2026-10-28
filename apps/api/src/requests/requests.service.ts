@@ -423,5 +423,86 @@ export class RequestsService {
       },
     });
   }
+
+  // ─────────────────────────────────────────────
+  // SEGUIMIENTO DEL CLIENTE (checklist de fases + fotos WebP)
+  // El cliente solo ve los jobs de SUS solicitudes (request.userId).
+  // ─────────────────────────────────────────────
+
+  async findMyJobs(userId: string) {
+    const jobs = await this.prisma.workshopJob.findMany({
+      where: { request: { userId } },
+      include: {
+        workshop: {
+          select: { id: true, nombre: true, direccion: true, telefono: true },
+        },
+        request: { select: { id: true, titulo: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    return jobs.map((job) => ({
+      id: job.id,
+      estado: job.estado,
+      marca: job.marca,
+      modelo: job.modelo,
+      anio: job.anio,
+      placa: job.placa,
+      problema: job.problema,
+      workshop: job.workshop,
+      request: job.request,
+      createdAt: job.createdAt,
+      updatedAt: job.updatedAt,
+    }));
+  }
+
+  async findMyJobDetail(jobId: string, user?: RequestUser) {
+    const job = await this.prisma.workshopJob.findUnique({
+      where: { id: jobId },
+      include: {
+        workshop: {
+          select: { id: true, nombre: true, direccion: true, telefono: true },
+        },
+        request: { select: { id: true, titulo: true, userId: true } },
+        logs: { orderBy: { createdAt: 'asc' } },
+      },
+    });
+
+    if (!job || !job.request) throw new NotFoundException('Trabajo no encontrado');
+
+    const isOwner = job.request.userId === user?.id;
+    const isAdmin = user?.role === 'ADMIN';
+    if (!isOwner && !isAdmin) {
+      throw new ForbiddenException('No tienes acceso a este trabajo');
+    }
+
+    return {
+      id: job.id,
+      estado: job.estado,
+      marca: job.marca,
+      modelo: job.modelo,
+      anio: job.anio,
+      placa: job.placa,
+      kilometraje: job.kilometraje,
+      problema: job.problema,
+      fechaCita: job.fechaCita,
+      createdAt: job.createdAt,
+      updatedAt: job.updatedAt,
+      workshop: job.workshop,
+      request: { id: job.request.id, titulo: job.request.titulo },
+      logs: (job.logs || []).map((l) => ({
+        estado: l.estado,
+        observaciones: l.observaciones,
+        usuario: l.firmaUsuarioNombre,
+        createdAt: l.createdAt,
+      })),
+      fotos: {
+        ingreso: (job.imagenesIngreso as string[]) || [],
+        diagnostico: (job.diagnosticoImagenes as string[]) || [],
+        terminado: (job.imagenesTerminado as string[]) || [],
+        tablero: job.fotoTablero || null,
+      },
+    };
+  }
 }
 

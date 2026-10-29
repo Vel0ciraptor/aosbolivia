@@ -558,6 +558,15 @@ export class WorkshopsController {
 
   // ─── WhatsApp y Autorización ───
 
+  @Post('me/jobs/:id/request-approval')
+  @ApiOperation({
+    summary:
+      'Solicitar aprobación del presupuesto al cliente desde su app (seguimiento), sin WhatsApp',
+  })
+  requestInAppApproval(@Req() req: any, @Param('id') id: string) {
+    return this.workshopsService.requestInAppApproval(req.user.workshopId, id);
+  }
+
   @Post('me/jobs/:id/whatsapp-approval')
   @ApiOperation({ summary: 'Generar y registrar enlace de WhatsApp para aprobación de diagnóstico' })
   sendApprovalWhatsApp(

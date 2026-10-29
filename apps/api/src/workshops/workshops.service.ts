@@ -585,20 +585,20 @@ export class WorkshopsService implements OnModuleInit {
       }
     }
 
-    // Al pasar a TRABAJANDO: verificar mecánico asignado y autorización del cliente
+    // Al pasar a TRABAJANDO: la aprobación del cliente solo puede ser
+    // ignorada por el administrador del taller (dueño), por ejemplo si el
+    // cliente aceptó el presupuesto por teléfono fuera del sistema.
     if (dto.estado === 'TRABAJANDO') {
-      const worklogs = (job.mecanicosAsignados as any[]) || [];
-      if (!worklogs.length) {
+      const isWorkshopOwner = signer.userType === 'WORKSHOP';
+      if (
+        job.autorizacionEstado === 'PENDIENTE_APROBACION' &&
+        !isWorkshopOwner
+      ) {
         throw new BadRequestException(
-          'Debe asignar al menos un mecánico responsable antes de iniciar los trabajos.',
+          'No se puede iniciar el trabajo: está pendiente la aprobación del presupuesto por el cliente. Solo el administrador del taller puede iniciar sin ella.',
         );
       }
-      if (job.autorizacionEstado === 'PENDIENTE_APROBACION') {
-        throw new BadRequestException(
-          'No se puede iniciar el trabajo: está pendiente la aprobación del presupuesto por el cliente.',
-        );
-      }
-      if (job.autorizacionEstado === 'RECHAZADO') {
+      if (job.autorizacionEstado === 'RECHAZADO' && !isWorkshopOwner) {
         throw new BadRequestException(
           'El cliente rechazó el presupuesto. Realice los ajustes necesarios y vuelva a solicitar aprobación.',
         );
@@ -1562,7 +1562,6 @@ export class WorkshopsService implements OnModuleInit {
       include: {
         workshop: true,
         logs: { orderBy: { createdAt: 'desc' } },
-        checkpoints: { orderBy: { servicio: 'asc' } },
         partNeeds: { include: { inventoryItem: true } },
       },
     });
@@ -1571,18 +1570,6 @@ export class WorkshopsService implements OnModuleInit {
       throw new ForbiddenException('Sin permiso');
 
     const accent = (job.workshop.colorPrimario as string) || '#10b981';
-
-    const checkpoints = (job.checkpoints || [])
-      .map(
-        (cp) => `
-      <tr>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;">${cp.servicio}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:14px;">${cp.checked ? '✅' : '❌'}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#6b7280;">${cp.notas || '-'}</td>
-      </tr>
-    `,
-      )
-      .join('');
 
     const partNeeds = (job.partNeeds || [])
       .map(
@@ -1634,12 +1621,21 @@ export class WorkshopsService implements OnModuleInit {
       .join('');
 
     const tipoTrabajo = job.tipoTrabajo as any;
-    const tipoTrabajoText = tipoTrabajo
-      ? [
-          ...((tipoTrabajo.categorias || []) as string[]),
-          ...(tipoTrabajo.otro ? [tipoTrabajo.otro] : []),
-        ].join(', ')
-      : '';
+    const tipoTrabajoCategorias: string[] = tipoTrabajo
+      ? (tipoTrabajo.categorias || [])
+      : [];
+    const tipoTrabajoOtro: string = tipoTrabajo?.otro || '';
+    const tipoTrabajoEtiquetas = [
+      ...tipoTrabajoCategorias,
+      ...(tipoTrabajoOtro ? [tipoTrabajoOtro] : []),
+    ];
+    const tipoTrabajoBadgesHtml = tipoTrabajoEtiquetas
+      .map(
+        (t) => `
+      <span style="display:inline-block;padding:5px 14px;border-radius:9999px;background:#fef3c7;border:1px solid #f59e0b;font-size:13px;font-weight:600;color:#92400e;margin:0 6px 6px 0;">${t}</span>
+    `,
+      )
+      .join('');
 
     const servicios = (job.serviciosRealizados as any[]) || [];
     const serviciosRows = servicios
@@ -1819,8 +1815,17 @@ export class WorkshopsService implements OnModuleInit {
         <div class="seccion" style="padding:16px;background:#fef3c7;border-radius:12px;border:1px solid #f59e0b;margin-bottom:24px;">
           <h3 style="font-size:12px;font-weight:700;color:#92400e;text-transform:uppercase;margin:0 0 8px 0;">Problema Reportado</h3>
           <p style="font-size:14px;margin:0;">${job.problema}</p>
-          ${tipoTrabajoText ? `<p style="font-size:13px;color:#78350f;margin:8px 0 0 0;"><strong>Tipo de trabajo:</strong> ${tipoTrabajoText}</p>` : ''}
         </div>
+
+        ${
+          tipoTrabajoBadgesHtml
+            ? `
+        <div class="seccion" style="margin-bottom:24px;">
+          <h2 style="font-size:16px;font-weight:700;margin:0 0 12px 0;color:#111827;">Tipo de Trabajo</h2>
+          <div>${tipoTrabajoBadgesHtml}</div>
+        </div>`
+            : ''
+        }
 
         ${
           job.diagnosticoMecanico || imagenesDiagnostico
@@ -1829,23 +1834,6 @@ export class WorkshopsService implements OnModuleInit {
           <h3 style="font-size:12px;font-weight:700;color:#166534;text-transform:uppercase;margin:0 0 8px 0;">Diagnóstico Mecánico</h3>
           ${job.diagnosticoMecanico ? `<p style="font-size:14px;margin:0;color:#14532d;">${job.diagnosticoMecanico}</p>` : ''}
           ${imagenesDiagnostico ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">${imagenesDiagnostico}</div>` : ''}
-        </div>`
-            : ''
-        }
-
-        ${
-          job.checkpoints && job.checkpoints.length > 0
-            ? `
-        <div style="margin-bottom:24px;">
-          <h2 style="font-size:16px;font-weight:700;margin:0 0 12px 0;color:#111827;">Check Inicial</h2>
-          <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
-            <thead><tr style="background:#f9fafb;">
-              <th style="padding:8px 12px;text-align:left;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Servicio</th>
-              <th style="padding:8px 12px;text-align:center;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Estado</th>
-              <th style="padding:8px 12px;text-align:left;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Notas</th>
-            </tr></thead>
-            <tbody>${checkpoints}</tbody>
-          </table>
         </div>`
             : ''
         }
@@ -2261,6 +2249,175 @@ export class WorkshopsService implements OnModuleInit {
       estado: nuevoEstado,
       decididoEn: now,
     };
+  }
+
+  // ─────────────────────────────────────────────
+  // APROBACIÓN DEL CLIENTE DESDE SU CUENTA (app)
+  // ─────────────────────────────────────────────
+
+  /**
+   * El taller solicita la aprobación del presupuesto: deja el job en
+   * PENDIENTE_APROBACION para que el cliente lo vea en su app (seguimiento)
+   * y decida con firma. No requiere teléfono ni WhatsApp.
+   */
+  async requestInAppApproval(workshopId: string, jobId: string) {
+    const job = await this.prisma.workshopJob.findUnique({
+      where: { id: jobId },
+      include: { partNeeds: true, request: { select: { userId: true } } },
+    });
+    if (!job) throw new NotFoundException('Vehículo no encontrado');
+    if (job.workshopId !== workshopId) throw new ForbiddenException('Sin permiso');
+    if (!job.request?.userId) {
+      throw new BadRequestException(
+        'Este vehículo no tiene un cliente con cuenta vinculada (no proviene de una solicitud del cliente). No se puede pedir aprobación desde la app.',
+      );
+    }
+
+    const servicios = (job.serviciosRealizados as any[]) || [];
+    const totalServicios = servicios.length
+      ? servicios.reduce((sum, s) => sum + (Number(s.precio) || 0), 0)
+      : Number(job.precioServicio) || 0;
+    const totalRepuestos = (job.partNeeds || []).reduce(
+      (sum, p) => sum + Number(p.precioUnitario || 0) * (p.cantidad || 1),
+      0,
+    );
+    const totalEstimadoUsd = totalServicios + totalRepuestos;
+
+    const rateInfo = await this.exchangeRateService.getLatestRate();
+
+    const updated = await this.prisma.workshopJob.update({
+      where: { id: jobId },
+      data: {
+        autorizacionEstado: 'PENDIENTE_APROBACION',
+        autorizacionPresupuesto: totalEstimadoUsd,
+        tipoCambioAplicado: rateInfo.venta,
+        // Limpiar decisión anterior si se vuelve a solicitar
+        autorizacionDecididoEn: null,
+        autorizacionFirma: null,
+        autorizacionRechazoMotivo: null,
+      },
+    });
+
+    return {
+      ok: true,
+      estado: updated.autorizacionEstado,
+      totalEstimadoUsd,
+      totalEstimadoBob: totalEstimadoUsd * rateInfo.venta,
+    };
+  }
+
+  /** El cliente ve el detalle del presupuesto pendiente en su app. */
+  async getMyJobApproval(jobId: string, userId: string) {
+    const job = await this.prisma.workshopJob.findUnique({
+      where: { id: jobId },
+      include: {
+        workshop: {
+          select: { nombre: true, direccion: true, telefono: true },
+        },
+        request: { select: { userId: true } },
+        partNeeds: true,
+      },
+    });
+    if (!job || !job.request) throw new NotFoundException('Trabajo no encontrado');
+    if (job.request.userId !== userId) {
+      throw new ForbiddenException('No tienes acceso a este trabajo');
+    }
+
+    const servicios = (job.serviciosRealizados as any[]) || [];
+    const totalServicios = servicios.length
+      ? servicios.reduce((sum, s) => sum + (Number(s.precio) || 0), 0)
+      : Number(job.precioServicio) || 0;
+    const repuestos = (job.partNeeds || []).map((p) => ({
+      nombre: p.nombre,
+      cantidad: p.cantidad,
+      esInsumo: p.esInsumo,
+      precioUnitario: p.precioUnitario != null ? Number(p.precioUnitario) : null,
+    }));
+    const totalRepuestos = repuestos.reduce(
+      (sum, p) => sum + (p.precioUnitario || 0) * p.cantidad,
+      0,
+    );
+    const totalEstimadoUsd = totalServicios + totalRepuestos;
+    const rateVenta =
+      Number(job.tipoCambioAplicado) ||
+      (await this.exchangeRateService.getLatestRate()).venta;
+
+    return {
+      jobId: job.id,
+      estado: job.estado,
+      vehiculo: `${job.marca} ${job.modelo} ${job.anio}`,
+      placa: job.placa,
+      problema: job.problema,
+      diagnostico: job.diagnosticoMecanico,
+      workshop: job.workshop,
+      autorizacionEstado: job.autorizacionEstado,
+      autorizacionPresupuesto:
+        job.autorizacionPresupuesto != null
+          ? Number(job.autorizacionPresupuesto)
+          : totalEstimadoUsd,
+      autorizacionDecididoEn: job.autorizacionDecididoEn,
+      autorizacionRechazoMotivo: job.autorizacionRechazoMotivo,
+      autorizacionFirma: job.autorizacionFirma,
+      servicios: servicios.map((s) => ({
+        nombre: s.nombre,
+        precio: Number(s.precio) || 0,
+      })),
+      repuestos,
+      totalServicios,
+      totalRepuestos,
+      totalEstimadoUsd,
+      tipoCambio: rateVenta,
+      totalEstimadoBob: Math.round(totalEstimadoUsd * rateVenta * 100) / 100,
+    };
+  }
+
+  /** El cliente aprueba o rechaza con firma desde su cuenta (app). */
+  async decideMyJobApproval(
+    jobId: string,
+    userId: string,
+    dto: CustomerApprovalDecisionDto,
+    ip: string,
+    userAgent: string,
+  ) {
+    const job = await this.prisma.workshopJob.findUnique({
+      where: { id: jobId },
+      include: { request: { select: { userId: true } } },
+    });
+    if (!job || !job.request) throw new NotFoundException('Trabajo no encontrado');
+    if (job.request.userId !== userId) {
+      throw new ForbiddenException('No tienes acceso a este trabajo');
+    }
+
+    if (job.autorizacionEstado === 'APROBADO' || job.autorizacionEstado === 'RECHAZADO') {
+      throw new ConflictException(
+        `Este presupuesto ya fue ${job.autorizacionEstado === 'APROBADO' ? 'aprobado' : 'rechazado'} anteriormente.`,
+      );
+    }
+
+    const now = new Date();
+    const nuevoEstado = dto.decision === 'APROBAR' ? 'APROBADO' : 'RECHAZADO';
+
+    await this.prisma.workshopJob.update({
+      where: { id: job.id },
+      data: {
+        autorizacionEstado: nuevoEstado,
+        autorizacionDecididoEn: now,
+        autorizacionIpCliente: ip,
+        autorizacionUserAgent: userAgent,
+        autorizacionFirma: dto.firma || undefined,
+        autorizacionRechazoMotivo: dto.motivo || undefined,
+      },
+    });
+
+    await this.prisma.workshopJobLog.create({
+      data: {
+        jobId: job.id,
+        estado: job.estado,
+        observaciones: `Decisión del cliente: ${nuevoEstado} el presupuesto desde su app.${dto.motivo ? ` Motivo: ${dto.motivo}` : ''}`,
+      },
+    });
+
+    return { ok: true, estado: nuevoEstado, decididoEn: now };
   }
 
   // ─────────────────────────────────────────────

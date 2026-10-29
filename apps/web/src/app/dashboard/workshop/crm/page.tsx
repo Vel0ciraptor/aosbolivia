@@ -5,6 +5,7 @@ import { api } from '../../../../lib/api';
 import { useWorkshopProfile } from '../../../../store/useWorkshopProfile';
 import { useAuthStore } from '../../../../store/useAuthStore';
 import VoiceDictationButton from '../../../../components/VoiceDictationButton';
+import SignaturePad, { SignaturePadHandle } from '../../../../components/SignaturePad';
 import {
   Car, Plus, Search, AlertCircle, Loader2,
   Edit2, Trash2, Save, RefreshCw, X, ChevronRight,
@@ -215,8 +216,7 @@ export default function WorkshopCrmPage() {
   const [uploading, setUploading] = useState(false);
   const [signatureOpen, setSignatureOpen] = useState(false);
   const [sigTarget, setSigTarget] = useState<'salida' | 'ingreso'>('salida');
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const isDrawingRef = useRef(false);
+  const signaturePadRef = useRef<SignaturePadHandle>(null);
   const [inventoryItems, setInventoryItems] = useState<any[]>([]);
   const [reportHtml, setReportHtml] = useState<string | null>(null);
   const reportIframeRef = useRef<HTMLIFrameElement>(null);
@@ -500,6 +500,22 @@ export default function WorkshopCrmPage() {
     }
   };
 
+  // ── Solicitar aprobación al cliente desde su app (sin WhatsApp) ──
+  const handleRequestAppApproval = async () => {
+    if (!detailJob) return;
+    setSendingWhatsApp(true);
+    try {
+      await api.post(`/workshops/me/jobs/${detailJob.id}/request-approval`);
+      setDetailJob({ ...detailJob, autorizacionEstado: 'PENDIENTE_APROBACION' });
+      await fetchJobs();
+      alert('Presupuesto enviado. El cliente lo verá en su app (Seguimiento) para aprobar o rechazar con firma.');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'No se pudo solicitar la aprobación.');
+    } finally {
+      setSendingWhatsApp(false);
+    }
+  };
+
   // ── v4: Enviar Autorización por WhatsApp ──
   const handleSendWhatsAppApproval = async () => {
     if (!detailJob) return;
@@ -658,22 +674,22 @@ export default function WorkshopCrmPage() {
     }
   };
 
-  // ── Cambio de estado con validaciones v4 (mecánico asignado y autorización) ──
+  // ── Cambio de estado: aprobación del cliente solo la salta el admin del taller ──
   const handleStatusChange = async (newStatus: string) => {
     if (!statusModalJob) return;
 
     if (newStatus === 'TRABAJANDO') {
-      const mecanicos = statusModalJob.mecanicosAsignados || [];
-      if (mecanicos.length === 0) {
-        alert('Debe asignar al menos un mecánico al vehículo antes de avanzar a "Trabajando".');
+      const estadoAuth = statusModalJob.autorizacionEstado;
+      if (estadoAuth === 'RECHAZADO' && !isWorkshopAdmin) {
+        alert('El cliente ha rechazado el presupuesto. Debe acordar un nuevo presupuesto antes de trabajar.');
         return;
       }
-      if (statusModalJob.autorizacionEstado === 'RECHAZADO') {
-        alert('El cliente ha rechazado el diagnóstico/presupuesto. Debe acordar un nuevo presupuesto antes de trabajar.');
-        return;
-      }
-      if (statusModalJob.autorizacionEstado === 'PENDIENTE_APROBACION') {
-        if (!confirm('La autorización del cliente aún está pendiente vía WhatsApp. ¿Desea iniciar los trabajos de todas formas?')) {
+      if (estadoAuth === 'PENDIENTE_APROBACION') {
+        if (!isWorkshopAdmin) {
+          alert('La aprobación del cliente sigue pendiente en su app. Solo el administrador del taller puede iniciar los trabajos sin ella.');
+          return;
+        }
+        if (!confirm('El cliente aún no ha aprobado el presupuesto en su app. Como administrador puede iniciar de todos modos (ej. si aceptó por teléfono). ¿Desea continuar?')) {
           return;
         }
       }
@@ -814,8 +830,9 @@ export default function WorkshopCrmPage() {
   };
 
   const handleSaveSignature = async () => {
-    if (!detailJob || !canvasRef.current) return;
-    const dataUrl = canvasRef.current.toDataURL('image/png');
+    if (!detailJob || !signaturePadRef.current) return;
+    const dataUrl = signaturePadRef.current.toDataURL();
+    if (!dataUrl) return;
     const field = sigTarget === 'ingreso' ? 'firmaIngreso' : 'firmaDigital';
     try {
       await api.put(`/workshops/me/jobs/${detailJob.id}`, { [field]: dataUrl });
@@ -825,9 +842,7 @@ export default function WorkshopCrmPage() {
   };
 
   const clearCanvas = () => {
-    if (!canvasRef.current) return;
-    const ctx = canvasRef.current.getContext('2d');
-    if (ctx) ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    signaturePadRef.current?.clear();
   };
 
   const handleDownloadPdf = async (jobId: string) => {
@@ -1675,7 +1690,7 @@ export default function WorkshopCrmPage() {
                           <h4 className="text-sm font-bold text-zinc-100">
                             {detailJob.autorizacionEstado === 'APROBADO' && 'Presupuesto y diagnóstico APROBADOS por el cliente'}
                             {detailJob.autorizacionEstado === 'RECHAZADO' && 'Presupuesto y diagnóstico RECHAZADOS por el cliente'}
-                            {detailJob.autorizacionEstado === 'PENDIENTE_APROBACION' && 'Presupuesto enviado · Esperando aprobación por enlace'}
+                            {detailJob.autorizacionEstado === 'PENDIENTE_APROBACION' && 'Presupuesto solicitado · Esperando aprobación del cliente en su app'}
                           </h4>
                         </div>
                         {detailJob.autorizacionDecididoEn && (
@@ -1976,18 +1991,37 @@ export default function WorkshopCrmPage() {
                       </div>
                     )}
 
-                    {/* Botón enviar aprobación WhatsApp */}
+                    {/* Solicitar aprobación al cliente desde su app */}
                     <div className="pt-3 border-t border-zinc-800 flex items-center justify-between gap-3 flex-wrap">
-                      <p className="text-[11px] text-zinc-500">Envía el presupuesto al cliente por WhatsApp para su aprobación.</p>
-                      <button
-                        onClick={handleSendWhatsAppApproval}
-                        disabled={sendingWhatsApp || !detailJob.clienteTelefono}
-                        title={!detailJob.clienteTelefono ? 'Agrega el teléfono del cliente para enviar WhatsApp' : undefined}
-                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 disabled:opacity-50"
-                      >
-                        {sendingWhatsApp ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                        <span>Enviar Aprobación WhatsApp</span>
-                      </button>
+                      <p className="text-[11px] text-zinc-500">
+                        {detailJob.autorizacionEstado === 'APROBADO'
+                          ? 'El cliente aprobó el presupuesto desde su app.'
+                          : detailJob.autorizacionEstado === 'RECHAZADO'
+                          ? 'El cliente rechazó el presupuesto. Ajusta y solicita de nuevo.'
+                          : detailJob.autorizacionEstado === 'PENDIENTE_APROBACION'
+                          ? 'Presupuesto solicitado · Esperando aprobación del cliente en su app.'
+                          : 'Envía el presupuesto al cliente para que lo apruebe o rechace desde su app con firma.'}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={handleRequestAppApproval}
+                          disabled={sendingWhatsApp || detailJob.autorizacionEstado === 'APROBADO' || !detailJob.requestId}
+                          title={!detailJob.requestId ? 'Este vehículo no tiene cliente con cuenta vinculada' : undefined}
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 disabled:opacity-50"
+                        >
+                          {sendingWhatsApp ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                          <span>{detailJob.autorizacionEstado === 'PENDIENTE_APROBACION' ? 'Reenviar solicitud' : 'Solicitar Aprobación al Cliente'}</span>
+                        </button>
+                        <button
+                          onClick={handleSendWhatsAppApproval}
+                          disabled={sendingWhatsApp || !detailJob.clienteTelefono}
+                          title={!detailJob.clienteTelefono ? 'Agrega el teléfono del cliente para enviar WhatsApp' : 'Alternativa: enviar también por WhatsApp'}
+                          className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-semibold rounded-xl flex items-center gap-1.5 disabled:opacity-50"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>WhatsApp (opcional)</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -2541,19 +2575,23 @@ export default function WorkshopCrmPage() {
               ) : STATUS_META[statusModalJob.estado]?.next && <p className="text-xs text-zinc-400">Avanzar a:{(() => { const nextKey = STATUS_META[statusModalJob.estado].next!; const meta = STATUS_META[nextKey]; const Icon = meta.icon; return (<span className={`ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${meta.bg} ${meta.color}`}><Icon className="w-3 h-3" />{meta.label}</span>); })()}</p>}
             </div>
 
-            {/* Alertas v4 de validación de transición a Trabajando */}
+            {/* Alertas de transición a Trabajando */}
             {statusModalJob.estado === 'CHECK_INICIAL' && (
               <div className="space-y-2 mb-4">
-                {(statusModalJob.mecanicosAsignados || []).length === 0 && (
+                {statusModalJob.autorizacionEstado === 'RECHAZADO' && !isWorkshopAdmin && (
                   <div className="p-3 bg-red-950/30 border border-red-800/50 rounded-xl text-red-300 text-xs flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>Debe asignar al menos un mecánico antes de poder pasar a &quot;Trabajando&quot;.</span>
+                    <span>El cliente rechazó el presupuesto. Debe acordar un nuevo presupuesto antes de avanzar.</span>
                   </div>
                 )}
                 {statusModalJob.autorizacionEstado === 'PENDIENTE_APROBACION' && (
-                  <div className="p-3 bg-amber-950/30 border border-amber-800/50 rounded-xl text-amber-300 text-xs flex items-center gap-2">
+                  <div className={`p-3 rounded-xl text-xs flex items-center gap-2 border ${isWorkshopAdmin ? 'bg-amber-950/30 border-amber-800/50 text-amber-300' : 'bg-red-950/30 border-red-800/50 text-red-300'}`}>
                     <Clock className="w-4 h-4 shrink-0" />
-                    <span>Aviso: El presupuesto aún está pendiente de aprobación por el cliente.</span>
+                    <span>
+                      {isWorkshopAdmin
+                        ? 'El cliente aún no aprueba el presupuesto en su app. Como administrador puede iniciar de todos modos.'
+                        : 'El cliente aún no aprueba el presupuesto en su app. Solo el administrador del taller puede iniciar.'}
+                    </span>
                   </div>
                 )}
               </div>
@@ -2823,34 +2861,11 @@ export default function WorkshopCrmPage() {
             <h3 className="text-lg font-bold text-zinc-200 mb-1 flex items-center gap-2 pr-8"><PenTool className="w-5 h-5 text-zinc-400" /> {sigTarget === 'ingreso' ? 'Firma de ingreso' : 'Firma de salida del cliente'}</h3>
             <p className="text-[11px] text-zinc-500 mb-3">Firme con el dedo en pantallas táctiles o con el mouse. Puede hacerlo ahora mismo desde el celular o tablet.</p>
             <div className="bg-white rounded-xl p-2 mb-4 shadow-inner">
-              <canvas
-                ref={canvasRef}
+              <SignaturePad
+                ref={signaturePadRef}
                 width={600}
                 height={300}
-                className="w-full h-56 sm:h-64 rounded-lg cursor-crosshair touch-none select-none"
-                style={{ touchAction: 'none' }}
-                onPointerDown={(e) => {
-                  const canvas = canvasRef.current; if (!canvas) return;
-                  canvas.setPointerCapture(e.pointerId);
-                  isDrawingRef.current = true;
-                  const ctx = canvas.getContext('2d'); if (!ctx) return;
-                  const rect = canvas.getBoundingClientRect();
-                  const x = ((e.clientX - rect.left) / rect.width) * canvas.width;
-                  const y = ((e.clientY - rect.top) / rect.height) * canvas.height;
-                  ctx.beginPath(); ctx.moveTo(x, y);
-                }}
-                onPointerMove={(e) => {
-                  if (!isDrawingRef.current) return;
-                  const canvas = canvasRef.current; if (!canvas) return;
-                  const ctx = canvas.getContext('2d'); if (!ctx) return;
-                  const rect = canvas.getBoundingClientRect();
-                  const x = ((e.clientX - rect.left) / rect.width) * canvas.width;
-                  const y = ((e.clientY - rect.top) / rect.height) * canvas.height;
-                  ctx.lineTo(x, y); ctx.strokeStyle = '#000'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
-                }}
-                onPointerUp={() => { isDrawingRef.current = false; }}
-                onPointerCancel={() => { isDrawingRef.current = false; }}
-                onPointerLeave={() => { isDrawingRef.current = false; }}
+                className="h-56 sm:h-64"
               />
             </div>
             <div className="flex justify-end gap-3"><button onClick={clearCanvas} className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-semibold rounded-xl">Limpiar</button><button onClick={handleSaveSignature} className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm rounded-xl">Guardar firma</button></div>

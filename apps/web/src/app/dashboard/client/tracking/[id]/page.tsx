@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useEffect, useState, use } from 'react';
+import React, { useEffect, useState, use, useRef } from 'react';
 import Link from 'next/link';
 import { api } from '../../../../../lib/api';
+import SignaturePad, { SignaturePadHandle } from '../../../../../components/SignaturePad';
 import {
   ArrowLeft, Loader2, AlertCircle, Car, Building2, Calendar,
   CheckCircle2, Clock, Wrench, Image as ImageIcon, X, Camera,
-  FileText, Hash,
+  FileText, Hash, ClipboardCheck, PenTool, XCircle,
 } from 'lucide-react';
 import { PHASES, PHASE_INDEX, PHASE_META, fmtFecha } from '../phases';
 
@@ -33,14 +34,42 @@ interface JobDetail {
   };
 }
 
+interface ApprovalData {
+  jobId: string;
+  estado: string;
+  vehiculo: string;
+  placa?: string;
+  problema?: string;
+  diagnostico?: string | null;
+  workshop?: { nombre: string; direccion?: string; telefono?: string };
+  autorizacionEstado: string | null;
+  autorizacionPresupuesto: number | null;
+  autorizacionDecididoEn?: string | null;
+  autorizacionRechazoMotivo?: string | null;
+  autorizacionFirma?: string | null;
+  servicios: { nombre: string; precio: number }[];
+  repuestos: { nombre: string; cantidad: number; esInsumo?: boolean; precioUnitario: number | null }[];
+  totalServicios: number;
+  totalRepuestos: number;
+  totalEstimadoUsd: number;
+  tipoCambio: number;
+  totalEstimadoBob: number;
+}
+
 export default function ClientJobTrackingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [job, setJob] = useState<JobDetail | null>(null);
+  const [approval, setApproval] = useState<ApprovalData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  // Modal de decisión: null | 'APROBAR' | 'RECHAZAR'
+  const [decisionModal, setDecisionModal] = useState<'APROBAR' | 'RECHAZAR' | null>(null);
+  const [decisionSending, setDecisionSending] = useState(false);
+  const [rejectMotivo, setRejectMotivo] = useState('');
+  const signaturePadRef = useRef<SignaturePadHandle>(null);
 
-  useEffect(() => {
+  const fetchAll = () => {
     api
       .get(`/my/jobs/${id}`)
       .then((res) => setJob(res.data))
@@ -48,7 +77,60 @@ export default function ClientJobTrackingPage({ params }: { params: Promise<{ id
         setError(err.response?.data?.message || 'No se pudo cargar el seguimiento.')
       )
       .finally(() => setLoading(false));
+    // Presupuesto pendiente de aprobación (si existe); errores se ignoran
+    api
+      .get(`/my/jobs/${id}/approval`)
+      .then((res) => setApproval(res.data))
+      .catch(() => setApproval(null));
+  };
+
+  useEffect(() => {
+    fetchAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  const handleDecide = async () => {
+    if (!decisionModal) return;
+    if (decisionModal === 'APROBAR') {
+      const firma = signaturePadRef.current?.toDataURL();
+      if (!firma) {
+        alert('Debe firmar con el dedo para aprobar el presupuesto.');
+        return;
+      }
+      setDecisionSending(true);
+      try {
+        await api.post(`/my/jobs/${id}/approval/decide`, {
+          decision: 'APROBAR',
+          firma,
+        });
+        setDecisionModal(null);
+        fetchAll();
+      } catch (err: any) {
+        alert(err.response?.data?.message || 'No se pudo registrar la aprobación.');
+      } finally {
+        setDecisionSending(false);
+      }
+    } else {
+      if (!rejectMotivo.trim()) {
+        alert('Indica el motivo del rechazo.');
+        return;
+      }
+      setDecisionSending(true);
+      try {
+        await api.post(`/my/jobs/${id}/approval/decide`, {
+          decision: 'RECHAZAR',
+          motivo: rejectMotivo.trim(),
+        });
+        setDecisionModal(null);
+        setRejectMotivo('');
+        fetchAll();
+      } catch (err: any) {
+        alert(err.response?.data?.message || 'No se pudo registrar el rechazo.');
+      } finally {
+        setDecisionSending(false);
+      }
+    }
+  };
 
   if (loading) {
     return (
@@ -130,6 +212,168 @@ export default function ClientJobTrackingPage({ params }: { params: Promise<{ id
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
+          {/* APROBACIÓN DEL PRESUPUESTO */}
+          {approval && approval.autorizacionEstado && (
+            <div
+              className={`p-6 border rounded-2xl space-y-4 ${
+                approval.autorizacionEstado === 'PENDIENTE_APROBACION'
+                  ? 'bg-amber-500/5 border-amber-500/30'
+                  : approval.autorizacionEstado === 'APROBADO'
+                  ? 'bg-emerald-500/5 border-emerald-500/30'
+                  : 'bg-red-950/20 border-red-800/40'
+              }`}
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-zinc-800/60">
+                <div className="flex items-center gap-2">
+                  <ClipboardCheck
+                    className={`w-4 h-4 ${
+                      approval.autorizacionEstado === 'PENDIENTE_APROBACION'
+                        ? 'text-amber-400'
+                        : approval.autorizacionEstado === 'APROBADO'
+                        ? 'text-emerald-400'
+                        : 'text-red-400'
+                    }`}
+                  />
+                  <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">
+                    Presupuesto
+                  </h3>
+                </div>
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${
+                    approval.autorizacionEstado === 'PENDIENTE_APROBACION'
+                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                      : approval.autorizacionEstado === 'APROBADO'
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                      : 'bg-red-950/40 border-red-800/50 text-red-300'
+                  }`}
+                >
+                  {approval.autorizacionEstado === 'PENDIENTE_APROBACION'
+                    ? 'Pendiente de tu aprobación'
+                    : approval.autorizacionEstado === 'APROBADO'
+                    ? 'Aprobado'
+                    : 'Rechazado'}
+                </span>
+              </div>
+
+              {approval.diagnostico && (
+                <div>
+                  <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-1">
+                    Diagnóstico del taller
+                  </p>
+                  <p className="text-xs text-zinc-300 leading-relaxed">{approval.diagnostico}</p>
+                </div>
+              )}
+
+              {approval.servicios.length > 0 && (
+                <div>
+                  <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-2">
+                    Servicios
+                  </p>
+                  <div className="space-y-1">
+                    {approval.servicios.map((s, i) => (
+                      <div key={i} className="flex justify-between text-xs p-2 bg-zinc-950/60 rounded-lg">
+                        <span className="text-zinc-300">{s.nombre}</span>
+                        <span className="text-zinc-200 font-semibold">${Number(s.precio || 0).toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {approval.repuestos.length > 0 && (
+                <div>
+                  <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-2">
+                    Repuestos e insumos
+                  </p>
+                  <div className="space-y-1">
+                    {approval.repuestos.map((p, i) => (
+                      <div key={i} className="flex justify-between text-xs p-2 bg-zinc-950/60 rounded-lg">
+                        <span className="text-zinc-300">
+                          {p.nombre} <span className="text-zinc-500">×{p.cantidad}</span>
+                          {p.esInsumo && (
+                            <span className="ml-1.5 text-[9px] font-bold uppercase text-brand-300">Insumo</span>
+                          )}
+                        </span>
+                        <span className="text-zinc-200 font-semibold">
+                          {p.precioUnitario != null ? `$${(p.precioUnitario * p.cantidad).toFixed(2)}` : 'A convenir'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Totales */}
+              <div className="p-3 bg-zinc-950/60 border border-zinc-800/60 rounded-xl space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="text-zinc-500">Total servicios</span>
+                  <span className="text-zinc-300">${approval.totalServicios.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-zinc-500">Total repuestos</span>
+                  <span className="text-zinc-300">${approval.totalRepuestos.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm font-bold pt-1 border-t border-zinc-800/60">
+                  <span className="text-zinc-200">Total estimado (USD)</span>
+                  <span className="text-zinc-100">${approval.totalEstimadoUsd.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-[11px] text-zinc-500">
+                  <span>Estimado en Bolivianos (tc {Number(approval.tipoCambio).toFixed(2)})</span>
+                  <span>Bs {approval.totalEstimadoBob.toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* Decisión del cliente */}
+              {approval.autorizacionEstado === 'PENDIENTE_APROBACION' ? (
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <button
+                    onClick={() => setDecisionModal('APROBAR')}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-colors"
+                  >
+                    <PenTool className="w-4 h-4" />
+                    Aprobar presupuesto (con firma)
+                  </button>
+                  <button
+                    onClick={() => setDecisionModal('RECHAZAR')}
+                    className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold rounded-xl flex items-center gap-2 transition-colors"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    Rechazar
+                  </button>
+                  <p className="text-[10px] text-zinc-500 w-full">
+                    Al aprobar, firmas con el dedo y el taller podrá iniciar los trabajos.
+                  </p>
+                </div>
+              ) : (
+                <div className="text-[11px] text-zinc-400 space-y-2">
+                  {approval.autorizacionDecididoEn && (
+                    <p>
+                      Decidido el{' '}
+                      <strong>{new Date(approval.autorizacionDecididoEn).toLocaleString('es-BO')}</strong>.
+                    </p>
+                  )}
+                  {approval.autorizacionRechazoMotivo && (
+                    <p className="text-red-300">
+                      Motivo de rechazo: <strong>{approval.autorizacionRechazoMotivo}</strong>
+                    </p>
+                  )}
+                  {approval.autorizacionFirma && (
+                    <div>
+                      <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-1">
+                        Tu firma
+                      </p>
+                      <img
+                        src={approval.autorizacionFirma}
+                        alt="Firma del cliente"
+                        className="h-16 bg-white rounded-lg p-1"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* CHECKLIST DE FASES */}
           <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-zinc-800/60">
@@ -396,6 +640,103 @@ export default function ClientJobTrackingPage({ params }: { params: Promise<{ id
           )}
         </div>
       </div>
+
+      {/* MODAL DE DECISIÓN DEL PRESUPUESTO */}
+      {decisionModal && (
+        <div
+          className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => !decisionSending && setDecisionModal(null)}
+        >
+          <div
+            className="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800/60">
+              <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">
+                {decisionModal === 'APROBAR'
+                  ? 'Aprobar presupuesto'
+                  : 'Rechazar presupuesto'}
+              </h3>
+              <button
+                onClick={() => !decisionSending && setDecisionModal(null)}
+                className="p-1.5 hover:bg-zinc-800 rounded-xl text-zinc-400 transition-colors"
+                aria-label="Cerrar"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {decisionModal === 'APROBAR' ? (
+              <>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  Firma con el dedo en el recuadro para autorizar el presupuesto de{' '}
+                  <strong className="text-zinc-200">
+                    ${approval?.totalEstimadoUsd.toFixed(2)} USD
+                  </strong>{' '}
+                  (Bs {approval?.totalEstimadoBob.toFixed(2)}). El taller podrá iniciar los
+                  trabajos una vez firmado.
+                </p>
+                <div className="bg-white rounded-xl p-2">
+                  <SignaturePad ref={signaturePadRef} className="bg-white" />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => signaturePadRef.current?.clear()}
+                    className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold rounded-xl transition-colors"
+                  >
+                    Limpiar
+                  </button>
+                  <button
+                    onClick={handleDecide}
+                    disabled={decisionSending}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-colors disabled:opacity-50"
+                  >
+                    {decisionSending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <PenTool className="w-4 h-4" />
+                    )}
+                    Confirmar aprobación
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  Indica el motivo del rechazo para que el taller pueda ajustar el presupuesto.
+                </p>
+                <textarea
+                  value={rejectMotivo}
+                  onChange={(e) => setRejectMotivo(e.target.value)}
+                  rows={3}
+                  placeholder="Ej: El costo de los repuestos es muy alto..."
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-red-500/50 resize-none"
+                />
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => setDecisionModal(null)}
+                    className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold rounded-xl transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleDecide}
+                    disabled={decisionSending || !rejectMotivo.trim()}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-colors disabled:opacity-50"
+                  >
+                    {decisionSending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <XCircle className="w-4 h-4" />
+                    )}
+                    Confirmar rechazo
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* LIGHTBOX DE FOTO */}
       {lightbox && (

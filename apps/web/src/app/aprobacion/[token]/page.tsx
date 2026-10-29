@@ -8,6 +8,7 @@ import {
   Car, ShieldCheck, MapPin, Phone, DollarSign, PenTool,
   Loader2, Check, X, FileText, Image as ImageIcon
 } from 'lucide-react';
+import SignaturePad, { SignaturePadHandle } from '../../../components/SignaturePad';
 
 export default function CustomerApprovalPage() {
   const params = useParams();
@@ -24,8 +25,7 @@ export default function CustomerApprovalPage() {
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
   // Canvas para firma
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const isDrawingRef = useRef(false);
+  const signaturePadRef = useRef<SignaturePadHandle>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -50,17 +50,11 @@ export default function CustomerApprovalPage() {
   };
 
   const clearCanvas = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    signaturePadRef.current?.clear();
   };
 
   const getSignatureDataUrl = (): string | undefined => {
-    const canvas = canvasRef.current;
-    if (!canvas) return undefined;
-    return canvas.toDataURL('image/png');
+    return signaturePadRef.current?.toDataURL();
   };
 
   const handleDecision = async () => {
@@ -376,46 +370,11 @@ export default function CustomerApprovalPage() {
                 </p>
 
                 <div className="bg-white rounded-2xl p-2 shadow-inner">
-                  <canvas
-                    ref={canvasRef}
+                  <SignaturePad
+                    ref={signaturePadRef}
                     width={500}
                     height={220}
-                    className="w-full h-44 rounded-xl cursor-crosshair touch-none select-none"
-                    style={{ touchAction: 'none' }}
-                    onPointerDown={(e) => {
-                      const canvas = canvasRef.current;
-                      if (!canvas) return;
-                      canvas.setPointerCapture(e.pointerId);
-                      isDrawingRef.current = true;
-                      const ctx = canvas.getContext('2d');
-                      if (!ctx) return;
-                      const rect = canvas.getBoundingClientRect();
-                      const x = ((e.clientX - rect.left) / rect.width) * canvas.width;
-                      const y = ((e.clientY - rect.top) / rect.height) * canvas.height;
-                      ctx.beginPath();
-                      ctx.moveTo(x, y);
-                    }}
-                    onPointerMove={(e) => {
-                      if (!isDrawingRef.current) return;
-                      const canvas = canvasRef.current;
-                      if (!canvas) return;
-                      const ctx = canvas.getContext('2d');
-                      if (!ctx) return;
-                      const rect = canvas.getBoundingClientRect();
-                      const x = ((e.clientX - rect.left) / rect.width) * canvas.width;
-                      const y = ((e.clientY - rect.top) / rect.height) * canvas.height;
-                      ctx.lineTo(x, y);
-                      ctx.strokeStyle = '#000';
-                      ctx.lineWidth = 3;
-                      ctx.lineCap = 'round';
-                      ctx.stroke();
-                    }}
-                    onPointerUp={() => {
-                      isDrawingRef.current = false;
-                    }}
-                    onPointerCancel={() => {
-                      isDrawingRef.current = false;
-                    }}
+                    className="h-44 rounded-xl"
                   />
                 </div>
 

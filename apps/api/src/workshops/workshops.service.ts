@@ -1638,19 +1638,29 @@ export class WorkshopsService implements OnModuleInit {
 
     const accent = (job.workshop.colorPrimario as string) || '#10b981';
 
+    const resolvePartUnitPrice = (pn: any): number | null => {
+      if (pn.precioUnitario != null) return Number(pn.precioUnitario);
+      if (pn.inventoryItem?.precioUnitario != null) {
+        return Number(pn.inventoryItem.precioUnitario);
+      }
+      return null;
+    };
+
     const partNeeds = (job.partNeeds || [])
-      .map(
-        (pn) => `
+      .map((pn) => {
+        const unit = resolvePartUnitPrice(pn);
+        const lineTotal = unit != null ? unit * pn.cantidad : null;
+        return `
       <tr>
         <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;">${pn.nombre}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:14px;">${pn.cantidad}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;">${pn.esInsumo ? 'Insumo' : 'Repuesto'}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:14px;">${pn.precioUnitario != null ? `$${Number(pn.precioUnitario).toFixed(2)}` : '-'}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:14px;">${pn.precioUnitario != null ? `$${(Number(pn.precioUnitario) * pn.cantidad).toFixed(2)}` : '-'}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:14px;">${unit != null ? `$${unit.toFixed(2)}` : '-'}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:14px;font-weight:600;">${lineTotal != null ? `$${lineTotal.toFixed(2)}` : '-'}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:14px;">${pn.yaUsado ? '✅' : '⏳'}</td>
       </tr>
-    `,
-      )
+    `;
+      })
       .join('');
 
     // Mano de obra: monto FIJO definido por el taller (precioManoObra).
@@ -1687,8 +1697,8 @@ export class WorkshopsService implements OnModuleInit {
       .join('');
 
     const totalRepuestos = (job.partNeeds || []).reduce((sum, pn) => {
-      if (pn.precioUnitario != null)
-        return sum + Number(pn.precioUnitario) * pn.cantidad;
+      const unit = resolvePartUnitPrice(pn);
+      if (unit != null) return sum + unit * pn.cantidad;
       return sum;
     }, 0);
     const precioServicioLegacy =
@@ -1697,6 +1707,23 @@ export class WorkshopsService implements OnModuleInit {
       ? servicios.reduce((sum, s) => sum + (Number(s.precio) || 0), 0)
       : precioServicioLegacy;
     const totalCostos = totalServicios + totalRepuestos + totalManoObra;
+    const pdfModoServicioHoras =
+      ((job.workshop as any).pdfModoServicioHoras as string) || 'DESGLOSADO';
+    const totalServicioYHoras = totalServicios + totalManoObra;
+    const filasServicioYHorasHtml =
+      pdfModoServicioHoras === 'COMBINADO'
+        ? `<tr>
+                <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;">Servicio y horas de trabajo</td>
+                <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:14px;">${totalServicioYHoras > 0 ? `$${totalServicioYHoras.toFixed(2)}` : '-'}</td>
+              </tr>`
+        : `<tr>
+                <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;">${servicios.length ? `Valor del servicio (${servicios.length})` : 'Valor del servicio'}</td>
+                <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:14px;">${totalServicios > 0 ? `$${totalServicios.toFixed(2)}` : '-'}</td>
+              </tr>
+              <tr>
+                <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;">Horas de trabajo (Mano de obra)</td>
+                <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:14px;">${totalManoObra > 0 ? `$${totalManoObra.toFixed(2)}` : '-'}</td>
+              </tr>`;
 
     const logs = (job.logs || [])
       .map(
@@ -1902,7 +1929,8 @@ export class WorkshopsService implements OnModuleInit {
               <th style="padding:8px 12px;text-align:center;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Cantidad</th>
               <th style="padding:8px 12px;text-align:left;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Tipo</th>
               <th style="padding:8px 12px;text-align:right;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Precio U.</th>
-              <th style="padding:8px 12px;text-align:right;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Subtotal</th>
+              <th style="padding:8px 12px;text-align:right;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Total</th>
+              <th style="padding:8px 12px;text-align:center;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Estado</th>
             </tr></thead>
             <tbody>${partNeeds}</tbody>
           </table>
@@ -1921,14 +1949,7 @@ export class WorkshopsService implements OnModuleInit {
               <th style="padding:8px 12px;text-align:right;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Monto ($ USD)</th>
             </tr></thead>
             <tbody>
-              <tr>
-                <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;">${servicios.length ? `Servicios realizados (${servicios.length})` : 'Servicio'}</td>
-                <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:14px;">${totalServicios > 0 ? `$${totalServicios.toFixed(2)}` : '-'}</td>
-              </tr>
-              <tr>
-                <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;">Mano de obra (precio fijo)</td>
-                <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:14px;">${totalManoObra > 0 ? `$${totalManoObra.toFixed(2)}` : '-'}</td>
-              </tr>
+              ${filasServicioYHorasHtml}
               <tr>
                 <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;">Repuestos / Insumos</td>
                 <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:14px;">${totalRepuestos > 0 ? `$${totalRepuestos.toFixed(2)}` : '-'}</td>
@@ -2432,7 +2453,7 @@ export class WorkshopsService implements OnModuleInit {
     user: { id: string; name: string; role?: string },
     dto: UpdateCostDto,
   ) {
-    if (user.role && !['SUPERVISOR', 'CONTABILIDAD'].includes(user.role)) {
+    if (user.role && !['WORKSHOP', 'ADMIN', 'SUPERVISOR', 'CONTABILIDAD'].includes(user.role)) {
       throw new ForbiddenException('No tiene permisos para modificar el costo final.');
     }
 

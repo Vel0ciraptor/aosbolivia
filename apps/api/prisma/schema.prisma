@@ -192,6 +192,7 @@ model Workshop {
   colorPrimario String?      // color de marca usado en el PDF (#RRGGBB)
   trabajoTags Json?          // tags personalizados de tipo de trabajo ["Pintura", ...]
   whatsappNumero String?     // número desde donde se envían los WhatsApp a los clientes
+  pdfModoServicioHoras String @default("DESGLOSADO") // DESGLOSADO | COMBINADO
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 

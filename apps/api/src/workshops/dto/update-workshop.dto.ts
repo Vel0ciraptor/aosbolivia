@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsObject,
   IsArray,
+  IsIn,
   Min,
   Max,
 } from 'class-validator';
@@ -80,4 +81,13 @@ export class UpdateWorkshopDto {
   @IsOptional()
   @IsString()
   whatsappNumero?: string;
+
+  @ApiProperty({
+    required: false,
+    enum: ['DESGLOSADO', 'COMBINADO'],
+    description: 'Cómo mostrar servicio y horas de trabajo en el PDF final al cliente',
+  })
+  @IsOptional()
+  @IsIn(['DESGLOSADO', 'COMBINADO'])
+  pdfModoServicioHoras?: 'DESGLOSADO' | 'COMBINADO';
 }

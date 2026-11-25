@@ -507,7 +507,7 @@ function CreateUserModal({
                 placeholder="8.50"
                 className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm"
               />
-              <p className="text-[11px] text-zinc-500">Se usará para calcular la mano de obra (horas reales × tarifa) en cada trabajo.</p>
+              <p className="text-[11px] text-zinc-500">Referencia interna del taller (sueldo/pago). No afecta el precio que ve el cliente: la mano de obra al cliente se define como precio fijo en cada vehículo.</p>
             </div>
           )}
 

@@ -279,6 +279,13 @@ model WorkshopJob {
   mecanicosAsignados Json?
   precioServicio    Decimal?
 
+  // ── Mano de obra fija (lo que ve el cliente; NO se calcula por horas) ──
+  precioManoObra    Decimal?
+
+  // ── Control interno de pago de horas (solo admin; NUNCA va al PDF) ──
+  horasTrabajadasFinal Decimal?     // Horas trabajadas que registra el admin al finalizar
+  fechaPagoHoras        DateTime?   // Cuándo pagará esas horas
+
   // ── Recepción e Inspección ──
   nivelCombustible          String?         // 'EMPTY' | '1/4' | '1/2' | '3/4' | 'FULL'
   combustibleRegistradoPor  String?

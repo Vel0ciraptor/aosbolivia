@@ -47,6 +47,17 @@ import sharp from 'sharp';
 const MECHANIC_ROLE = 'MECANICO';
 const MECHANIC_EDITABLE_STATES = ['CHECK_INICIAL', 'TRABAJANDO'];
 
+// Flujo de etapas del vehículo en el CRM. Avanzar una etapa está permitido para
+// cualquier rol autorizado; retroceder (o reabrir) es exclusivo del administrador.
+const STATUS_FLOW = [
+  'INGRESANDO',
+  'CHECK_INICIAL',
+  'TRABAJANDO',
+  'TERMINADO',
+  'SALIDA',
+  'FINALIZADO',
+];
+
 const MAX_JOB_IMAGES_BYTES = 50 * 1024 * 1024;
 const UPLOAD_IMAGES_DIR = join(process.cwd(), 'uploads', 'workshop-images');
 const UPLOAD_LOGOS_DIR = join(process.cwd(), 'uploads', 'logos');
@@ -506,6 +517,23 @@ export class WorkshopsService implements OnModuleInit {
       diagnosticoImagenes: dto.diagnosticoImagenes as any,
     };
 
+    // Horas trabajadas y fecha de pago: exclusivo del administrador del taller
+    // (dueño → workshopUserRole undefined). Nunca se envía al PDF del cliente.
+    if (dto.horasTrabajadasFinal !== undefined || dto.fechaPagoHoras !== undefined) {
+      if (actor?.role) {
+        throw new ForbiddenException(
+          'Solo el administrador del taller puede registrar las horas trabajadas y su fecha de pago.',
+        );
+      }
+    }
+    if (dto.fechaPagoHoras !== undefined && dto.fechaPagoHoras !== null) {
+      const fecha = new Date(dto.fechaPagoHoras);
+      if (isNaN(fecha.getTime())) {
+        throw new BadRequestException('Fecha de pago inválida.');
+      }
+      data.fechaPagoHoras = fecha;
+    }
+
     // El mecánico solo puede subir/administrar las fotos del arreglo
     if (actor?.role === MECHANIC_ROLE) {
       const extra = Object.keys(data).filter(
@@ -585,27 +613,34 @@ export class WorkshopsService implements OnModuleInit {
       }
     }
 
-    // Al pasar a TRABAJANDO: la aprobación del cliente solo puede ser
-    // ignorada por el administrador del taller (dueño), por ejemplo si el
-    // cliente aceptó el presupuesto por teléfono fuera del sistema.
-    if (dto.estado === 'TRABAJANDO') {
-      const isWorkshopOwner = signer.userType === 'WORKSHOP';
-      if (
-        job.autorizacionEstado === 'PENDIENTE_APROBACION' &&
-        !isWorkshopOwner
-      ) {
-        throw new BadRequestException(
-          'No se puede iniciar el trabajo: está pendiente la aprobación del presupuesto por el cliente. Solo el administrador del taller puede iniciar sin ella.',
-        );
-      }
-      if (job.autorizacionEstado === 'RECHAZADO' && !isWorkshopOwner) {
-        throw new BadRequestException(
-          'El cliente rechazó el presupuesto. Realice los ajustes necesarios y vuelva a solicitar aprobación.',
-        );
-      }
+    // La aprobación del cliente es OPCIONAL: nunca bloquea el avance del flujo
+    // (el cliente verifica al ingresar; se puede preguntar aparte por trabajo extra).
+
+    // Transiciones válidas: avanzar una etapa (cualquier rol autorizado),
+    // retroceder una etapa o reabrir desde FINALIZADO (solo administrador).
+    const curIdx = STATUS_FLOW.indexOf(job.estado);
+    const toIdx = STATUS_FLOW.indexOf(dto.estado);
+    const isForward = curIdx !== -1 && toIdx === curIdx + 1;
+    const isBackward = curIdx !== -1 && toIdx === curIdx - 1;
+    const isReopen = job.estado === 'FINALIZADO' && dto.estado === 'INGRESANDO';
+    const isWorkshopOwner = ['WORKSHOP', 'ADMIN'].includes(signer.userType);
+
+    if (!isForward && !isBackward && !isReopen) {
+      throw new BadRequestException(
+        `Transición de estado no válida: ${job.estado} → ${dto.estado}`,
+      );
+    }
+    if ((isBackward || isReopen) && !isWorkshopOwner) {
+      throw new ForbiddenException(
+        'Solo el administrador del taller puede volver atrás en el flujo del vehículo.',
+      );
     }
 
     const data: any = { estado: dto.estado };
+    const observaciones =
+      isBackward || isReopen
+        ? `Retroceso de etapa${dto.observaciones ? `: ${dto.observaciones}` : ''}`
+        : dto.observaciones;
 
     const [updatedJob] = await this.prisma.$transaction([
       this.prisma.workshopJob.update({ where: { id: jobId }, data }),
@@ -613,7 +648,7 @@ export class WorkshopsService implements OnModuleInit {
         data: {
           jobId,
           estado: dto.estado,
-          observaciones: dto.observaciones,
+          observaciones,
           firmaUsuarioId: signer.userId,
           firmaUsuarioNombre: signer.userName,
           firmaUsuarioRol: signer.userRole,
@@ -924,27 +959,19 @@ export class WorkshopsService implements OnModuleInit {
       throw new BadRequestException('El usuario no es un mecánico del taller');
     }
 
-    if (job.autorizacionEstado === 'PENDIENTE_APROBACION') {
-      throw new BadRequestException(
-        'No se puede iniciar el trabajo: está pendiente la aprobación del presupuesto por el cliente.',
-      );
-    }
-    if (job.autorizacionEstado === 'RECHAZADO') {
-      throw new BadRequestException(
-        'El cliente rechazó el presupuesto. Realice los ajustes necesarios y vuelva a solicitar aprobación.',
-      );
-    }
+    // La aprobación del cliente es OPCIONAL y nunca bloquea el inicio del trabajo.
 
     const worklogs = (job.mecanicosAsignados as any[]) || [];
     const active = worklogs.find((w) => w.userId === userId && !w.fin);
     if (active)
       throw new BadRequestException('El mecánico ya tiene el trabajo iniciado');
 
+    const inicio = new Date();
     const entry = {
       key: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       userId,
       nombre: mechanic.name,
-      inicio: new Date().toISOString(),
+      inicio: inicio.toISOString(),
       fin: null,
       horasReales: null,
       iniciadoPor: actor.name || actor.id,
@@ -974,6 +1001,14 @@ export class WorkshopsService implements OnModuleInit {
       where: { id: jobId },
       data: updateData,
     });
+
+    // Notificación al taller (campana + popup + sonido en el CRM)
+    await this.notifyWorkshop(workshopId, {
+      tipo: 'WORK_STARTED',
+      titulo: '🔧 Trabajo iniciado',
+      mensaje: `${mechanic.name} inició el trabajo en ${job.marca} ${job.modelo}${job.placa ? ` (${job.placa})` : ''} a las ${this.formatHora(inicio)}.`,
+    });
+
     return updated.mecanicosAsignados;
   }
 
@@ -998,6 +1033,8 @@ export class WorkshopsService implements OnModuleInit {
 
     const fin = new Date();
     const inicio = new Date(entry.inicio);
+    // Duración solo como referencia interna: NUNCA se suma a ningún costo
+    // ni se envía al PDF del cliente (el admin registra las horas al finalizar).
     const horasReales = Math.max(
       0,
       Math.round(((fin.getTime() - inicio.getTime()) / 3600000) * 100) / 100,
@@ -1013,7 +1050,37 @@ export class WorkshopsService implements OnModuleInit {
         ),
       },
     });
+
+    // Notificación al taller (campana + popup + sonido en el CRM)
+    await this.notifyWorkshop(workshopId, {
+      tipo: 'WORK_FINISHED',
+      titulo: '✅ Trabajo terminado',
+      mensaje: `${entry.nombre} terminó el trabajo en ${job.marca} ${job.modelo}${job.placa ? ` (${job.placa})` : ''} (${horasReales} h). Registre las horas trabajadas al finalizar el vehículo.`,
+    });
+
     return updated.mecanicosAsignados;
+  }
+
+  // Crea una notificación para el taller (la campana del CRM la recoge).
+  private async notifyWorkshop(
+    workshopId: string,
+    notif: { tipo: string; titulo: string; mensaje: string },
+  ) {
+    try {
+      await this.prisma.notification.create({
+        data: { workshopId, ...notif },
+      });
+    } catch {
+      // La notificación es best-effort: no debe interrumpir la operación
+    }
+  }
+
+  private formatHora(date: Date) {
+    return date.toLocaleTimeString('es-BO', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'America/La_Paz',
+    });
   }
 
   async updateWorklog(
@@ -1586,39 +1653,9 @@ export class WorkshopsService implements OnModuleInit {
       )
       .join('');
 
-    const worklogs = (job.mecanicosAsignados as any[]) || [];
-    // Tarifas por hora actuales de los mecánicos involucrados
-    const userIds = [...new Set(worklogs.map((w) => w.userId).filter(Boolean))];
-    const tarifasMap = new Map<string, number>();
-    if (userIds.length) {
-      const users = await this.prisma.workshopUser.findMany({
-        where: { id: { in: userIds as string[] } },
-        select: { id: true, tarifaHora: true },
-      });
-      for (const u of users) {
-        if (u.tarifaHora != null) tarifasMap.set(u.id, Number(u.tarifaHora));
-      }
-    }
-    let totalManoObra = 0;
-    const worklogRows = worklogs
-      .map((w) => {
-        const tarifa =
-          w.tarifaHora != null ? Number(w.tarifaHora) : tarifasMap.get(w.userId) ?? 0;
-        const horas = w.horasReales != null ? Number(w.horasReales) : 0;
-        const costo = horas * tarifa;
-        totalManoObra += costo;
-        return `
-      <tr>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;">${w.nombre || '-'}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:13px;color:#6b7280;">${w.inicio ? new Date(w.inicio).toLocaleString('es-VE') : '-'}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:13px;color:#6b7280;">${w.fin ? new Date(w.fin).toLocaleString('es-VE') : 'En curso'}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:14px;">${w.horasReales != null ? `${w.horasReales} h` : '-'}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:14px;">${tarifa > 0 ? `$${tarifa.toFixed(2)}/h` : '-'}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:14px;">${costo > 0 ? `$${costo.toFixed(2)}` : '-'}</td>
-      </tr>
-    `;
-      })
-      .join('');
+    // Mano de obra: monto FIJO definido por el taller (precioManoObra).
+    // Nunca se calcula por horas ni se muestran datos internos de los mecánicos.
+    const totalManoObra = Number(job.precioManoObra) || 0;
 
     const tipoTrabajo = job.tipoTrabajo as any;
     const tipoTrabajoCategorias: string[] = tipoTrabajo
@@ -1808,7 +1845,7 @@ export class WorkshopsService implements OnModuleInit {
             <h3 style="font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;margin:0 0 8px 0;">Cliente</h3>
             <p style="font-size:16px;font-weight:600;margin:0;">${job.clienteNombre}</p>
             ${job.clienteTelefono ? `<p style="font-size:14px;color:#6b7280;margin:4px 0 0 0;">${job.clienteTelefono}</p>` : ''}
-            <p style="font-size:13px;color:#6b7280;margin:8px 0 0 0;"><strong>Autorización:</strong> ${job.autorizacionEstado === 'APROBADO' ? '<span style="color:#059669;font-weight:700;">Aprobado por el cliente</span>' : job.autorizacionEstado === 'PENDIENTE_APROBACION' ? '<span style="color:#d97706;font-weight:700;">Pendiente de aprobación</span>' : 'Directa'}</p>
+            <p style="font-size:13px;color:#6b7280;margin:8px 0 0 0;"><strong>Autorización:</strong> ${job.autorizacionEstado === 'APROBADO' ? '<span style="color:#059669;font-weight:700;">Aprobado por el cliente</span>' : 'Directa'}</p>
           </div>
         </div>
 
@@ -1874,26 +1911,6 @@ export class WorkshopsService implements OnModuleInit {
         }
 
         ${
-          worklogs.length
-            ? `
-        <div style="margin-bottom:24px;">
-          <h2 style="font-size:16px;font-weight:700;margin:0 0 12px 0;color:#111827;">Mano de Obra (Horas de Mecánico)</h2>
-          <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
-            <thead><tr style="background:#f9fafb;">
-              <th style="padding:8px 12px;text-align:left;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Mecánico</th>
-              <th style="padding:8px 12px;text-align:center;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Inicio</th>
-              <th style="padding:8px 12px;text-align:center;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Fin</th>
-              <th style="padding:8px 12px;text-align:center;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Horas</th>
-              <th style="padding:8px 12px;text-align:right;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Tarifa/H</th>
-              <th style="padding:8px 12px;text-align:right;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;">Costo</th>
-            </tr></thead>
-            <tbody>${worklogRows}</tbody>
-          </table>
-        </div>`
-            : ''
-        }
-
-        ${
           totalServicios > 0 || totalRepuestos > 0 || totalManoObra > 0
             ? `
         <div class="seccion" style="margin-bottom:24px;">
@@ -1909,7 +1926,7 @@ export class WorkshopsService implements OnModuleInit {
                 <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:14px;">${totalServicios > 0 ? `$${totalServicios.toFixed(2)}` : '-'}</td>
               </tr>
               <tr>
-                <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;">Mano de obra (horas mecánico)</td>
+                <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;">Mano de obra (precio fijo)</td>
                 <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:14px;">${totalManoObra > 0 ? `$${totalManoObra.toFixed(2)}` : '-'}</td>
               </tr>
               <tr>
@@ -2088,23 +2105,8 @@ export class WorkshopsService implements OnModuleInit {
       (sum, p) => sum + Number(p.precioUnitario || 0) * (p.cantidad || 1),
       0,
     );
-    // Mano de obra: horas reales × tarifa por hora
-    const worklogsWL = (job.mecanicosAsignados as any[]) || [];
-    const userIdsWL = [...new Set(worklogsWL.map((w) => w.userId).filter(Boolean))];
-    const tarifasWL = new Map<string, number>();
-    if (userIdsWL.length) {
-      const users = await this.prisma.workshopUser.findMany({
-        where: { id: { in: userIdsWL as string[] } },
-        select: { id: true, tarifaHora: true },
-      });
-      for (const u of users) {
-        if (u.tarifaHora != null) tarifasWL.set(u.id, Number(u.tarifaHora));
-      }
-    }
-    const totalManoObraWL = worklogsWL.reduce((sum, w) => {
-      const tarifa = w.tarifaHora != null ? Number(w.tarifaHora) : tarifasWL.get(w.userId) ?? 0;
-      return sum + (w.horasReales != null ? Number(w.horasReales) : 0) * tarifa;
-    }, 0);
+    // Mano de obra: precio fijo definido por el taller (no se calcula por horas)
+    const totalManoObraWL = Number(job.precioManoObra) || 0;
     const subtotal = totalServicios + totalRepuestos + totalManoObraWL;
     let descuentoMonto = 0;
     if (job.descuentoTipo === 'PORCENTAJE') {

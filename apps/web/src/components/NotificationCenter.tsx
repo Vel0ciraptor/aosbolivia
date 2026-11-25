@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, X, CheckCheck } from 'lucide-react';
 import { api } from '../lib/api';
+import { useAuthStore } from '../store/useAuthStore';
 
 interface Notif {
   id: string;
@@ -42,6 +43,9 @@ export default function NotificationCenter({
   workshopId?: string;
 }) {
   const router = useRouter();
+  const { user } = useAuthStore();
+  // El popup del navegador (con sonido del sistema) es solo para el admin del taller
+  const isWorkshopAdmin = user?.role === 'WORKSHOP' || user?.role === 'ADMIN';
   const [unread, setUnread] = useState(0);
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Notif[]>([]);
@@ -79,6 +83,14 @@ export default function NotificationCenter({
 
     const unlock = () => {
       audioUnlocked.current = true;
+      // Primer gesto del usuario: pedir permiso de notificaciones del navegador
+      if (
+        isWorkshopAdmin &&
+        typeof Notification !== 'undefined' &&
+        Notification.permission === 'default'
+      ) {
+        void Notification.requestPermission().catch(() => undefined);
+      }
       if (alarmRef.current && alarmRef.current.ctx.state === 'suspended') {
         void alarmRef.current.ctx.resume();
       }
@@ -100,6 +112,22 @@ export default function NotificationCenter({
             const list = await api.get(`/notifications/workshop/${workshopId}`);
             const first = (list.data as Notif[]).find((n) => !n.leida);
             if (first) setToast(first);
+            // Popup del navegador (solo admin del taller)
+            if (
+              first &&
+              isWorkshopAdmin &&
+              typeof Notification !== 'undefined' &&
+              Notification.permission === 'granted'
+            ) {
+              try {
+                new Notification(first.titulo, {
+                  body: first.mensaje,
+                  tag: 'workshop-notif',
+                });
+              } catch {
+                // algunos navegadores lo lanzan si no hay service worker
+              }
+            }
           } catch {
             // el toast es best-effort
           }
@@ -119,7 +147,7 @@ export default function NotificationCenter({
       window.removeEventListener('keydown', unlock);
       stopAlarm();
     };
-  }, [workshopId]);
+  }, [workshopId, isWorkshopAdmin]);
 
   useEffect(() => {
     if (!open || !workshopId) return;

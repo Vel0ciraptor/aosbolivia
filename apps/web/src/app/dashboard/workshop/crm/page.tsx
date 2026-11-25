@@ -46,6 +46,9 @@ interface WorkshopJob {
   horasEstimadas?: number | null;
   mecanicosAsignados?: Worklog[];
   precioServicio?: number | null;
+  precioManoObra?: number | null;
+  horasTrabajadasFinal?: number | null;
+  fechaPagoHoras?: string | null;
   createdAt: string;
   logs?: JobLog[];
   checkpoints?: Checkpoint[];
@@ -240,6 +243,9 @@ export default function WorkshopCrmPage() {
   const [assignUserId, setAssignUserId] = useState('');
   const [horasEstimadasInput, setHorasEstimadasInput] = useState('');
   const [precioServicioInput, setPrecioServicioInput] = useState('');
+  const [precioManoObraInput, setPrecioManoObraInput] = useState('');
+  const [horasFinalesInput, setHorasFinalesInput] = useState('');
+  const [fechaPagoInput, setFechaPagoInput] = useState('');
   const [partPriceEdits, setPartPriceEdits] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<'jobs' | 'historial'>('jobs');
   const [histTab, setHistTab] = useState<'hours' | 'movements'>('hours');
@@ -403,6 +409,9 @@ export default function WorkshopCrmPage() {
       setServiciosRealizados(data.serviciosRealizados || []);
       setHorasEstimadasInput(data.horasEstimadas ? String(data.horasEstimadas) : '');
       setPrecioServicioInput(data.precioServicio != null ? String(data.precioServicio) : '');
+      setPrecioManoObraInput(data.precioManoObra != null ? String(data.precioManoObra) : '');
+      setHorasFinalesInput(data.horasTrabajadasFinal != null ? String(data.horasTrabajadasFinal) : '');
+      setFechaPagoInput(data.fechaPagoHoras ? String(data.fechaPagoHoras).substring(0, 10) : '');
       setDiagnosticoInput(data.diagnosticoMecanico || '');
       setConclusionesInput(data.conclusionesEntrega || '');
       setPartPriceEdits({});
@@ -439,6 +448,12 @@ export default function WorkshopCrmPage() {
   };
 
   const openStatusModal = (job: WorkshopJob) => { setStatusModalJob(job); setStatusObs(''); };
+
+  // Etapa anterior en el flujo (retroceso exclusivo del administrador)
+  const prevStatusOf = (estado: string): string | null => {
+    const i = STATUS_FLOW.indexOf(estado);
+    return i > 0 ? STATUS_FLOW[i - 1] : null;
+  };
 
   const handleSaveKm = async () => {
     if (!detailJob) return;
@@ -674,26 +689,10 @@ export default function WorkshopCrmPage() {
     }
   };
 
-  // ── Cambio de estado: aprobación del cliente solo la salta el admin del taller ──
+  // ── Cambio de estado: avanzar o retroceder etapas (retroceder solo admin) ──
+  // La aprobación del cliente es OPCIONAL y nunca bloquea el flujo.
   const handleStatusChange = async (newStatus: string) => {
     if (!statusModalJob) return;
-
-    if (newStatus === 'TRABAJANDO') {
-      const estadoAuth = statusModalJob.autorizacionEstado;
-      if (estadoAuth === 'RECHAZADO' && !isWorkshopAdmin) {
-        alert('El cliente ha rechazado el presupuesto. Debe acordar un nuevo presupuesto antes de trabajar.');
-        return;
-      }
-      if (estadoAuth === 'PENDIENTE_APROBACION') {
-        if (!isWorkshopAdmin) {
-          alert('La aprobación del cliente sigue pendiente en su app. Solo el administrador del taller puede iniciar los trabajos sin ella.');
-          return;
-        }
-        if (!confirm('El cliente aún no ha aprobado el presupuesto en su app. Como administrador puede iniciar de todos modos (ej. si aceptó por teléfono). ¿Desea continuar?')) {
-          return;
-        }
-      }
-    }
 
     setChangingStatus(true);
     try {
@@ -711,6 +710,9 @@ export default function WorkshopCrmPage() {
         setServiciosRealizados(data.serviciosRealizados || []);
         setHorasEstimadasInput(data.horasEstimadas ? String(data.horasEstimadas) : '');
         setPrecioServicioInput(data.precioServicio != null ? String(data.precioServicio) : '');
+      setPrecioManoObraInput(data.precioManoObra != null ? String(data.precioManoObra) : '');
+      setHorasFinalesInput(data.horasTrabajadasFinal != null ? String(data.horasTrabajadasFinal) : '');
+      setFechaPagoInput(data.fechaPagoHoras ? String(data.fechaPagoHoras).substring(0, 10) : '');
         setDiagnosticoInput(data.diagnosticoMecanico || '');
         setConclusionesInput(data.conclusionesEntrega || '');
         setPartPriceEdits({});
@@ -1036,11 +1038,41 @@ export default function WorkshopCrmPage() {
     } catch (err: any) { alert(err.response?.data?.message || 'No se guardó el precio.'); }
   };
 
-  // ── Mano de obra: horas reales × tarifa por hora ──
-  const tarifaDeMecanico = (w: Worklog): number => {
-    if (w.tarifaHora != null) return Number(w.tarifaHora);
-    const u = teamUsers.find((x: any) => x.id === w.userId);
-    return u?.tarifaHora != null ? Number(u.tarifaHora) : 0;
+  // ── Mano de obra fija (lo que ve el cliente) ──
+  const savePrecioManoObra = async () => {
+    if (!detailJob) return;
+    const val = parseFloat(precioManoObraInput);
+    if (isNaN(val) || val < 0) { setPrecioManoObraInput(detailJob.precioManoObra != null ? String(detailJob.precioManoObra) : ''); return; }
+    try {
+      await api.put(`/workshops/me/jobs/${detailJob.id}`, { precioManoObra: val });
+      setDetailJob({ ...detailJob, precioManoObra: val });
+      await fetchJobs();
+    } catch (err: unknown) {
+      const data = (err as { response?: { data?: { message?: string } } })?.response?.data;
+      alert(data?.message || 'No se guardó la mano de obra.');
+    }
+  };
+
+  // ── Registro interno de horas trabajadas y fecha de pago (SOLO admin) ──
+  // Nunca aparece en el PDF del cliente.
+  const saveRegistroInternoHoras = async () => {
+    if (!detailJob || !isWorkshopAdmin) return;
+    const payload: any = { fechaPagoHoras: fechaPagoInput ? new Date(`${fechaPagoInput}T12:00:00`).toISOString() : null };
+    if (horasFinalesInput.trim() === '') {
+      payload.horasTrabajadasFinal = null;
+    } else {
+      const horas = parseFloat(horasFinalesInput);
+      if (isNaN(horas) || horas < 0) { alert('Ingresa unas horas válidas.'); return; }
+      payload.horasTrabajadasFinal = horas;
+    }
+    try {
+      const res = await api.put(`/workshops/me/jobs/${detailJob.id}`, payload);
+      setDetailJob(res.data);
+      await fetchJobs();
+    } catch (err: unknown) {
+      const data = (err as { response?: { data?: { message?: string } } })?.response?.data;
+      alert(data?.message || 'No se pudo guardar el registro interno de horas.');
+    }
   };
 
   const subtotalRepuestos = (list: PartNeed[]) => (list || []).reduce((s, p) => s + ((Number(p.precioUnitario) || 0) * p.cantidad), 0);
@@ -1050,19 +1082,11 @@ export default function WorkshopCrmPage() {
       : (Number(detalle?.precioServicio) || 0);
 
   // ── Desglose de totales con descuento, IVA y Tipo de Cambio Oficial ──
+  // Mano de obra: precio FIJO por vehículo (lo pone el taller antes), nunca horas × tarifa.
   const totalsBreakdown = useMemo(() => {
     const baseServ = totalServiciosMonto(detailJob, serviciosRealizados);
     const baseRep = subtotalRepuestos(partNeeds);
-    const worklogs = (detailJob?.mecanicosAsignados as Worklog[]) || [];
-    const tarifaFor = (w: Worklog): number => {
-      if (w.tarifaHora != null) return Number(w.tarifaHora);
-      const u = teamUsers.find((x: any) => x.id === w.userId);
-      return u?.tarifaHora != null ? Number(u.tarifaHora) : 0;
-    };
-    const baseMO = worklogs.reduce(
-      (s, w) => s + (w.horasReales != null ? Number(w.horasReales) : 0) * tarifaFor(w),
-      0,
-    );
+    const baseMO = Number(detailJob?.precioManoObra) || 0;
     const subtotal = baseServ + baseMO + baseRep;
 
     let descMonto = 0;
@@ -1090,19 +1114,7 @@ export default function WorkshopCrmPage() {
       totalBob,
       rate,
     };
-  }, [detailJob, serviciosRealizados, partNeeds, exchangeRate, teamUsers]);
-
-  // ── Editar horas de mecánico desde la ficha ──
-  const handleWorklogHoursBlur = async (w: Worklog, value: string) => {
-    if (!detailJob) return;
-    const horas = parseFloat(value);
-    if (isNaN(horas) || horas < 0) return;
-    try {
-      const res = await api.patch(`/workshops/me/jobs/${detailJob.id}/worklogs/${w.key}`, { horasReales: horas });
-      setDetailJob({ ...detailJob, mecanicosAsignados: res.data || [] });
-      await fetchJobs();
-    } catch (err: any) { alert(err.response?.data?.message || 'No se pudieron guardar las horas.'); }
-  };
+  }, [detailJob, serviciosRealizados, partNeeds, exchangeRate]);
 
   const handleEditMechanicHour = async (row: any) => {
     const input = prompt(`Horas reales para ${row.nombre} en ${row.marca} ${row.modelo}:`, row.horasReales ?? '');
@@ -1210,7 +1222,7 @@ export default function WorkshopCrmPage() {
         <span className="font-mono text-zinc-200 font-semibold">${totalsBreakdown.baseServ.toFixed(2)}</span>
       </div>
       <div className="flex flex-wrap justify-between items-center gap-2 text-xs">
-        <span className="text-zinc-400">Mano de obra (horas × tarifa):</span>
+        <span className="text-zinc-400">Mano de obra (precio fijo):</span>
         <span className="font-mono text-zinc-200 font-semibold">${totalsBreakdown.baseMO.toFixed(2)}</span>
       </div>
       <div className="flex flex-wrap justify-between items-center gap-2 text-xs">
@@ -1249,17 +1261,20 @@ export default function WorkshopCrmPage() {
     </div>
   );
 
-  // Horas de mecánico y mano de obra: solo admin (dueño) y jefe mecánico pueden registrarlas.
-  const renderHorasEditables = (editable: boolean) => (
+  // Horas internas: solo referencia (inicio/fin) + mano de obra fija + registro
+  // de pago del admin. Nada de esto se suma automáticamente ni va al PDF.
+  const renderHorasEditables = () => (
     <div className="mb-4">
-      <h5 className="text-xs font-bold text-zinc-300 flex items-center gap-1.5 mb-2"><Timer className="w-3.5 h-3.5 text-orange-400" /> Horas de mecánico y mano de obra</h5>
+      <h5 className="text-xs font-bold text-zinc-300 flex items-center gap-1.5 mb-2"><Timer className="w-3.5 h-3.5 text-orange-400" /> Horas de mecánico (referencia)</h5>
       {(detailJob?.mecanicosAsignados || []).length === 0 ? (
         <p className="text-[11px] text-zinc-500">Sin mecánicos asignados.</p>
       ) : (
         <div className="space-y-2">
           {(detailJob?.mecanicosAsignados || []).map((w) => {
-            const tarifa = tarifaDeMecanico(w);
-            const costo = (w.horasReales != null ? Number(w.horasReales) : 0) * tarifa;
+            const duracion =
+              w.inicio && w.fin
+                ? Math.round(((new Date(w.fin).getTime() - new Date(w.inicio).getTime()) / 3600000) * 100) / 100
+                : null;
             return (
               <div key={w.key} className="flex items-center gap-3 p-2.5 bg-zinc-900 border border-zinc-800 rounded-xl">
                 <div className="w-7 h-7 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0"><User className="w-3.5 h-3.5 text-orange-400" /></div>
@@ -1270,32 +1285,67 @@ export default function WorkshopCrmPage() {
                     {w.fin ? ` · Fin: ${new Date(w.fin).toLocaleString('es-VE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}` : ''}
                   </p>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  {editable ? (
-                    <>
-                      <input
-                        type="number" min="0" step="0.25"
-                        defaultValue={w.horasReales != null ? String(w.horasReales) : ''}
-                        onBlur={(e) => handleWorklogHoursBlur(w, e.target.value)}
-                        placeholder="0.00"
-                        className="w-20 px-2 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 text-xs font-mono text-right focus:border-orange-500"
-                      />
-                      <span className="text-[10px] text-zinc-500 font-bold">h</span>
-                    </>
-                  ) : (
-                    <span className="text-xs font-mono text-zinc-300 font-semibold">{w.horasReales != null ? `${w.horasReales} h` : '—'}</span>
-                  )}
-                </div>
-                <div className="text-right shrink-0 min-w-[80px]">
-                  <p className="text-[10px] text-zinc-500 font-mono">${tarifa.toFixed(2)}/h</p>
-                  <p className="text-xs text-zinc-200 font-mono font-bold">${costo.toFixed(2)}</p>
-                </div>
+                <span className="text-[10px] font-mono text-zinc-400 shrink-0">
+                  {duracion != null ? `${duracion} h` : w.inicio && !w.fin ? 'En curso' : '—'}
+                </span>
               </div>
             );
           })}
         </div>
       )}
-      <p className="text-[10px] text-zinc-600 mt-1.5">Las horas se registran automáticamente cuando el mecánico pulsa &quot;Terminar&quot;. Solo el administrador o el jefe mecánico pueden corregirlas manualmente. La tarifa/hora proviene del perfil del equipo.</p>
+      <p className="text-[10px] text-zinc-600 mt-1.5">Solo se registra cuándo comenzó y terminó cada mecánico. Estas horas NO se suman al costo ni se muestran al cliente.</p>
+
+      {/* Mano de obra fija para el cliente */}
+      <div className="mt-3 p-3 bg-zinc-900 border border-zinc-800 rounded-xl space-y-1.5">
+        <label className="text-[10px] text-zinc-500 font-bold uppercase flex items-center gap-1"><DollarSign className="w-3 h-3 text-brand-400" /> Mano de obra para el cliente ($)</label>
+        <div className="flex items-center gap-2 flex-wrap">
+          <input
+            type="number" min="0" step="0.01"
+            value={precioManoObraInput}
+            onChange={(e) => setPrecioManoObraInput(e.target.value)}
+            onBlur={savePrecioManoObra}
+            placeholder="0.00"
+            disabled={isMechanic}
+            className="w-32 px-3 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 text-xs font-mono focus:border-brand-500 disabled:opacity-60"
+          />
+          <span className="text-[10px] text-zinc-500">Precio fijo que aparecerá en el PDF del cliente (no se calcula por horas).</span>
+        </div>
+      </div>
+
+      {/* Registro interno de pago (solo admin, nunca al PDF) */}
+      {isWorkshopAdmin && (
+        <div className="mt-3 p-3 bg-zinc-950 border border-amber-500/30 rounded-xl space-y-2">
+          <p className="text-[10px] text-amber-400 font-bold uppercase flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> Registro interno de pago · solo admin · no va al PDF</p>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="space-y-1">
+              <label className="text-[10px] text-zinc-500 font-bold uppercase">Horas trabajadas</label>
+              <input
+                type="number" min="0" step="0.25"
+                value={horasFinalesInput}
+                onChange={(e) => setHorasFinalesInput(e.target.value)}
+                placeholder="0.00"
+                className="w-28 px-3 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 text-xs font-mono focus:border-amber-500"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] text-zinc-500 font-bold uppercase">Fecha de pago</label>
+              <input
+                type="date"
+                value={fechaPagoInput}
+                onChange={(e) => setFechaPagoInput(e.target.value)}
+                className="px-3 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 text-xs font-mono focus:border-amber-500"
+              />
+            </div>
+            <button
+              onClick={saveRegistroInternoHoras}
+              className="px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg flex items-center gap-1"
+            >
+              <Save className="w-3.5 h-3.5" /> Guardar
+            </button>
+          </div>
+          <p className="text-[10px] text-zinc-600">Horas y fecha de pago son solo para control interno del taller; nunca se muestran en el PDF del cliente.</p>
+        </div>
+      )}
     </div>
   );
 
@@ -1997,10 +2047,10 @@ export default function WorkshopCrmPage() {
                         {detailJob.autorizacionEstado === 'APROBADO'
                           ? 'El cliente aprobó el presupuesto desde su app.'
                           : detailJob.autorizacionEstado === 'RECHAZADO'
-                          ? 'El cliente rechazó el presupuesto. Ajusta y solicita de nuevo.'
+                          ? 'El cliente rechazó el presupuesto. Puedes ajustar y enviarlo de nuevo.'
                           : detailJob.autorizacionEstado === 'PENDIENTE_APROBACION'
-                          ? 'Presupuesto solicitado · Esperando aprobación del cliente en su app.'
-                          : 'Envía el presupuesto al cliente para que lo apruebe o rechace desde su app con firma.'}
+                          ? 'Presupuesto solicitado · Esperando respuesta del cliente en su app.'
+                          : 'Opcional: envía el presupuesto al cliente si surge un trabajo extra. No bloquea el flujo del vehículo.'}
                       </p>
                       <div className="flex items-center gap-2">
                         <button
@@ -2037,7 +2087,7 @@ export default function WorkshopCrmPage() {
                     </div>
                     {isMechanic && (
                       <p className="text-[11px] text-zinc-500 -mt-3">
-                        Tu rol aquí: pulsa <span className="font-bold text-brand-400">Empezar</span> al iniciar y <span className="font-bold text-red-400">Terminar</span> al finalizar, sube hasta 5 <span className="font-bold text-zinc-300">fotos del arreglo</span> (cámara o galería) y pide insumos o repuestos a almacén. Las horas se registran automáticamente al terminar y solo admin o jefe mecánico las corrigen en la etapa &quot;Terminado&quot;.
+                        Tu rol aquí: pulsa <span className="font-bold text-brand-400">Empezar</span> al iniciar y <span className="font-bold text-red-400">Terminar</span> al finalizar, sube hasta 5 <span className="font-bold text-zinc-300">fotos del arreglo</span> (cámara o galería) y pide insumos o repuestos a almacén. Al terminar solo se guarda tu hora de inicio y fin; las horas a pagar las registra el administrador al finalizar el vehículo.
                       </p>
                     )}
 
@@ -2157,7 +2207,7 @@ export default function WorkshopCrmPage() {
                       )}
                     </div>
 
-                    {/* Servicios en ejecución (las horas se registran en la etapa Terminado) */}
+                    {/* Servicios en ejecución (el admin registra las horas a pagar en la etapa Terminado) */}
                     {!isMechanic && (
                       <div className="pt-4 border-t border-zinc-800">
                         {renderServiciosEditor(!isMechanic)}
@@ -2336,7 +2386,7 @@ export default function WorkshopCrmPage() {
                     </div>
 
                     {renderServiciosEditor(!isMechanic)}
-                    {renderHorasEditables(canEditHours)}
+                    {renderHorasEditables()}
                     {renderPartesTabla(!isMechanic)}
                     {renderTotalesCompleto()}
 
@@ -2573,47 +2623,44 @@ export default function WorkshopCrmPage() {
               {statusModalJob.estado === 'FINALIZADO' ? (
                 <p className="text-xs text-zinc-400">Reabrir a:{(() => { const meta = STATUS_META.INGRESANDO; const Icon = meta.icon; return (<span className={`ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${meta.bg} ${meta.color}`}><Icon className="w-3 h-3" />{meta.label}</span>); })()}</p>
               ) : STATUS_META[statusModalJob.estado]?.next && <p className="text-xs text-zinc-400">Avanzar a:{(() => { const nextKey = STATUS_META[statusModalJob.estado].next!; const meta = STATUS_META[nextKey]; const Icon = meta.icon; return (<span className={`ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${meta.bg} ${meta.color}`}><Icon className="w-3 h-3" />{meta.label}</span>); })()}</p>}
+              {isWorkshopAdmin && prevStatusOf(statusModalJob.estado) && (
+                <p className="text-xs text-zinc-500">Volver atrás a:{(() => { const meta = STATUS_META[prevStatusOf(statusModalJob.estado)!]; const Icon = meta.icon; return (<span className={`ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${meta.bg} ${meta.color}`}><Icon className="w-3 h-3" />{meta.label}</span>); })()}</p>
+              )}
             </div>
-
-            {/* Alertas de transición a Trabajando */}
-            {statusModalJob.estado === 'CHECK_INICIAL' && (
-              <div className="space-y-2 mb-4">
-                {statusModalJob.autorizacionEstado === 'RECHAZADO' && !isWorkshopAdmin && (
-                  <div className="p-3 bg-red-950/30 border border-red-800/50 rounded-xl text-red-300 text-xs flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>El cliente rechazó el presupuesto. Debe acordar un nuevo presupuesto antes de avanzar.</span>
-                  </div>
-                )}
-                {statusModalJob.autorizacionEstado === 'PENDIENTE_APROBACION' && (
-                  <div className={`p-3 rounded-xl text-xs flex items-center gap-2 border ${isWorkshopAdmin ? 'bg-amber-950/30 border-amber-800/50 text-amber-300' : 'bg-red-950/30 border-red-800/50 text-red-300'}`}>
-                    <Clock className="w-4 h-4 shrink-0" />
-                    <span>
-                      {isWorkshopAdmin
-                        ? 'El cliente aún no aprueba el presupuesto en su app. Como administrador puede iniciar de todos modos.'
-                        : 'El cliente aún no aprueba el presupuesto en su app. Solo el administrador del taller puede iniciar.'}
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
 
             <div className="space-y-1.5 mb-6"><label className="text-xs font-semibold text-zinc-300">Observaciones (opcional)</label><textarea value={statusObs} onChange={(e) => setStatusObs(e.target.value)} rows={2} placeholder="Detalles del cambio de estado..." className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:border-brand-500 text-zinc-100 text-sm resize-none" /></div>
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-3 flex-wrap">
               <button onClick={() => setStatusModalJob(null)} className="px-4 py-2.5 bg-zinc-950 border border-zinc-800 hover:bg-zinc-900 rounded-xl text-zinc-300 text-sm font-semibold transition-colors">Cancelar</button>
-              <button
-                onClick={() => {
-                  const target = statusModalJob.estado === 'FINALIZADO' ? 'INGRESANDO' : STATUS_META[statusModalJob.estado]?.next!;
-                  handleStatusChange(target);
-                }}
-                disabled={changingStatus || (statusModalJob.estado === 'INGRESANDO' && !statusModalJob.kilometraje)}
-                className={`px-5 py-2.5 font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50 ${
-                  statusModalJob.estado === 'FINALIZADO'
-                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-zinc-950'
-                    : 'bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white'
-                }`}>
-                {changingStatus ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Cambiando...</span></> : <><CheckCircle2 className="w-4 h-4" /><span>{statusModalJob.estado === 'FINALIZADO' ? 'Reabrir' : 'Confirmar cambio'}</span></>}
-              </button>
+              {isWorkshopAdmin && prevStatusOf(statusModalJob.estado) && (
+                <button
+                  onClick={() => handleStatusChange(prevStatusOf(statusModalJob.estado)!)}
+                  disabled={changingStatus}
+                  className="px-4 py-2.5 bg-zinc-950 border border-amber-500/40 hover:bg-zinc-900 text-amber-400 text-sm font-bold rounded-xl flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  title="Volver a la etapa anterior (solo administrador)"
+                >
+                  <ArrowRight className="w-4 h-4 rotate-180" />
+                  <span>Volver a {STATUS_META[prevStatusOf(statusModalJob.estado)!].label}</span>
+                </button>
+              )}
+              {(statusModalJob.estado !== 'FINALIZADO' || isWorkshopAdmin) && (
+                <button
+                  onClick={() => {
+                    const target = statusModalJob.estado === 'FINALIZADO' ? 'INGRESANDO' : STATUS_META[statusModalJob.estado]?.next!;
+                    handleStatusChange(target);
+                  }}
+                  disabled={changingStatus || (statusModalJob.estado === 'INGRESANDO' && !statusModalJob.kilometraje)}
+                  className={`px-5 py-2.5 font-bold rounded-xl text-sm transition-all flex items-center gap-2 disabled:opacity-50 ${
+                    statusModalJob.estado === 'FINALIZADO'
+                      ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-zinc-950'
+                      : 'bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white'
+                  }`}>
+                  {changingStatus ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Cambiando...</span></> : <><CheckCircle2 className="w-4 h-4" /><span>{statusModalJob.estado === 'FINALIZADO' ? 'Reabrir' : 'Confirmar cambio'}</span></>}
+                </button>
+              )}
             </div>
+            {statusModalJob.estado === 'FINALIZADO' && !isWorkshopAdmin && (
+              <p className="text-[11px] text-zinc-500 text-right mt-2">Solo el administrador del taller puede reabrir este vehículo.</p>
+            )}
           </div>
         </div>
       )}
@@ -2745,7 +2792,7 @@ export default function WorkshopCrmPage() {
 
             <div className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-zinc-300">Precio base de mano de obra / servicio ($)</label>
+                <label className="text-xs font-semibold text-zinc-300">Precio base del servicio ($)</label>
                 <input
                   type="number"
                   min="0"

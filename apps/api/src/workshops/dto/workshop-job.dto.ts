@@ -156,6 +156,32 @@ export class UpdateWorkshopJobDto {
   @Min(0)
   precioServicio?: number;
 
+  @ApiProperty({
+    required: false,
+    description: 'Precio fijo de mano de obra que ve el cliente (no se calcula por horas)',
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  precioManoObra?: number;
+
+  @ApiProperty({
+    required: false,
+    description: 'Horas trabajadas al finalizar (interno, solo admin; no va al PDF)',
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  horasTrabajadasFinal?: number;
+
+  @ApiProperty({
+    required: false,
+    description: 'Fecha en que se pagará esas horas (interno, solo admin; no va al PDF)',
+  })
+  @IsOptional()
+  @IsString()
+  fechaPagoHoras?: string;
+
   @ApiProperty({ required: false, enum: ['DIRECTO', 'COTIZACION'] })
   @IsOptional()
   @IsIn(['DIRECTO', 'COTIZACION'])
